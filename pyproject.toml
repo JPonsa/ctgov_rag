@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "ctogov-rag"
+version = "0.1.0"
+description = "Retrieval Augmented Generation (RAG) system to query and analyse Clinical Trial (CT) protocols from clinicaltrials.gov (ct.gov) using Large Language Models (LLMs)"
+authors = ["JPonsa <joan.ponsa.cobas@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+llama-index = "^0.10.20"
+dspy-ai = "^2.4.0"
+torch = "^2.2.1"
+Trial2Vec = "^0.1.0"
+pandas = "^2.2.1"
+ollama = "^0.1.7"
+tqdm = "^4.66.2"
+sqlalchemy = "^2.0.28"
+transformers = "^4.38.2"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.3"
+black = "^24.3.0"
+isort = "^5.13.2"
+biocypher = "^0.5.40"
+pymongo = "^4.6.2"
+python-dotenv = "^1.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

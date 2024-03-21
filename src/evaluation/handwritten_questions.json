@@ -1,0 +1,56 @@
+{
+    "instructions_template": {
+        "study": [
+            "What is the title in study {nctId}?",
+            "Summarise study {nctId}.",
+            "Is study {nctId} and interventional or observational study? [INTERVENTIONAL, OBSERVATIONAL]",
+            "What condition is studied in study {nctId}?",
+            "Is {condition} studied in study {nctId}? [TRUE, FALSE]",
+            "What drugs / treatments is studied in study {nctId}?",
+            "In what phase is study {nctId}? Select one :[NA - Not Applicable, EARLY_PHASE1 - Early Phase 1, PHASE1 - Phase 1, PHASE2 - Phase 2, PHASE3 - Phase 3,  PHASE4 - Phase 4]",
+            "Describe study {nctId} as a PICO question. Where \"P\" stands for Population/Patient/Problem.\"I\" for Intervention.\"C\" for Comparison and \"O\" for Outcome. For example: In adult patients with total hip replacements (Population), how effective is pain medication (Intervention) compared to aerobic stretching (Comparison) in controlling post operative pain (Outcome) during the perioperative and recovery time (Time)?"
+        ],
+        "enrollment": [
+            "Describe the enrollment protocol for study {nctId}.",
+            "What is the eligibility criteria for study {nctId}?",
+            "What is what is the min. and max. age range in study {nctId}?",
+            "How many patients are recruited in study {nctId}?",
+            "Describe the method of participant recruitment utilized in study {nctId}."
+        ],
+        "interventional_study": [
+            "Describe the intervention model in study {nctId}",
+            "Describe the primary purpose of study {nctId}",
+            "What is the purpose of study {nctId}?\na) Treatment\nb) Prevention\nc) Diagnostic\nd) Educational/Counseling/Training\ne) Supportive Care\nf) Screening\ng) Health Services Research\nh) Basic Science\ni) Device Feasibility\nj) Other",
+            "What intervention types are used in this study? [BEHAVIORAL, BIOLOGICAL, COMBINATION_PRODUCT, DEVICE, DIAGNOSTIC_TEST, DIETARY_SUPPLEMENT,DRUG, GENETIC, PROCEDURE, RADIATION, OTHER]",
+            "Are there any blinding procedures implemented in study {nctId}? If so, describe them.",
+            "Is blinding (a.k.a. masking) implemented in study {nctId}? If so, select relevant from [PARTICIPANT, CARE_PROVIDER, INVESTIGATOR, OUTCOMES_ASSESSOR, NA]",
+            "What is the allocation strategy employed in study {nctId}? [RANDOMIZED, NON_RANDOMIZED, NA]"
+        ],
+        "observational_study": [
+            "Does study {nctId} uses a patient registry? [TRUE, FALSE]",
+            "What is the study population in study {nctId}?",
+            "What type of observational model is used in {nctId}?\na) Cohort\nb) Case-Control\nc) Case-Only\nd)Case-CrossOver\ne) Ecologic\nf) Family-based\ng) Defined Population\nh) Natural History\ni) Other",
+            "What is the design time frame in study {nctId}?\na) Retrospective\nb) Prospective\nc) Cross-Sectional\nd) Other"
+        ],
+        "condition": [
+            "What studied investigate {condition}?",
+            "What drugs / treatments have been applied to {condition}?",
+            "Is study {nctId} investigating {condition}? [TRUE, FALSE]",
+            " Are there any inclusion criteria related to the severity of the {condition} in study {nctId}? If so, provide details."
+        ],
+        "outcome": [
+            "Describe the outcomes of study {nctId}",
+            "What are the outcomes of study {nctId}?",
+            "is {outcome} measured in study {nctId}? [TRUE, FALSE]?",
+            "Outline the primary outcome measure(s) assessed in study {nctId}"
+        ],
+        "results": [
+            "Is there a results section for study {nctId}?",
+            "Describe results in study {nctId}?"
+        ],
+        "advers_events": [
+            "Where there any adverse events described in study {nctId}?",
+            "Are there any reported adverse events for {intervention}? If so, list them.",
+            "Provide examples of common adverse events observed in previous studies involving {intervention}."
+        ]
+    }

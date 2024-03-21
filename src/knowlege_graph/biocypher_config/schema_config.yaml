@@ -1,0 +1,266 @@
+clinical trial:
+    represented_as: node
+    preferred_id: id
+    input_label: study
+    properties:
+        brief_title: str
+        official_title: str
+        status: str
+        brief_summary: str
+        detailed_description: str
+        keywords: str[]
+        phases: str
+        study_type: str
+        why_stopped: str
+        # allocation: str
+        # model: str
+        # primary_purpose: str
+        # number_of_patients: str
+        # eligibility_criteria: str
+        # healthy_volunteers: bool
+        # sex: str
+        # minimum_age: str
+        # maximum_age: str
+        # standardised_ages: str[]
+
+intervention:
+    represented_as: node
+    input_label: intervention
+    is_a: clinical intervention
+    properties:
+        name: str
+        type: str
+        mapped_names: str[]
+        # mechanism of action: str
+        # target: str
+        # adverse event: str
+        # contraindication: str
+
+organisation:
+    is_a: administrative entity
+    represented_as: node
+    input_label: organisation
+    properties:
+        name: str
+        class: str
+
+sponsor:
+    is_a: administrative entity
+    represented_as: node
+    input_label: sponsor
+
+outcome:
+    is_a: clinical entity
+    represented_as: node
+    input_label: outcome
+    properties:
+        primary: bool
+        measure: str
+        timeframe: str
+        description: str
+
+outcome measure:
+    is_a: clinical measurement
+    represented_as: node
+    input_label: outcome measure
+    properties:
+        description: str
+
+condition:
+    represented_as: node
+    input_label: condition
+    synonym_for: disease
+
+location:
+    synonym_for: geographic location
+    represented_as: node
+    input_label: location
+    properties:
+        country: str
+        state: str
+        city: str
+
+eligibility:
+    represented_as: node
+    input_label: eligibility
+    is_a: study population
+    properties:
+        sex: str
+        healthy_volunteers: bool
+        minimum_age: str
+        maximum_age: str
+        standardised_ages: str[]
+        eligibility_criteria: str
+
+biospec:
+    represented_as: node
+    input_label: biospec
+    is_a: biosample
+    properties:
+        retention: str
+        description: str
+
+arm group:
+    represented_as: node
+    input_label: arm_group
+    is_a: study population
+    properties:
+        label: str
+        type: str
+        description: str
+
+intervention protocol:
+    represented_as: node
+    input_label: intervention_protocol
+    is_a: publication
+    properties:
+        model: str
+        description: str
+        allocation: str
+        masking: str[]
+        masking_description: str
+
+observation protocol:
+    represented_as: node
+    input_label: observation_protocol
+    is_a: publication
+    properties:
+        model: str
+        time_perspective: str
+        patient_registry: bool
+        sampling_method: str
+
+adverse event:
+    represented_as: node
+    input_label: adverse_event
+    is_a: adverse_event_of
+    properties:
+        term: str
+        serious_event: bool
+        organ_system: str
+        source_vocabulary: str
+        assessment_type: str
+        notes: str
+        stats: str
+
+adverse event group:
+    represented_as: node
+    input_label: adverse_event_group
+    is_a: study population
+    properties:
+        title: str
+        description: str
+
+adverse event protocol:
+    represented_as: node
+    input_label: adverse_event_protocol
+    is_a: publication
+    properties:
+        timeframe: str
+        description: str
+
+study to condition:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_condition
+    source: study
+    target: condition
+
+study to organisation:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_orgnisation
+    source: study
+    target: organisation
+
+study to intervention association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_intervention
+    source: study
+    target: intervention
+    properties:
+
+study to outcome association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_outcome
+    source: study
+    target: outcome
+
+study to location association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_location
+    source: study
+    target: location
+
+study to sponsor association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_sponsor
+    source: study
+    target: sponsor
+
+study to arm_group association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_arm_group
+    source: study
+    target: arm_group
+
+study to eligibility association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_eligibility
+    source: study
+    target: eligibility
+
+study to biospec association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_biospec
+    source: study
+    target: eligibility
+
+study to intervention protocol association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_intervention_protocol
+    source: study
+    target: intervention_protocol
+
+study to observation protocol association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_observation_protocol
+    source: study
+    target: observation_protocol
+
+study to adverse event association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_adverse_event
+    source: study
+    target: adverse_event
+
+study to adverse event group association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_adverse_event_group
+    source: study
+    target: adverse_event_group
+
+study to adverse event group protocol association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_adverse_event_protocol
+    source: study
+    target: adverse_event_group_protocol
+
+study to outcome_measure  association:
+    is_a: association
+    represented_as: edge
+    input_label: study_has_outcome_measure
+    source: study
+    target: outcome_measure

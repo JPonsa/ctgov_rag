@@ -1,0 +1,254 @@
+query_1:
+  question: |
+    Which clinical trials ids have been identified with the condition 'Heart Failure'
+    and are conducted in the United Kingdom, Spain, and France, 
+    while also involving interventions related to either 
+    Angiotensin II Receptor Blockers or Sacubitril?
+  SQL: |
+    SELECT distinct A.nct_id
+    FROM browse_conditions AS A
+    LEFT JOIN countries AS B ON A.nct_id = B.nct_id
+    LEFT JOIN interventions AS C ON A.nct_id = C.nct_id
+    WHERE A.mesh_term ILIKE 'heart failure' AND 
+          LOWER(B.name) IN ('united kingdom', 'spain', 'france') AND 
+          (C.name ILIKE '%angiotensin ii receptor blocker%' OR 
+           C.name ILIKE '%sacubitril%');
+
+query_2:
+  question: |
+    Which clinical trial ids are associated with the condition 'Asthma'
+    and conducted in the United States, China, and India, 
+    while involving the intervention 'Xhance', and reporting 
+    more than five affected subjects in either deaths or serious adverse events?
+  SQL: |
+    SELECT distinct (A.nct_id)
+    FROM browse_conditions AS A
+    LEFT JOIN countries AS B ON A.nct_id = B.nct_id
+    LEFT JOIN browse_interventions AS C ON A.nct_id = C.nct_id
+    LEFT JOIN reported_event_totals AS D ON A.nct_id = D.nct_id
+    WHERE A.mesh_term ILIKE 'asthma'AND 
+          LOWER(B.name) IN ('united states', 'china', 'india') AND 
+          C.mesh_term ILIKE 'xhance' AND 
+          LOWER(D.event_type) in ('deaths', 'serious') AND 
+          D.subjects_affected >5;
+
+query_3:
+  question: |
+    Find clinical trials ids for studies where the condition studied is either 'Heart Failure' or 'Asthma'. 
+    The trials must be conducted in an European Union country or UK.
+    Additionally, the eligibility inclusion criteria  must include phrases related to race,
+    such AS 'black', 'african', or 'hispanic'.
+  SQL: |
+    SELECT DISTINCT A.nct_id
+    FROM browse_conditions AS A
+    LEFT JOIN countries AS B ON A.nct_id = B.nct_id
+    LEFT JOIN eligibilities AS C ON A.nct_id = C.nct_id
+    WHERE LOWER(A.mesh_term) IN ('heart failure', 'asthma')
+    AND LOWER(B.name) IN (
+        'austria', 'belgium', 'bulgaria', 'croatia', 'cyprus', 'czech republic', 'denmark',
+        'estonia', 'finland', 'france', 'germany', 'greece', 'hungary', 'ireland', 'italy',
+        'latvia', 'lithuania', 'luxembourg', 'malta', 'netherlands', 'poland', 'portugal',
+        'romania', 'slovakia', 'slovenia', 'spain', 'sweden', 'united kingdom'
+    )
+    AND (C.criteria ILIKE 'inclusion criteria% black %exclusion criteria%'
+        OR C.criteria ILIKE 'inclusion criteria% african %exclusion criteria%'
+        OR C.criteria ILIKE 'inclusion criteria% hispanic %exclusion criteria%'
+        );
+
+query_4:
+  question: |
+    What are the top 10 interventions for each intervention type 
+    in studies related to Heart Failure,
+    ranked by the number of distinct study IDs they appear in, 
+    along with their respective counts?
+  SQL: |
+    WITH InterventionCounts AS (
+        SELECT
+            i.intervention_type,
+            LOWER(i.name) AS intervention_name,
+            COUNT(DISTINCT i.nct_id) AS intervention_count,
+            ROW_NUMBER() OVER (PARTITION BY i.intervention_type ORDER BY COUNT(DISTINCT i.nct_id) DESC) AS intervention_rank
+        FROM studies AS s
+        LEFT JOIN browse_conditions AS bc ON s.nct_id = bc.nct_id
+        LEFT JOIN interventions AS i ON s.nct_id = i.nct_id
+        WHERE bc.mesh_term ILIKE 'Heart Failure' AND i.name IS NOT NULL
+        GROUP BY i.intervention_type, LOWER(i.name)
+    )
+    SELECT intervention_type, intervention_name, intervention_count
+    FROM InterventionCounts
+    WHERE intervention_rank <= 10
+    ORDER BY intervention_type, intervention_count DESC;
+
+query_5:
+  question: |
+    List of clinical trials ids for studies conducted in European countries or UK 
+    that involve interventions related to either adrenergic agents or neurotransmitter agents
+    where the eligibility criteria indicates a minimum and maximum ages 
+    being greater than or equal to 30 and 80, respectively; 
+    and containing phrases related to Parkinson's disease in their inclusion criteria.
+  SQL: |
+    SELECT distinct e.nct_id
+    FROM browse_interventions b
+    JOIN studies s ON b.nct_id = s.nct_id
+    JOIN countries c ON s.nct_id = c.nct_id
+    JOIN eligibilities e ON s.nct_id = e.nct_id
+    WHERE (b.mesh_term ILIKE '%adrenergic agents%'
+           OR b.mesh_term ILIKE '%neurotransmitter agents%')
+          AND LOWER(c.name) IN (
+                  'austria', 'belgium', 'bulgaria', 'croatia', 'cyprus', 'czech Republic', 'denmark',
+                  'estonia', 'finland', 'france', 'germany', 'greece', 'hungary', 'ireland', 'italy',
+                  'latvia', 'lithuania', 'luxembourg', 'malta', 'netherlands', 'poland', 'portugal',
+                  'romania', 'slovakia', 'slovenia', 'spain', 'sweden', 'united kingdom'
+              )
+          AND (e.minimum_age != 'N/A' AND e.maximum_age != 'N/A')
+          AND (CAST(SPLIT_PART(e.minimum_age, ' ', 1) AS INTEGER) >= 30 
+                AND CAST(SPLIT_PART(e.maximum_age, ' ', 1) AS INTEGER) >= 80)
+          AND e.criteria ILIKE '%inclusion criteria:%parkinso%exclusion criteria:%';
+
+query_6:
+  question: |
+    What are the unique clinical trial IDs and intervention names involving devices, 
+    conducted in the United States, Canada, or Australia, 
+    with eligibility criteria mentioning 'asthma exacerbations'?
+  SQL: |
+    SELECT distinct i.nct_id, i.name
+    FROM interventions i
+    JOIN eligibilities e ON i.nct_id = e.nct_id
+    JOIN countries c ON i.nct_id = c.nct_id
+    WHERE LOWER(i.intervention_type) = 'device'
+    AND LOWER(c.name) IN ('united states', 'canada', 'australia')
+    AND e.criteria ILIKE '%asthma exacerbations%';
+
+query_7:
+  question: |
+    What distinct interventions associated with studies where the eligibility criteria 
+    mentions the absence of New York Heart Association Class heart disease, 
+    and where participants are female, age between 30 and 80 years?
+  SQL: |
+    SELECT distinct b.downcase_mesh_term
+    FROM browse_interventions b
+    JOIN eligibilities e ON b.nct_id = e.nct_id
+    WHERE (e.criteria ILIKE '%no new york heart association class%heart disease%') AND 
+          (e.gender ILIKE 'Female') AND 
+          (e.minimum_age != 'N/A' AND e.maximum_age != 'N/A') AND 
+          (CAST(SPLIT_PART(e.minimum_age, ' ', 1) AS INTEGER) <= 30 AND 
+           CAST(SPLIT_PART(e.maximum_age, ' ', 1) AS INTEGER) >= 80);
+
+query_8:
+  question: Count of clinical trials for each intervention type
+  SQL: |
+    SELECT i.intervention_type, count(distinct i.nct_id)
+    FROM interventions AS i
+    GROUP BY i.intervention_type
+
+query_9:
+  question: Progression of intervention types over the years.
+  SQL: |
+    SELECT 
+      i.intervention_type, 
+      date_part('year', s.start_date) AS year, 
+      count(distinct i.nct_id) AS studies
+    FROM  interventions AS i, studies AS s
+    WHERE s.nct_id = i.nct_id
+    GROUP BY  i.intervention_type, date_part('year', s.start_date)
+    ORDER BY i.intervention_type, year;
+
+query_10:
+  question: Most recent new interventions, grouped by study source.
+  SQL: |
+    SELECT 
+        i.intervention_type AS intervention_type, 
+        lower(i.name) AS intervention_name,
+        s.study_type AS study_type,
+        s.source AS study_source,
+        count(distinct i.nct_id) AS studies,
+        min(date_part('year', s.study_first_submitted_date)) AS year_of_first_study
+    FROM interventions AS i, studies AS s
+    WHERE
+        s.nct_id = i.nct_id AND
+        i.name not ILIKE '%placebo%' AND
+        s.study_first_submitted_date > '2015-01-01'
+    GROUP BY
+        i.intervention_type,
+        i.name,
+        s.study_type,
+        s.source
+    ORDER BY
+        year_of_first_study desc,
+        studies desc,
+        i.intervention_type,
+        i.name
+    LIMIT 100
+
+query_11:
+  question: |
+    Top 20 the interventions, along with their types, study types, study sources, sponsor names, number of studies conducted, and the year of the earliest study submission, 
+    for studies submitted in the past 10 years, excluding those involving placebos. The results should be sorted by the year of the earliest study submission in descending order, 
+    followed by the number of studies conducted in descending order, and then by intervention type and name."
+  SQL: |
+    SELECT 
+      i.intervention_type AS intervention_type, 
+      LOWER(i.name) AS intervention_name,
+      s.study_type AS study_type,
+      s.source AS study_source,
+      ss.name,
+      COUNT(distinct i.nct_id) AS studies,
+      MIN(date_part('year', s.study_first_submitted_date)) AS year_of_first_study
+    FROM interventions AS i
+    LEFT OUTER JOIN sponsors AS ss ON i.nct_id = ss.nct_id
+    LEFT JOIN studies AS s ON i.nct_id = s.nct_id
+    WHERE
+      s.nct_id = i.nct_id and
+      i.name NOT ILIKE '%placebo%' AND
+      EXTRACT(YEAR FROM s.study_first_submitted_date) >= EXTRACT(YEAR FROM NOW()) - 10
+    GROUP BY
+      i.intervention_type,
+      i.name,
+      s.study_type,
+      s.source,
+      ss.name
+    ORDER BY
+        year_of_first_study DESC,
+        studies DESC,
+        i.intervention_type,
+        i.name
+    LIMIT 20
+
+query_12:
+  question: |
+    What are the top 10 sponsors, based on the count of distinct drug interventions 
+    conducted in the last two years, excluding those involving placebo?
+  SQL: |
+    WITH interventions1 AS (
+      SELECT 
+          i.intervention_type AS intervention_type, 
+          LOWER(i.name) AS intervention_name,
+          MIN(date_part('year', s.study_first_submitted_date)) AS year_of_first_study
+      FROM interventions AS i
+      LEFT JOIN studies AS s ON i.nct_id = s.nct_id
+      WHERE
+          LOWER(i.intervention_type) = 'drug' AND
+          s.nct_id = i.nct_id AND
+          i.name NOT ILIKE '%placebo%'
+      GROUP BY i.intervention_type, i.name
+      ORDER BY 
+        year_of_first_study desc,
+        i.intervention_type,
+        i.name
+    )
+    SELECT
+      ss.name AS sponsor_name,
+      ss.agency_class AS sponsor_agency_class,
+      ss.lead_or_collaborator, 
+      COUNT(distinct i2.intervention_name) AS interventions
+    FROM 
+      interventions AS i1,
+      interventions1 AS i2,
+      sponsors AS ss
+    WHERE
+        LOWER(i1.name) = i2.intervention_name AND
+        i1.nct_id = ss.nct_id AND
+        i2.year_of_first_study >=EXTRACT(YEAR FROM NOW()) - 2;
+    GROUP BY ss.name, sponsor_agency_class, ss.lead_or_collaborator
+    ORDER BY interventions DESC, ss.name ASC, ss.lead_or_collaborator ASC
+    LIMIT 10
