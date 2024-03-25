@@ -864,6 +864,12 @@ class ctGovAdapter:
                 formatted_props = check_node_props(props)
                 yield (name, "outcome", formatted_props)
 
+        if ctGovAdapterNodeType.OUTCOME_MEASURES in self.node_types:
+            for name, props in self._outcomes.items():
+                name = _check_str_format(name)
+                formatted_props = check_node_props(props)
+                yield (name, "outcome_measure", formatted_props)
+
         if ctGovAdapterNodeType.INTERVENTION in self.node_types:
             for name, props in self._interventions.items():
                 name = _check_str_format(name)
