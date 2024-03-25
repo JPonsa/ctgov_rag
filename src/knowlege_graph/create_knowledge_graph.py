@@ -7,7 +7,7 @@ from biocypher_adapter.ctgov_adapter import ctGovAdapter
 if __name__ == "__main__":
 
     biocypher_config_dir = "./src/knowlege_graph/biocypher_config/"
-    output_dir = "./data/preprocessed/knowledge_graph/"
+    output_dir = "./data/raw/knowledge_graph/"
 
     # Create or clear output dir
     if os.path.exists(output_dir):  # Check if directory exists
