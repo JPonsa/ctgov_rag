@@ -61,6 +61,7 @@ class ctGovAdapterNodeType(Enum):
     ORGANISATION = auto()
     SPONSOR = auto()
     OUTCOME = auto()
+    OUTCOME_MEASURES = auto()
     INTERVENTION = auto()
     CONDITION = auto()
     LOCATION = auto()
@@ -69,7 +70,6 @@ class ctGovAdapterNodeType(Enum):
     ARM_GROUP = auto()
     INTERVENTION_PROTOCOL = auto()
     OBSERVATION_PROTOCOL = auto()
-    OUTCOME_MEASURES = auto()
     ADVERSE_EVENT = auto()
     ADVERSE_EVENT_GROUP = auto()
     ADVERSE_EVENT_PROTOCOL = auto()
@@ -118,6 +118,7 @@ class ctGovAdapterEdgeType(Enum):
     STUDY_TO_ORGANISATION = auto()
     STUDY_TO_SPONSOR = auto()
     STUDY_TO_OUTCOME = auto()
+    STUDY_TO_OUTCOME_MEASURE = auto()
     STUDY_TO_INTERVENTION = auto()
     STUDY_TO_CONDITION = auto()
     STUDY_TO_LOCATION = auto()
@@ -206,6 +207,8 @@ class ctGovAdapter:
         # results
         self._baseline = {}
         self._outcome_measures = {}
+
+        # BUG: outcome measure not getting exported to file
 
         # Edges
         self._study_to_org_edges = []
@@ -865,7 +868,7 @@ class ctGovAdapter:
                 yield (name, "outcome", formatted_props)
 
         if ctGovAdapterNodeType.OUTCOME_MEASURES in self.node_types:
-            for name, props in self._outcomes.items():
+            for name, props in self._outcome_measures.items():
                 name = _check_str_format(name)
                 formatted_props = check_node_props(props)
                 yield (name, "outcome_measure", formatted_props)
@@ -953,6 +956,9 @@ class ctGovAdapter:
 
         if ctGovAdapterEdgeType.STUDY_TO_OUTCOME in self.edge_types:
             yield from self._study_to_outcome_edges
+
+        if ctGovAdapterEdgeType.STUDY_TO_OUTCOME_MEASURE in self.edge_types:
+            yield from self._study_to_outcome_measure_edges
 
         if ctGovAdapterEdgeType.STUDY_TO_LOCATION in self.edge_types:
             yield from self._study_to_location_edges
