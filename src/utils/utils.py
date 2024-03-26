@@ -42,3 +42,13 @@ def connect_to_mongoDB(user: str, pwd: str, app_name: str = "cluster0") -> Mongo
         return client
     except Exception as e:
         print(e)
+
+
+def print_red(text):
+    """Print a text message in Red"""
+    print("\033[91m" + text + "\033[0m")
+
+
+def print_green(text):
+    """Print a text message in Green"""
+    print("\033[92m" + text + "\033[0m")
