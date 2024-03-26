@@ -79,6 +79,7 @@ target/
 # exclude data from source control by default
 /data/
 .chroma/
+/trial_serch/
 
 # Mac OS-specific storage files
 .DS_Store
@@ -92,3 +93,6 @@ target/
 
 # Models
 .bin
+
+# poetry
+poetry.lock
