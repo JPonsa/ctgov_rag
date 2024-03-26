@@ -32,6 +32,9 @@ def enconde_node(inp_path, out_path, node_name, term, prefix: str = ""):
 
     for i, row in tqdm(df.iterrows(), desc=f"Embedding {node_name}"):
 
+        if i > 10:  # TODO: keep it to top 10 for testing
+            break
+
         sentence = prefix + row[term]
 
         t2v = trial2vec_model.sentence_vector(sentence)
@@ -69,7 +72,7 @@ def main():
     trial2vec_model = Trial2Vec(device=device)
     trial2vec_model.from_pretrained()
 
-    inp_path = "./data/preprocessed/knowledge_graph/"
+    inp_path = "./data/raw/knowledge_graph/"
     out_path = "./data/preprocessed/knowledge_graph/"
 
     if not os.path.exists(out_path):
