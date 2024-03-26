@@ -23,7 +23,7 @@ intervention:
         type: str
         mapped_names: str[]
         trial2vec_emb: float[]
-        biobert_emb: flaot[]
+        biobert_emb: float[]
 
 organisation:
     is_a: administrative entity
@@ -48,7 +48,7 @@ outcome:
         timeframe: str
         description: str
         trial2vec_emb: float[]
-        biobert_emb: flaot[]
+        biobert_emb: float[]
 
 outcome measure:
     is_a: clinical measurement
@@ -61,6 +61,9 @@ condition:
     represented_as: node
     input_label: condition
     synonym_for: disease
+    properties:
+        trial2vec_emb: float[]
+        biobert_emb: float[]
 
 location:
     synonym_for: geographic location
@@ -83,7 +86,7 @@ eligibility:
         standardised_ages: str[]
         eligibility_criteria: str
         trial2vec_emb: float[]
-        biobert_emb: flaot[]
+        biobert_emb: float[]
 
 biospec:
     represented_as: node
@@ -93,7 +96,7 @@ biospec:
         retention: str
         description: str
         trial2vec_emb: float[]
-        biobert_emb: flaot[]
+        biobert_emb: float[]
 
 arm group:
     represented_as: node
@@ -138,7 +141,7 @@ adverse event:
         notes: str
         stats: str
         trial2vec_emb: float[]
-        biobert_emb: flaot[]
+        biobert_emb: float[]
 
 adverse event group:
     represented_as: node
