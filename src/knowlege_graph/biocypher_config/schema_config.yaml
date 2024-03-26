@@ -12,16 +12,7 @@ clinical trial:
         phases: str
         study_type: str
         why_stopped: str
-        # allocation: str
-        # model: str
-        # primary_purpose: str
-        # number_of_patients: str
-        # eligibility_criteria: str
-        # healthy_volunteers: bool
-        # sex: str
-        # minimum_age: str
-        # maximum_age: str
-        # standardised_ages: str[]
+        trial2vec_emb: float[]
 
 intervention:
     represented_as: node
@@ -31,10 +22,8 @@ intervention:
         name: str
         type: str
         mapped_names: str[]
-        # mechanism of action: str
-        # target: str
-        # adverse event: str
-        # contraindication: str
+        trial2vec_emb: float[]
+        biobert_emb: flaot[]
 
 organisation:
     is_a: administrative entity
@@ -58,6 +47,8 @@ outcome:
         measure: str
         timeframe: str
         description: str
+        trial2vec_emb: float[]
+        biobert_emb: flaot[]
 
 outcome measure:
     is_a: clinical measurement
@@ -91,6 +82,8 @@ eligibility:
         maximum_age: str
         standardised_ages: str[]
         eligibility_criteria: str
+        trial2vec_emb: float[]
+        biobert_emb: flaot[]
 
 biospec:
     represented_as: node
@@ -99,6 +92,8 @@ biospec:
     properties:
         retention: str
         description: str
+        trial2vec_emb: float[]
+        biobert_emb: flaot[]
 
 arm group:
     represented_as: node
@@ -142,6 +137,8 @@ adverse event:
         assessment_type: str
         notes: str
         stats: str
+        trial2vec_emb: float[]
+        biobert_emb: flaot[]
 
 adverse event group:
     represented_as: node
