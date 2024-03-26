@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -7,7 +8,7 @@ from tqdm import tqdm
 from trial2vec import Trial2Vec
 
 from src.embeddings.embeddings import BioBert2Vect
-from src.utils.utils import get_clinical_trial_study
+from src.utils.utils import get_clinical_trial_study, print_green, print_red
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -23,7 +24,7 @@ def enconde_node(inp_path, out_path, node_name, term, prefix: str = ""):
     df = pd.read_csv(f"{inp_path}{node_name}-part000.csv", sep="\t", header=None)
     df.columns = header.columns
 
-    df["tria2vec_emb:double[]"] = df["tria2vec_emb:double[]"].astype(object)
+    df["trial2vec_emb:double[]"] = df["trial2vec_emb:double[]"].astype(object)
     df["biobert_emb:double[]"] = df["biobert_emb:double[]"].astype(object)
 
     formatter = {"float": lambda x: "%.10f" % x}
@@ -37,6 +38,7 @@ def enconde_node(inp_path, out_path, node_name, term, prefix: str = ""):
 
         sentence = prefix + row[term]
 
+        # Convert sentence to trial2vec embedding
         t2v = trial2vec_model.sentence_vector(sentence)
         t2v = t2v[0].numpy()
         t2v = (
@@ -50,6 +52,7 @@ def enconde_node(inp_path, out_path, node_name, term, prefix: str = ""):
         )
         df.at[i, "tria2vec_emb:double[]"] = t2v
 
+        # Convert sentence to biobert embedding
         bio = biobert2vect.get_sentence_embedding(sentence, method="last_hidden_state")
         bio = bio[0]
         bio = (
@@ -75,15 +78,34 @@ def main():
     inp_path = "./data/raw/knowledge_graph/"
     out_path = "./data/preprocessed/knowledge_graph/"
 
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
+    if os.path.exists(out_path):
+        print_red(f"WARNING! {out_path} already exist! in will be overwritten!")
+        shutil.rmtree(out_path)
 
-    enconde_node(inp_path, out_path, "AdverseEvent", "term", "Adverse Event: ")
-    enconde_node(inp_path, out_path, "Biospec", "description")
-    enconde_node(inp_path, out_path, "Condition", ":ID", "Condition: ")
-    enconde_node(inp_path, out_path, "Eligibility", "eligibility_criteria")
-    enconde_node(inp_path, out_path, "Intervention", ":ID")
-    enconde_node(inp_path, out_path, "Outcome", "measure")
+    # Copy the entire input directory into the output directory
+    shutil.copytree(inp_path, out_path)
+
+    enconde_node(out_path, out_path, "AdverseEvent", "term", "Adverse Event: ")
+    enconde_node(out_path, out_path, "Biospec", "description")
+    enconde_node(out_path, out_path, "Condition", ":ID", "Condition: ")
+    enconde_node(out_path, out_path, "Eligibility", "eligibility_criteria")
+    enconde_node(out_path, out_path, "Intervention", ":ID")
+    enconde_node(out_path, out_path, "Outcome", "measure")
+
+    # update neo4j-admin command
+    neo4j_admin = "neo4j-admin-import-call-windows.sh"
+
+    with open(inp_path + neo4j_admin, "r") as f:
+        command = f.readline()
+
+    windows_inp_path = inp_path.replace("./", "/").replace("/", ("\\"))
+    windows_out_path = out_path.replace("./", "/").replace("/", ("\\"))
+    command = command.replace(windows_inp_path, windows_out_path)
+
+    with open(out_path + neo4j_admin, "w") as f:
+        command = f.write(command)
+
+    print_green(f"Knowledge Graph Node Embedding COMPLETED. See {out_path}")
 
 
 if __name__ == "__main__":
