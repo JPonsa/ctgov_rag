@@ -96,4 +96,4 @@ target/
 .bin
 
 # poetry
-poetry.lock
+.lock
