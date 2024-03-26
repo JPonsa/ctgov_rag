@@ -53,7 +53,7 @@ outcome:
 outcome measure:
     is_a: clinical measurement
     represented_as: node
-    input_label: outcome measure
+    input_label: outcome_measure
     properties:
         description: str
 
