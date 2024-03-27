@@ -33,9 +33,6 @@ def enconde_node(inp_path, out_path, node_name, term, prefix: str = ""):
 
     for i, row in tqdm(df.iterrows(), desc=f"Embedding {node_name}"):
 
-        if i > 10:  # TODO: keep it to top 10 for testing
-            break
-
         sentence = prefix + row[term]
 
         # Convert sentence to trial2vec embedding
@@ -50,7 +47,7 @@ def enconde_node(inp_path, out_path, node_name, term, prefix: str = ""):
             .replace("]", "")
             .replace(" ", "")
         )
-        df.at[i, "tria2vec_emb:double[]"] = t2v
+        df.at[i, "trial2vec_emb:double[]"] = t2v
 
         # Convert sentence to biobert embedding
         bio = biobert2vect.get_sentence_embedding(sentence, method="last_hidden_state")
