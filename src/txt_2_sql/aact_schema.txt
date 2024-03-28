@@ -1,0 +1,359 @@
+# db schema/context from langchain_community.utilities.SQLDatabase.get_tables_info
+
+CREATE TABLE brief_summaries (
+	nct_id VARCHAR NOT NULL,  -- Clinical Trial study unique id
+	description TEXT,  -- Clinical trial description / brief summary
+	CONSTRAINT brief_summaries_pkey PRIMARY KEY (id), 
+	CONSTRAINT brief_summaries_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from brief_summaries table:
+nct_id	description
+NCT01308385	Despite enormous progress insufficient postoperative pain management remains a frequent problem in t
+NCT05280444	The purpose of this real-world study is to evaluate the safety and efficacy of lipiodol-TACE with id
+NCT00372151	The aim of the proposed study is to investigate the efficacy and safety of add-on gamma-glutamylethy
+*/
+
+
+CREATE TABLE browse_conditions ( 
+	nct_id VARCHAR NOT NULL,  -- Clinical Trial study unique id
+	mesh_term VARCHAR,  -- clinical condition
+	downcase_mesh_term VARCHAR, -- downcase clinical condition 
+	mesh_type VARCHAR, 
+	CONSTRAINT browse_conditions_pkey PRIMARY KEY (id), 
+	CONSTRAINT browse_conditions_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from browse_conditions table:
+nct_id	mesh_term	downcase_mesh_term	mesh_type
+319182123	NCT05825131	Connective Tissue Diseases	connective tissue diseases	mesh-ancestor
+319182124	NCT05825131	Metabolic Diseases	metabolic diseases	mesh-ancestor
+319182125	NCT05822752	Carcinoma	carcinoma	mesh-list
+*/
+
+
+CREATE TABLE browse_interventions ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	mesh_term VARCHAR,  -- clinical intervention
+	downcase_mesh_term VARCHAR, -- downcase clinical intervention
+	mesh_type VARCHAR, 
+	CONSTRAINT browse_interventions_pkey PRIMARY KEY (id), 
+	CONSTRAINT browse_interventions_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from browse_interventions table:
+nct_id	mesh_term	downcase_mesh_term	mesh_type
+NCT00404274	Antiemetics	antiemetics	mesh-ancestor
+NCT00131027	Antimetabolites	antimetabolites	mesh-ancestor
+NCT00132119	Nalmefene	nalmefene	mesh-list
+*/
+
+
+CREATE TABLE countries ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	name VARCHAR, -- country name
+	removed BOOLEAN, 
+	CONSTRAINT countries_pkey PRIMARY KEY (id), 
+	CONSTRAINT countries_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from countries table:
+nct_id	name	removed
+NCT02011217	Sweden	False
+NCT02011230	United States	False
+NCT01475955	United States	False
+*/
+
+
+CREATE TABLE design_group_interventions ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	design_group_id INTEGER, 
+	intervention_id INTEGER, 
+	CONSTRAINT design_group_interventions_pkey PRIMARY KEY (id), 
+	CONSTRAINT design_group_interventions_design_group_id_fkey FOREIGN KEY(design_group_id) REFERENCES design_groups (id), 
+	CONSTRAINT design_group_interventions_intervention_id_fkey FOREIGN KEY(intervention_id) REFERENCES interventions (id), 
+	CONSTRAINT design_group_interventions_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from design_group_interventions table:
+nct_id	design_group_id	intervention_id
+NCT04294303	89068601	83864895
+NCT01419457	88886766	83678270
+NCT01419457	88886767	83678270
+*/
+
+
+CREATE TABLE designs ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	allocation ENUM(Non-Randomized, N/A, Randomized), 
+	intervention_model ENUM(Crossover Assignment, Sequential Assignment, Factorial Assignment, Single Group Assignment, Parallel Assignment), 
+	observational_model ENUM(Other, Case-Only, Case-Crossover, Family-Based, Natural History, Case-Control, Defined Population, Cohort, Ecologic or Community), 
+	primary_purpose ENUM(Diagnostic, Other, Supportive Care, Treatment, Device Feasibility, Educational/Counseling/Training, Health Services Research, Basic Science, Screening, Prevention), 
+	time_perspective ENUM(Other, Prospective, Retrospective, Cross-Sectional), 
+	masking ENUM(Quadruple, None (Open Label), Single, Double, Triple), 
+	masking_description TEXT, -- clinical trials masking process
+	intervention_model_description TEXT, -- clinical trial intervention intervention_model_description description
+	subject_masked BOOLEAN, 
+	caregiver_masked BOOLEAN, 
+	investigator_masked BOOLEAN, 
+	outcomes_assessor_masked BOOLEAN, 
+	CONSTRAINT designs_pkey PRIMARY KEY (id), 
+	CONSTRAINT designs_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from designs table:
+nct_id	allocation	intervention_model	observational_model	primary_purpose	time_perspective	masking	masking_description	intervention_model_description	subject_masked	caregiver_masked	investigator_masked	outcomes_assessor_masked
+NCT03990870	Randomized	Parallel Assignment		Treatment		Triple	None	None	True	None	True	True
+NCT01412476	None	None	Case-Control	None	Cross-Sectional	None	None	None	None	None	None	None
+NCT03986411	N/A	Single Group Assignment		Health Services Research		None (Open Label)	None	Mixed methods feasibility study. Three phases: Phase 1: Interviews Health car professionals, Phase 2	None	None	None	None
+*/
+
+
+CREATE TABLE detailed_descriptions ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	description TEXT, -- Long detailed description
+	CONSTRAINT detailed_descriptions_pkey PRIMARY KEY (id), 
+	CONSTRAINT detailed_descriptions_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from detailed_descriptions table:
+nct_id	description
+NCT02171936	This national study is the first study on the chronic pain and the social vulnerability, as well at 
+NCT05142488	After being informed about the study and potential risks, all participants giving written informed c
+NCT02172014	Comfort behavior scale consists of 7 components of alertness, calmness, respiratory response, crying
+*/
+
+
+CREATE TABLE drop_withdrawals ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	result_group_id INTEGER, 
+	ctgov_group_code VARCHAR, 
+	period VARCHAR, 
+	reason VARCHAR, 
+	count INTEGER, 
+	drop_withdraw_comment VARCHAR, 
+	reason_comment VARCHAR, 
+	count_units INTEGER, 
+	CONSTRAINT drop_withdrawals_pkey PRIMARY KEY (id), 
+	CONSTRAINT drop_withdrawals_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id), 
+	CONSTRAINT drop_withdrawals_result_group_id_fkey FOREIGN KEY(result_group_id) REFERENCES result_groups (id)
+)
+
+/*
+3 rows from drop_withdrawals table:
+nct_id	result_group_id	ctgov_group_code	period	reason	count	drop_withdraw_comment	reason_comment	count_units
+NCT03409796	82724565	FG000	Overall Study	Adverse Event	2	None	None	None
+NCT03409796	82724566	FG001	Overall Study	Adverse Event	0	None	None	None
+NCT03409796	82724565	FG000	Overall Study	Other	0	None	None	None
+*/
+
+
+CREATE TABLE eligibilities ( 
+	nct_id VARCHAR NOT NULL, 
+	sampling_method ENUM(Probability Sample, Non-Probability Sample), 
+	gender ENUM(Male, Female, All), 
+	minimum_age VARCHAR, -- E.g. 18 Years
+	maximum_age VARCHAR, -- E.g. 50 Years
+	healthy_volunteers ENUM(No, Accepts Healthy Volunteers), 
+	population TEXT, -- population description
+	criteria TEXT,  -- Inclusion Exclusion criteria
+	gender_description TEXT, 
+	gender_based BOOLEAN, 
+	adult BOOLEAN, 
+	child BOOLEAN, 
+	older_adult BOOLEAN, 
+	CONSTRAINT eligibilities_pkey PRIMARY KEY (id), 
+	CONSTRAINT eligibilities_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from eligibilities table:
+nct_id	sampling_method	gender	minimum_age	maximum_age	healthy_volunteers	population	criteria	gender_description	gender_based	adult	child	older_adult
+NCT01308723	None	All	21 Years	N/A	No	None	Inclusion Criteria: Adult patients >/= 21 years of age Advanced or metastatic and/or unresectable h	    None	None	True	False	True
+NCT02919670	None	All	18 Years	N/A	No	None	Inclusion Criteria: Participants must have histologically or cytologically confirmed Multiple Myelo	    None	None	True	False	True
+NCT04529070	None	All	18 Years	N/A	No	None	**Patients must be able to get care at Nellis Air Force Base (a military installation) in order to p	None	None	True	False	True
+*/
+
+
+CREATE TABLE facilities ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	status VARCHAR, 
+	name VARCHAR, 
+	city VARCHAR, 
+	state VARCHAR, 
+	zip VARCHAR, 
+	country VARCHAR, 
+	CONSTRAINT facilities_pkey PRIMARY KEY (id), 
+	CONSTRAINT facilities_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from facilities table:
+nct_id	status	name	city	state	zip	country
+NCT06118151	None	Benchmark Research - Austin Site Number : 8400006	Austin	Texas	78705	United States
+NCT06118151	None	AES Austin Site Number : 8400021	Austin	Texas	78744	United States
+NCT06118151	None	Clinical Trials of Texas, Inc. Site Number : 8400012	San Antonio	Texas	78229	United States
+*/
+
+
+CREATE TABLE keywords ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	name VARCHAR, -- keyword
+	downcase_name VARCHAR, -- downcase keyword
+	CONSTRAINT keywords_pkey PRIMARY KEY (id), 
+	CONSTRAINT keywords_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from keywords table:
+nct_id	name	downcase_name
+NCT01982396	HIV	hiv
+NCT01982916	PAR	par
+NCT01987661	NIV	niv
+*/
+
+
+CREATE TABLE outcome_measurements ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	outcome_id INTEGER, 
+	result_group_id INTEGER, 
+	ctgov_group_code VARCHAR, 
+	classification VARCHAR, 
+	category VARCHAR, 
+	title VARCHAR, 
+	description TEXT, 
+	units VARCHAR, 
+	param_type VARCHAR, 
+	param_value VARCHAR, 
+	param_value_num NUMERIC, 
+	dispersion_type VARCHAR, 
+	dispersion_value VARCHAR, 
+	dispersion_value_num NUMERIC, 
+	dispersion_lower_limit NUMERIC, 
+	dispersion_upper_limit NUMERIC, 
+	explanation_of_na TEXT, 
+	dispersion_upper_limit_raw VARCHAR, 
+	dispersion_lower_limit_raw VARCHAR, 
+	CONSTRAINT outcome_measurements_pkey PRIMARY KEY (id), 
+	CONSTRAINT outcome_measurements_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id), 
+	CONSTRAINT outcome_measurements_outcome_id_fkey FOREIGN KEY(outcome_id) REFERENCES outcomes (id), 
+	CONSTRAINT outcome_measurements_result_group_id_fkey FOREIGN KEY(result_group_id) REFERENCES result_groups (id)
+)
+
+/*
+3 rows from outcome_measurements table:
+nct_id	outcome_id	result_group_id	ctgov_group_code	classification	category	title	description	units	param_type	param_value	param_value_num	dispersion_type	dispersion_value	dispersion_value_num	dispersion_lower_limit	dispersion_upper_limit	explanation_of_na	dispersion_upper_limit_raw	dispersion_lower_limit_raw
+NCT01772004	49707268	82599299	OG000	Complete response (CR)	None	Efficacy Expansion Cohort (GC/GEJC, Third Line): Number of Participants With Confirmed Best Overall 	Confirmed BOR was determined according to RECIST 1.1 and as adjudicated by an Independent Endpoint R	Participants	Count of Participants	2	2.0	None	None	None	None	None	None	None	None
+NCT01772004	49707268	82599299	OG000	Partial response (PR)	None	Efficacy Expansion Cohort (GC/GEJC, Third Line): Number of Participants With Confirmed Best Overall 	Confirmed BOR was determined according to RECIST 1.1 and as adjudicated by an Independent Endpoint R	Participants	Count of Participants	5	5.0	None	None	None	None	None	None	None	None
+NCT00474253	49877831	82873706	OG001	Prior to transfer to recovery room	None	Number of Participants Experiencing General Muscle Weakness	The number of participants experiencing general muscle weakness was assessed by the investigator as 	Participants	Count of Participants	3	3.0	None	None	None	None	None	None	None	None
+*/
+
+
+CREATE TABLE outcomes ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	outcome_type Enum(Post-Hoc, Primary, Secondary, Other Pre-specified), 
+	title TEXT, 
+	description TEXT, -- outcomes description
+	time_frame TEXT, 
+	population TEXT, 
+	anticipated_posting_date DATE, 
+	anticipated_posting_month_year VARCHAR, 
+	units VARCHAR, 
+	units_analyzed VARCHAR, 
+	dispersion_type VARCHAR, 
+	param_type VARCHAR, 
+	CONSTRAINT outcomes_pkey PRIMARY KEY (id), 
+	CONSTRAINT outcomes_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from outcomes table:
+nct_id	outcome_type	title	description	time_frame	population	anticipated_posting_date	anticipated_posting_month_year	units	units_analyzed	dispersion_type	param_type
+NCT01964716	Primary	Number of Participants Reporting Systemic Events Within 5 Days After Dose 3 in MDV and SDS Group	Systemic events (any fever greater than or equal to [>=] 38.0 degrees Celsius [C], decreased appetit	Within 5 days after Dose 3 (Day 2 to Day 6) of infant series	Safety population included participants who received at least 1 dose of study vaccine. 'N' (number o	None	None	participants	None	None	Number
+NCT02534844	Secondary	Parts A/B: Change From Baseline in the Timed Up and Go (TUG) Test at Week 52	The TUG is a test of balance and risk for falls. This test measures the time taken by a participant 	Baseline, Week 52	mITT population included all randomized participants who received at least one treatment. As per pla	None	None	seconds	None	Standard Deviation	Mean
+NCT00754572	Secondary	Percentage of Participants With a Response by Categorical DAS28 Responses According to The European 	DAS28- based EULAR response criteria were used to measure individual response as none, good, and mod	Week 24	ITT Population; All participants with endpoint values collected at Week 24 were included in the anal	None	None	Percentage of Participants	None	95% Confidence Interval	Number
+*/
+
+
+CREATE TABLE reported_events ( 
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	result_group_id INTEGER, 
+	ctgov_group_code VARCHAR, 
+	time_frame TEXT, 
+	event_type ENUM(other, serious), 
+	default_vocab VARCHAR, 
+	default_assessment VARCHAR, 
+	subjects_affected INTEGER, 
+	subjects_at_risk INTEGER, 
+	description TEXT, --  adverse event description
+	event_count INTEGER, 
+	organ_system VARCHAR, 
+	adverse_event_term VARCHAR, 
+	frequency_threshold INTEGER, 
+	vocab VARCHAR, 
+	assessment VARCHAR, 
+	CONSTRAINT reported_events_pkey PRIMARY KEY (id), 
+	CONSTRAINT reported_events_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id), 
+	CONSTRAINT reported_events_result_group_id_fkey FOREIGN KEY(result_group_id) REFERENCES result_groups (id)
+)
+
+/*
+3 rows from reported_events table:
+nct_id	result_group_id	ctgov_group_code	time_frame	event_type	default_vocab	default_assessment	subjects_affected	subjects_at_risk	description	event_count	organ_system	adverse_event_term	frequency_threshold	vocab	assessment
+NCT03129100	82366267	EG001	Baseline, up to 128 weeks	serious	None	None	0	423	All randomized participants received at least one dose of study treatment. There are gender specific	0	Injury, poisoning and procedural complications	Pneumothorax traumatic	5	MedDRA 24.0	Systematic Assessment
+NCT00370552	82311312	EG001	Continuously from first to last dose of study drug (24 weeks)and within 30 days following last dose.	other	None	None	1	45	None	None	Skin and subcutaneous tissue disorders	Nail dystrophy	5	MedDRA 12.1	Systematic Assessment
+NCT03484923	82494147	EG002	On-treatment: from first dose to 30 days post-treatment, up to 49/24 months (randomized/non-randomiz	other	None	None	None	0	Any sign or symptom that occurs during the conduct of the trial and safety follow-up. Deaths in the 	None	Investigations	SARS-CoV-2 test negative	5	MedDRA (25.1)	Systematic Assessment
+*/
+
+
+CREATE TABLE sponsors (
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	agency_class VARCHAR, 
+	lead_or_collaborator VARCHAR, 
+	name VARCHAR, 
+	CONSTRAINT sponsors_pkey PRIMARY KEY (id), 
+	CONSTRAINT sponsors_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from sponsors table:
+nct_id	agency_class	lead_or_collaborator	name
+NCT02155296	OTHER	lead	RAND
+NCT02155296	NIH	collaborator	Eunice Kennedy Shriver National Institute of Child Health and Human Development (NICHD)
+NCT05020288	OTHER	lead	Shandong University
+*/
+
+
+CREATE TABLE studies (
+	nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+	study_type ENUM(Observational [Patient Registry], Interventional, Expanded Access, Observational),  
+	baseline_population TEXT, 
+	brief_title TEXT, 
+	official_title TEXT, 
+	overall_status VARCHAR, 
+	phase ENUM(Early Phase 1, Phase 1, Phase 1/Phase 2, Phase 2, Phase 2/Phase 3, Phase 3, Phase 4, Not Applicable)
+	enrollment INTEGER, -- Number of patients enrolled into the clinical trial study
+	source VARCHAR, 
+	limitations_and_caveats VARCHAR, 
+	why_stopped VARCHAR, 
+	has_expanded_access BOOLEAN, , 
+	biospec_retention ENUM(None Retained, Samples With DNA, Samples Without DNA), 
+	biospec_description TEXT, 
+	CONSTRAINT studies_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
+)
+
+/*
+3 rows from studies table:
+nct_id	study_type	baseline_population	brief_title	official_title	overall_status	phase	enrollment	source	limitations_and_caveats	why_stopped	biospec_retention	biospec_description
+NCT06191848	Interventional	NULL	Subcutaneous Tirzepatide Once-weekly in Patients With Obesity and Knee Osteoarthritis (STOP KNEE-OA)	Effect of Subcutaneous Tirzepatide Once-weekly in Patients With Obesity and Knee Osteoarthritis (STOP KNEE-OA): A Randomized, Double-Blind, Placebo-Controlled Trial	Not yet recruiting	Phase 4	352	University of Melbourne	NULL	NULL	NULL	NULL
+NCT06190795	Interventional	NULL	A Smartphone Application for a Self-directed Upper Limb Therapy After Stroke	Feasibility and Effectiveness of AI-powered Interactive Smartphone Application for a Self-directed Upper Limb Therapy Implementation After Stroke	Not yet recruiting	Not Applicable	80	Tan Tock Seng Hospital	NULL	NULL	NULL	NULL
+NCT02732574	Interventional	NULL	Oscillating Positive Expiratory Pressure (OPEP) Therapy in High Risk Patients Following Cardiac Surgery	The Effectiveness of Oscillating Positive Expiratory Pressure (OPEP) Therapy in High Risk Patients Following Cardiac Surgery Surgery: A Randomized Clinical Trial	Unknown status	Not Applicable	162	Lawson Health Research Institute	NULL	NULL	NULL	NULL
+
+*/
