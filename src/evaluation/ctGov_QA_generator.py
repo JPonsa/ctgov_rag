@@ -441,7 +441,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"What intervention types are used in study {nctId}? [BEHAVIORAL, BIOLOGICAL, COMBINATION_PRODUCT, DEVICE, DIAGNOSTIC_TEST, DIETARY_SUPPLEMENT,DRUG, GENETIC, PROCEDURE, RADIATION, OTHER]",
+            f"What intervention types are used in study {nctId}? [BEHAVIORAL, BIOLOGICAL, COMBINATION_PRODUCT, DEVICE, DIAGNOSTIC_TEST, DIETARY_SUPPLEMENT, DRUG, GENETIC, PROCEDURE, RADIATION, OTHER]",
         ]
         question = np.random.choice(questions, 1)
         # Context
