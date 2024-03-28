@@ -1,8 +1,9 @@
 query_1:
   question: What is the title in study {nctId}?
   SQL: |
-   SELECT COALESCE(brief_title, official_title) AS title 
-   FROM studies WHERE nct_id = {nct_id}
+    SELECT COALESCE(brief_title, official_title) AS title 
+    FROM studies WHERE nct_id = {nct_id}
+  tables: [studies]
 
 query_2:
   question: Summarise study {nctId}
@@ -10,6 +11,7 @@ query_2:
     SELECT description 
     FROM brief_summaries 
     WHERE nct_id = {nct_id}
+  tables: [brief_summaries]
 
 query_3:
   question: Is study {nctId} and interventional or observational study? [INTERVENTIONAL, OBSERVATIONAL].
@@ -17,6 +19,7 @@ query_3:
     SELECT study_type 
     FROM studies 
     WHERE nct_id = {nct_id}
+  tables: [studies]
 
 query_4:
   question: What condition(s) is studied in study {nctId}?
@@ -25,28 +28,32 @@ query_4:
     FROM browse_conditions 
     WHERE mesh_type = 'mesh-list'
     AND nct_id = {nct_id}
+  table: [browse_conditions, conditions]
 
 query_5:
   question: What drugs / treatments is studied in study {nctId}?
-    SQL: |
-      SELECT mesh_term 
-      FROM browse_interventions 
-      WHERE mesh_type = 'mesh-list'
-      AND nct_id = {nct_id}
+  SQL: |
+    SELECT mesh_term 
+    FROM browse_interventions 
+    WHERE mesh_type = 'mesh-list'
+    AND nct_id = {nct_id}
+  tables: [browse_interventions, interventions]
 
 query_6:
-  question: In what phase is study {nctId}? S 
+  question: In what phase is study {nctId}? S
   SQL: |
     SELECT COALESCE(phase, 'Not Applicable')
     FROM studies
     WHERE nct_id = {nct_id}
+  tables: [studies]
 
 query_7:
-  question: What is the eligibility criteria for study {nctId}? 
+  question: What is the eligibility criteria for study {nctId}?
   SQL: |
     SELECT *
     FROM eligibilities as e 
     WHERE nct_id = {nct_id}
+  tables: [eligibilities]
 
 query_n:
   question: Select all studies for {condition}
@@ -54,3 +61,4 @@ query_n:
     SELECT distinct nct_id 
     FROM browse_conditions 
     WHERE mesh_term ILIKE {condition}
+  tables: [browse_conditions, conditions]
