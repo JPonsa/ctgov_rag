@@ -1,9 +1,9 @@
 brief_summaries:
-  used: adad
+  description: clinical trial study protocol brief summary. if possible use this over detailed description.
   schema: |
     CREATE TABLE brief_summaries (
-      nct_id VARCHAR NOT NULL,  -- Clinical Trial study unique id
-      description TEXT,  -- Clinical trial description / brief summary
+      nct_id VARCHAR NOT NULL,  -- clinical trial study unique id
+      description TEXT,  -- clinical trial description / brief summary
       CONSTRAINT brief_summaries_pkey PRIMARY KEY (id), 
       CONSTRAINT brief_summaries_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
      );
@@ -17,10 +17,10 @@ brief_summaries:
     */
 
 browse_conditions:
-  used:
+  description: condition studied in clinical trial. mesh term.
   schema: |
     CREATE TABLE browse_conditions ( 
-     nct_id VARCHAR NOT NULL,  -- Clinical Trial study unique id
+     nct_id VARCHAR NOT NULL,  -- clinical trial study unique id
      mesh_term VARCHAR,  -- clinical condition
      downcase_mesh_term VARCHAR, -- downcase clinical condition 
      mesh_type VARCHAR, 
@@ -37,10 +37,10 @@ browse_conditions:
     */
 
 browse_interventions:
-  used:
+  description: medical intervention assessed in clinical trial. mesh term.
   schema: |
     CREATE TABLE browse_interventions ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       mesh_term VARCHAR,  -- clinical intervention
       downcase_mesh_term VARCHAR, -- downcase clinical intervention
       mesh_type VARCHAR, 
@@ -57,15 +57,15 @@ browse_interventions:
     */
 
 countries:
-  used:
+  description: countries where the clinical trial takes place.
   schema: |
     CREATE TABLE countries ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       name VARCHAR, -- country name
       removed BOOLEAN, 
       CONSTRAINT countries_pkey PRIMARY KEY (id), 
       CONSTRAINT countries_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
-    )
+    );
   example: |
     /*
     3 rows from countries table:
@@ -76,10 +76,10 @@ countries:
     */
 
 design_group_interventions:
-  used:
+  description: patient group ids per clinical trial.
   schema: |
     CREATE TABLE design_group_interventions ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       design_group_id INTEGER, 
       intervention_id INTEGER, 
       CONSTRAINT design_group_interventions_pkey PRIMARY KEY (id), 
@@ -97,10 +97,10 @@ design_group_interventions:
     */
 
 designs:
-  used:
+  description: clinical trial design details.
   schema: |
     CREATE TABLE designs ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       allocation ENUM(Non-Randomized, N/A, Randomized), 
       intervention_model ENUM(Crossover Assignment, Sequential Assignment, Factorial Assignment, Single Group Assignment, Parallel Assignment), 
       observational_model ENUM(Other, Case-Only, Case-Crossover, Family-Based, Natural History, Case-Control, Defined Population, Cohort, Ecologic or Community), 
@@ -126,10 +126,10 @@ designs:
     */
 
 detailed_descriptions:
-  used:
+  description: clinical trail protocol detailed and long description. If possible used brief description.
   schema: |
     CREATE TABLE detailed_descriptions ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       description TEXT, -- Long detailed description
       CONSTRAINT detailed_descriptions_pkey PRIMARY KEY (id), 
       CONSTRAINT detailed_descriptions_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
@@ -144,15 +144,15 @@ detailed_descriptions:
     */
 
 drop_withdrawals:
-  used:
+  description: number of patient drop outs and withdrawals from clinical trial protocol.
   schema: |
     CREATE TABLE drop_withdrawals ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       result_group_id INTEGER, 
       ctgov_group_code VARCHAR, 
       period VARCHAR, 
-      reason VARCHAR, 
-      count INTEGER, 
+      reason VARCHAR, -- reason for drop or withdrawal
+      count INTEGER, -- number of patients
       drop_withdraw_comment VARCHAR, 
       reason_comment VARCHAR, 
       count_units INTEGER, 
@@ -170,17 +170,17 @@ drop_withdrawals:
     */
 
 eligibilities:
-  used:
+  description: clinical trial eligibility criteria.
   schema: |
     CREATE TABLE eligibilities ( 
-      nct_id VARCHAR NOT NULL, 
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       sampling_method ENUM(Probability Sample, Non-Probability Sample), 
       gender ENUM(Male, Female, All), 
-      minimum_age VARCHAR, -- E.g. 18 Years
-      maximum_age VARCHAR, -- E.g. 50 Years
+      minimum_age VARCHAR, -- e.g. 18 Years
+      maximum_age VARCHAR, -- e.g. 50 Years
       healthy_volunteers ENUM(No, Accepts Healthy Volunteers), 
       population TEXT, -- population description
-      criteria TEXT,  -- Inclusion Exclusion criteria
+      criteria TEXT,  -- inclusion exclusion criteria
       gender_description TEXT, 
       gender_based BOOLEAN, 
       adult BOOLEAN, 
@@ -199,10 +199,10 @@ eligibilities:
     */
 
 facilities:
-  used:
+  description: facility where the clinical trial take take place.
   schema: |
     CREATE TABLE facilities ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       status VARCHAR, 
       name VARCHAR, 
       city VARCHAR, 
@@ -222,10 +222,10 @@ facilities:
     */
 
 keywords:
-  used:
+  description: keywords associated to the clinical trial protocol
   schema: |
     CREATE TABLE keywords ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       name VARCHAR, -- keyword
       downcase_name VARCHAR, -- downcase keyword
       CONSTRAINT keywords_pkey PRIMARY KEY (id), 
@@ -241,10 +241,10 @@ keywords:
     */
 
 outcome_measurements:
-  used:
+  description: how is the outcome of the clinical trial measured. includes statistical analysis description.
   schema: |
     CREATE TABLE outcome_measurements ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       outcome_id INTEGER, 
       result_group_id INTEGER, 
       ctgov_group_code VARCHAR, 
@@ -279,10 +279,10 @@ outcome_measurements:
     */
 
 outcomes:
-  used:
+  description: clinical trial outcomes reported in the results section.
   schema: |
     CREATE TABLE outcomes ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       outcome_type Enum(Post-Hoc, Primary, Secondary, Other Pre-specified), 
       title TEXT, 
       description TEXT, -- outcomes description
@@ -307,10 +307,10 @@ outcomes:
     */
 
 reported_events:
-  used:
+  description: adverse events observed in a clinical trial.
   schema: |
     CREATE TABLE reported_events ( 
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       result_group_id INTEGER, 
       ctgov_group_code VARCHAR, 
       time_frame TEXT, 
@@ -340,10 +340,10 @@ reported_events:
     */
 
 sponsors:
-  used:
+  description: clinical trial sponsor.
   schema: |
     CREATE TABLE sponsors (
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       agency_class VARCHAR, 
       lead_or_collaborator VARCHAR, 
       name VARCHAR, 
@@ -360,15 +360,15 @@ sponsors:
     */
 
 studies:
-  used:
+  description: general information regarding a clinical trial protocol.
   schema: |
     CREATE TABLE studies (
-      nct_id VARCHAR NOT NULL, -- Clinical Trial study unique id
+      nct_id VARCHAR NOT NULL, -- clinical trial study unique id
       study_type ENUM(Observational [Patient Registry], Interventional, Expanded Access, Observational),  
       baseline_population TEXT, 
-      brief_title TEXT, 
+      brief_title TEXT,
       official_title TEXT, 
-      overall_status VARCHAR, 
+      overall_status ENUM(Approved for marketing, Active, not recruiting, Completed, Enrolling by invitation, No longer available, Not yet recruiting, Recruiting, Suspended, Temporarily not available, Terminated, Unknown status, Withdrawn, Withheld), 
       phase ENUM(Early Phase 1, Phase 1, Phase 1/Phase 2, Phase 2, Phase 2/Phase 3, Phase 3, Phase 4, Not Applicable)
       enrollment INTEGER, -- Number of patients enrolled into the clinical trial study
       source VARCHAR, 
@@ -378,7 +378,7 @@ studies:
       biospec_retention ENUM(None Retained, Samples With DNA, Samples Without DNA), 
       biospec_description TEXT, 
       CONSTRAINT studies_nct_id_fkey FOREIGN KEY(nct_id) REFERENCES studies (nct_id)
-    )
+    );
   example: |
     /*
     3 rows from studies table:
@@ -386,5 +386,4 @@ studies:
     NCT06191848  Interventional  NULL  Subcutaneous Tirzepatide Once-weekly in Patients With Obesity and Knee Osteoarthritis (STOP KNEE-OA)  Effect of Subcutaneous Tirzepatide Once-weekly in Patients With Obesity and Knee Osteoarthritis (STOP KNEE-OA): A Randomized, Double-Blind, Placebo-Controlled Trial  Not yet recruiting  Phase 4  352  University of Melbourne  NULL  NULL  NULL  NULL
     NCT06190795  Interventional  NULL  A Smartphone Application for a Self-directed Upper Limb Therapy After Stroke  Feasibility and Effectiveness of AI-powered Interactive Smartphone Application for a Self-directed Upper Limb Therapy Implementation After Stroke  Not yet recruiting  Not Applicable  80  Tan Tock Seng Hospital  NULL  NULL  NULL  NULL
     NCT02732574  Interventional  NULL  Oscillating Positive Expiratory Pressure (OPEP) Therapy in High Risk Patients Following Cardiac Surgery  The Effectiveness of Oscillating Positive Expiratory Pressure (OPEP) Therapy in High Risk Patients Following Cardiac Surgery Surgery: A Randomized Clinical Trial  Unknown status  Not Applicable  162  Lawson Health Research Institute  NULL  NULL  NULL  NULL
-
     */
