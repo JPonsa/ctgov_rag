@@ -1,4 +1,6 @@
 # Write AACT ctgov schema into a file
+# TODO: currently old db schema format.
+# Update to produce langchain or llamaindex like schema
 
 import os
 import re
