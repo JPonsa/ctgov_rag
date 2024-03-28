@@ -2,7 +2,7 @@ query_1:
   question: What is the title in study {nctId}?
   SQL: |
     SELECT COALESCE(brief_title, official_title) AS title 
-    FROM studies WHERE nct_id = {nct_id}
+    FROM studies WHERE nct_id = '{nctId}'
   tables: [studies]
 
 query_2:
@@ -10,7 +10,7 @@ query_2:
   SQL: |
     SELECT description 
     FROM brief_summaries 
-    WHERE nct_id = {nct_id}
+    WHERE nct_id = '{nctId}'
   tables: [brief_summaries]
 
 query_3:
@@ -18,47 +18,176 @@ query_3:
   SQL: |
     SELECT study_type 
     FROM studies 
-    WHERE nct_id = {nct_id}
+    WHERE nct_id = '{nctId}'
   tables: [studies]
 
 query_4:
-  question: What condition(s) is studied in study {nctId}?
+  question: What condition(s) is studied in study {nctId}? Give mesh term.
   SQL: |
     SELECT mesh_term 
     FROM browse_conditions 
     WHERE mesh_type = 'mesh-list'
-    AND nct_id = {nct_id}
-  table: [browse_conditions, conditions]
+    AND nct_id = '{nctId}'
+  tables: [browse_conditions]
 
 query_5:
-  question: What drugs / treatments is studied in study {nctId}?
+  question: Is {condition} studied in study {nctId}?
+  SQL: |
+    SELECT
+      '{condition}' IN(
+    SELECT mesh_term 
+    FROM browse_conditions 
+    WHERE nct_id = '{nctId}')
+  tables: [browse_conditions]
+
+query_6:
+  question: What drugs / treatments is studied in study {nctId}? Give mesh term.
   SQL: |
     SELECT mesh_term 
     FROM browse_interventions 
     WHERE mesh_type = 'mesh-list'
-    AND nct_id = {nct_id}
-  tables: [browse_interventions, interventions]
+    AND nct_id = '{nctId}'
+  tables: [browse_interventions]
 
-query_6:
+query_7:
   question: In what phase is study {nctId}? S
   SQL: |
     SELECT COALESCE(phase, 'Not Applicable')
     FROM studies
-    WHERE nct_id = {nct_id}
+    WHERE nct_id = '{nctId}'
   tables: [studies]
 
-query_7:
+query_9:
+  question: How many patients to be enrolled in study {nctId}?
+  SQL: |
+    SELECT enrollment
+    FROM studies
+    WHERE nct_id = '{nctId}'
+  tables: [studies]
+
+query_10:
   question: What is the eligibility criteria for study {nctId}?
   SQL: |
     SELECT *
-    FROM eligibilities as e 
-    WHERE nct_id = {nct_id}
+    FROM eligibilities
+    WHERE nct_id = '{nctId}'
   tables: [eligibilities]
 
-query_n:
-  question: Select all studies for {condition}
+query_11:
+  question: What is what is the min. and max. age range in study {nctId}?
+  SQL: |
+    SELECT 
+      CAST(SUBSTRING(minimum_age FROM '^\d+') AS INTEGER) AS minimum_age,
+      CAST(SUBSTRING(maximum_age FROM '^\d+') AS INTEGER) AS maximum_age
+    FROM eligibilities
+    WHERE nct_id = '{nctId}'
+  tables: [eligibilities]
+
+query_13:
+  question: Describe the intervention model in study {nctId}
+  SQL: |
+    SELECT 
+      intervention_model 
+    FROM design
+    WHERE nct_id = '{nctId}'
+  tables: [design]
+
+query_15:
+  question: Describe the primary purpose of study {nctId}
+  SQL: |
+    SELECT primary_purpose 
+    FROM design
+    WHERE nct_id = '{nctId}'
+  tables: [design]
+
+question_16:
+  question: What intervention types are used in this study?
+  SQL: |
+    SELECT intervention_type 
+    FROM interventions
+    WHERE nct_id = '{nctId}'
+  tables: [interventions]
+
+question_17:
+  question:
+  SQL: |
+    SELECT ARRAY_REMOVE(
+      ARRAY[
+        CASE WHEN subject_masked THEN 'PARTICIPANT' END,
+        CASE WHEN caregiver_masked THEN 'CARE_PROVIDER' END,
+        CASE WHEN investigator_masked THEN 'INVESTIGATOR' END,
+        CASE WHEN outcomes_assessor_masked THEN 'OUTCOMES_ASSESSOR' END
+        ], NULL) AS masked
+    FROM designs LIMIT 10
+  tables: [designs]
+
+question_18:
+  question: What is the allocation strategy employed in study {nctId}?
+  SQL: |
+    SELECT allocation 
+    FROM design
+    WHERE nct_id = '{nctId}'
+  tables: [design]
+
+question_19:
+  question:
+  SQL: |
+    SELECT 'Observational [Patient Registry]'IN (
+      SELECT study_type 
+      FROM studies
+    WHERE nct_id = '{nctId}' 
+    );
+  tables: [studies]
+
+query_21:
+  question: What type of observational model is used in {nctId}?
+  SQL: |
+    SELECT observational_model  
+    FROM designs
+    WHERE nct_id = '{nctId}'
+  tables: [designs]
+
+query_22:
+  question: What is the design time frame in study {nctId}?
+  SQL: |
+    SELECT time_perspective 
+    FROM designs
+    WHERE nct_id = '{nctId}'
+  tables: [designs]
+
+query_23:
+  question: Describe the primary outcomes of study {nctId}
+  SQL: |
+    SELECT description
+    FROM outcomes
+    WHERE outcome_type = 'Primary'
+    AND nct_id = '{nctId}'
+  tables: [outcomes]
+
+query_24:
+  question: Where there any adverse events described in study {nctId}?
+  SQL: |
+    SELECT 
+      CASE
+        WHEN SUM(subjects_affected)> 0 THEN True ELSE False
+      END 
+    FROM reported_events 
+    GROUP BY nct_id
+    WHERE nct_id = '{nctId}'
+  tables: [reported_events]
+
+query_25:
+  question: Select all studies for '{condition}'
   SQL: |
     SELECT distinct nct_id 
     FROM browse_conditions 
-    WHERE mesh_term ILIKE {condition}
-  tables: [browse_conditions, conditions]
+    WHERE mesh_term ILIKE '{condition}'
+  tables: [browse_conditions]
+
+query_26:
+  question: Select all studies for '{intervention}'
+  SQL: |
+    SELECT distinct nct_id 
+    FROM browse_interventions
+    WHERE mesh_term ILIKE '{intervention}'
+  tables: [browse_interventions]
