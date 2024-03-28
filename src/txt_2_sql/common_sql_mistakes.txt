@@ -1,0 +1,11 @@
+- Using NOT IN with NULL values
+- Using UNION when UNION ALL should have been used
+- Using BETWEEN for exclusive ranges
+- Data type mismatch in predicates
+- Properly quoting identifiers
+- Using the correct number of arguments for functions
+- Casting to the correct data type
+- Using the proper columns for joins.
+- Keep the query as simples as possible.
+- ILIKE is preferred over LIKE.
+- Make all WHERE statements case insensitive using LOWER
