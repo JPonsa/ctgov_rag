@@ -25,6 +25,8 @@ transformers = "^4.38.2" # trial2vec needs downgrade
 # llama-index-graph-stores-neo4j = "^0.1.3"
 langchain = "^0.1.13"
 sentence-transformers = "^2.6.1"
+psycopg2 = "^2.9.9"
+langsmith = "^0.1.33"
 
 
 [tool.poetry.group.dev.dependencies]
