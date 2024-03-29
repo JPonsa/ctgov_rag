@@ -50,7 +50,7 @@ query_6:
   tables: [browse_interventions]
 
 query_7:
-  question: In what phase is study {nctId}? S
+  question: In what phase is study {nctId}?
   SQL: |
     SELECT COALESCE(phase, 'Not Applicable')
     FROM studies
@@ -130,7 +130,7 @@ question_18:
   tables: [design]
 
 question_19:
-  question:
+  question: Does study {nctId} uses a patient registry? [TRUE, FALSE]
   SQL: |
     SELECT 'Observational [Patient Registry]'IN (
       SELECT study_type 
@@ -177,7 +177,7 @@ query_24:
   tables: [reported_events]
 
 query_25:
-  question: Select all studies for '{condition}'
+  question: Select all studies for condition '{condition}'
   SQL: |
     SELECT distinct nct_id 
     FROM browse_conditions 
@@ -185,7 +185,7 @@ query_25:
   tables: [browse_conditions]
 
 query_26:
-  question: Select all studies for '{intervention}'
+  question: Select all studies for intervention '{intervention}'
   SQL: |
     SELECT distinct nct_id 
     FROM browse_interventions
