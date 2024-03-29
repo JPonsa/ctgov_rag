@@ -74,7 +74,7 @@ query_10:
   tables: [eligibilities]
 
 query_11:
-  question: What is what is the min. and max. age range in study {nctId}?
+  question: What is the min. and max. age range in study {nctId}?
   SQL: |
     SELECT 
       CAST(SUBSTRING(minimum_age FROM '^\d+') AS INTEGER) AS minimum_age,
@@ -101,7 +101,7 @@ query_15:
   tables: [design]
 
 question_16:
-  question: What intervention types are used in this study?
+  question: What intervention types are used in study {nctId}?
   SQL: |
     SELECT intervention_type 
     FROM interventions
@@ -109,7 +109,7 @@ question_16:
   tables: [interventions]
 
 question_17:
-  question:
+  question: Is blinding (a.k.a. masking) implemented in study {nctId}? If so, select relevant from [PARTICIPANT, CARE_PROVIDER, INVESTIGATOR, OUTCOMES_ASSESSOR, NA]
   SQL: |
     SELECT ARRAY_REMOVE(
       ARRAY[
