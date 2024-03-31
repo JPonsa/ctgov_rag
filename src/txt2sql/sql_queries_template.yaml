@@ -100,7 +100,7 @@ query_15:
     WHERE nct_id = '{nctId}'
   tables: [design]
 
-question_16:
+query_16:
   question: What intervention types are used in study {nctId}?
   SQL: |
     SELECT intervention_type 
@@ -108,7 +108,7 @@ question_16:
     WHERE nct_id = '{nctId}'
   tables: [interventions]
 
-question_17:
+query_17:
   question: Is blinding (a.k.a. masking) implemented in study {nctId}? If so, select relevant from [PARTICIPANT, CARE_PROVIDER, INVESTIGATOR, OUTCOMES_ASSESSOR, NA]
   SQL: |
     SELECT ARRAY_REMOVE(
@@ -121,7 +121,7 @@ question_17:
     FROM designs LIMIT 10
   tables: [designs]
 
-question_18:
+query_18:
   question: What is the allocation strategy employed in study {nctId}?
   SQL: |
     SELECT allocation 
@@ -129,7 +129,7 @@ question_18:
     WHERE nct_id = '{nctId}'
   tables: [design]
 
-question_19:
+query_19:
   question: Does study {nctId} uses a patient registry? [TRUE, FALSE]
   SQL: |
     SELECT 'Observational [Patient Registry]'IN (
