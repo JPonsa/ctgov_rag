@@ -2,7 +2,8 @@ query_1:
   question: What is the title in study {nctId}?
   SQL: |
     SELECT COALESCE(brief_title, official_title) AS title 
-    FROM studies WHERE nct_id = '{nctId}'
+    FROM studies
+    WHERE nct_id = '{nctId}';
   tables: [studies]
 
 query_2:
@@ -10,7 +11,7 @@ query_2:
   SQL: |
     SELECT description 
     FROM brief_summaries 
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [brief_summaries]
 
 query_3:
@@ -18,26 +19,26 @@ query_3:
   SQL: |
     SELECT study_type 
     FROM studies 
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [studies]
 
 query_4:
-  question: What condition(s) is studied in study {nctId}? Give mesh term.
+  question: What condition(s) is studied in clinical trial {nctId}? Give mesh term.
   SQL: |
     SELECT mesh_term 
     FROM browse_conditions 
-    WHERE mesh_type = 'mesh-list'
-    AND nct_id = '{nctId}'
+    WHERE mesh_type = 'mesh-list' AND nct_id = '{nctId}';
   tables: [browse_conditions]
 
 query_5:
-  question: Is {condition} studied in study {nctId}?
+  question: Is {condition} studied in clinical trial {nctId}?
   SQL: |
     SELECT
-      '{condition}' IN(
-    SELECT mesh_term 
-    FROM browse_conditions 
-    WHERE nct_id = '{nctId}')
+      '{condition}' IN (
+        SELECT mesh_term 
+        FROM browse_conditions 
+        WHERE nct_id = '{nctId}'
+      );
   tables: [browse_conditions]
 
 query_6:
@@ -45,8 +46,7 @@ query_6:
   SQL: |
     SELECT mesh_term 
     FROM browse_interventions 
-    WHERE mesh_type = 'mesh-list'
-    AND nct_id = '{nctId}'
+    WHERE mesh_type = 'mesh-list' AND nct_id = '{nctId}';
   tables: [browse_interventions]
 
 query_7:
@@ -54,7 +54,7 @@ query_7:
   SQL: |
     SELECT COALESCE(phase, 'Not Applicable')
     FROM studies
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [studies]
 
 query_9:
@@ -62,7 +62,7 @@ query_9:
   SQL: |
     SELECT enrollment
     FROM studies
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [studies]
 
 query_10:
@@ -70,7 +70,7 @@ query_10:
   SQL: |
     SELECT *
     FROM eligibilities
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [eligibilities]
 
 query_11:
@@ -80,7 +80,7 @@ query_11:
       CAST(SUBSTRING(minimum_age FROM '^\d+') AS INTEGER) AS minimum_age,
       CAST(SUBSTRING(maximum_age FROM '^\d+') AS INTEGER) AS maximum_age
     FROM eligibilities
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [eligibilities]
 
 query_13:
@@ -88,16 +88,16 @@ query_13:
   SQL: |
     SELECT 
       intervention_model 
-    FROM design
-    WHERE nct_id = '{nctId}'
+    FROM designs
+    WHERE nct_id = '{nctId}';
   tables: [design]
 
 query_15:
   question: Describe the primary purpose of study {nctId}
   SQL: |
     SELECT primary_purpose 
-    FROM design
-    WHERE nct_id = '{nctId}'
+    FROM designs
+    WHERE nct_id = '{nctId}';
   tables: [design]
 
 query_16:
@@ -105,7 +105,7 @@ query_16:
   SQL: |
     SELECT intervention_type 
     FROM interventions
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [interventions]
 
 query_17:
@@ -118,7 +118,8 @@ query_17:
         CASE WHEN investigator_masked THEN 'INVESTIGATOR' END,
         CASE WHEN outcomes_assessor_masked THEN 'OUTCOMES_ASSESSOR' END
         ], NULL) AS masked
-    FROM designs LIMIT 10
+    FROM designs
+    WHERE nct_id = '{nctId}';
   tables: [designs]
 
 query_18:
@@ -126,16 +127,16 @@ query_18:
   SQL: |
     SELECT allocation 
     FROM design
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [design]
 
 query_19:
   question: Does study {nctId} uses a patient registry? [TRUE, FALSE]
   SQL: |
-    SELECT 'Observational [Patient Registry]'IN (
+    SELECT 'Observational [Patient Registry]' IN (
       SELECT study_type 
       FROM studies
-    WHERE nct_id = '{nctId}' 
+      WHERE nct_id = '{nctId}' 
     );
   tables: [studies]
 
@@ -144,7 +145,7 @@ query_21:
   SQL: |
     SELECT observational_model  
     FROM designs
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [designs]
 
 query_22:
@@ -152,7 +153,7 @@ query_22:
   SQL: |
     SELECT time_perspective 
     FROM designs
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [designs]
 
 query_23:
@@ -160,8 +161,7 @@ query_23:
   SQL: |
     SELECT description
     FROM outcomes
-    WHERE outcome_type = 'Primary'
-    AND nct_id = '{nctId}'
+    WHERE outcome_type = 'Primary' AND nct_id = '{nctId}';
   tables: [outcomes]
 
 query_24:
@@ -173,7 +173,7 @@ query_24:
       END 
     FROM reported_events 
     GROUP BY nct_id
-    WHERE nct_id = '{nctId}'
+    WHERE nct_id = '{nctId}';
   tables: [reported_events]
 
 query_25:
@@ -181,7 +181,7 @@ query_25:
   SQL: |
     SELECT distinct nct_id 
     FROM browse_conditions 
-    WHERE mesh_term ILIKE '{condition}'
+    WHERE mesh_term ILIKE '{condition}';
   tables: [browse_conditions]
 
 query_26:
@@ -189,5 +189,5 @@ query_26:
   SQL: |
     SELECT distinct nct_id 
     FROM browse_interventions
-    WHERE mesh_term ILIKE '{intervention}'
+    WHERE mesh_term ILIKE '{intervention}';
   tables: [browse_interventions]
