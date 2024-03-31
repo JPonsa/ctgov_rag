@@ -1,12 +1,3 @@
-# Run txt2sql evaluation based on a give set of predefined questions
-#
-# Inputs:
-# - /src/txt2sql/sql_queries_template.yaml
-# Outputs:
-# -/
-# Usage: python ./src/txt2sql/txt2sql_llamaindex_test.py
-#####################################################################
-
 import argparse
 
 import pandas as pd
@@ -41,7 +32,9 @@ HOST = "aact-db.ctti-clinicaltrials.org"
 PORT = 5432
 
 
-def generate_function(stop):
+def generate_prompt_adapter_func(stop: list = ["[INST]", "[/INST]"]):
+    "Given a list of stop tokens, generates functions to the llamaindex prompts"
+
     def completion_to_prompt(completion: str) -> str:
         return f"{stop[0]} {completion} {stop[1]} "
 
@@ -55,11 +48,30 @@ def generate_function(stop):
 def run_llamaindex_eval(
     query_engine: NLSQLTableQueryEngine | SQLTableRetrieverQueryEngine,
     sql_db: SQLDatabase,
-    sql_queries_template: list[dict],
-    triplets: list[tuple],
+    sql_queries_templates: list[dict],
+    triplets: list[list[str]],
     verbose: bool = False,
 ) -> pd.DataFrame:
-    "Run txt-2-SQL evaluation over a Llama-index SQL query engine"
+    """_summary_
+
+    Parameters
+    ----------
+    query_engine : NLSQLTableQueryEngine | SQLTableRetrieverQueryEngine
+        Llama-index SQL query engine
+    sql_db : SQLDatabase
+        SQL DB connection
+    sql_queries_templates : list[dict]
+        list of SQL query templates. Each template is composed of a question and a SQL query.
+    triplets : list[list[str]]
+        nctId, condition, intervention
+    verbose : bool, optional
+        print progression messages, by default False
+
+    Returns
+    -------
+    pd.DataFrame
+        _description_
+    """
 
     sql_eval_cols = [
         "question",
@@ -68,12 +80,16 @@ def run_llamaindex_eval(
         "llamaIndex_query",
         "llamaIndex_answer",
     ]
-    sql_eval_rows = list(sql_queries_template.keys())
+    sql_eval_rows = list(sql_queries_templates.keys())
     sql_eval = pd.DataFrame([], columns=sql_eval_cols)
 
     for nctId, condition, intervention in triplets:
+        if verbose:
+            print(
+                f"Triplet: nctId: {nctId} | condition: {condition} | intervention: {intervention}"
+            )
         tmp = pd.DataFrame([], index=sql_eval_rows, columns=sql_eval_cols)
-        for q, d in tqdm(sql_queries_template.items(), desc="Evaluating llama index"):
+        for q, d in tqdm(sql_queries_templates.items(), desc="Evaluating llama index"):
             question = d["question"].format(
                 nctId=nctId, condition=condition, intervention=intervention
             )
@@ -84,8 +100,8 @@ def run_llamaindex_eval(
             if verbose:
                 print(f"{q} : {question}")
 
-            tmp.at[q, "question"] = question
-            tmp.at[q, "gold_std_query"] = sql_query
+            tmp.at[q, "question"] = question.replace("\n", "|")
+            tmp.at[q, "gold_std_query"] = sql_query.replace("\n", " ")
 
             # Get gold standard answer
             try:
@@ -93,13 +109,14 @@ def run_llamaindex_eval(
             except:
                 answer = "No answer"
 
-            tmp.at[q, "gold_std_answer"] = answer
+            tmp.at[q, "gold_std_answer"] = answer.replace("\n", "|")
 
             # Get LlamaIndex SQL query and answer
             try:
                 response = query_engine.query(question)
-                tmp.at[q, "llamaIndex_query"] = response.metadata["sql_query"]
-                tmp.at[q, "llamaIndex_answer"] = response.response
+                llamaIndex_query = response.metadata["sql_query"]
+                tmp.at[q, "llamaIndex_query"] = llamaIndex_query.replace("\n", " ")
+                tmp.at[q, "llamaIndex_answer"] = response.response.replace("\n", "|")
             except (ReadTimeout, Timeout, TimeoutError):
                 if verbose:
                     print("Time out!")
@@ -116,11 +133,11 @@ def run_llamaindex_eval(
     return sql_eval
 
 
-def main(args):
+def main(args, verbose: bool = False):
 
     # Load SQL evaluation template
     with open(args.sql_query_template, "r") as f:
-        sql_queries_template = yaml.safe_load(f)
+        sql_queries_templates = yaml.safe_load(f)
 
     with open(args.triplets, "r") as f:
         header = f.readline()
@@ -129,7 +146,7 @@ def main(args):
     triplets = [t.rstrip("\n").split("\t") for t in triplets]
 
     # Set LLM
-    completion_to_prompt, messages_to_prompt = generate_function(args.stop)
+    completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
 
     lm = Ollama(
         model=args.llm,
@@ -140,6 +157,9 @@ def main(args):
     )
     Settings.llm = lm
     Settings.embed_model = "local"
+
+    if verbose:
+        print(f"Testing Llama-index with LLM {args.llm}")
 
     # Set SQL DB connection
     db_uri = f"postgresql+psycopg2://{args.user}:{args.pwd}@{HOST}:{PORT}/{DATABASE}"
@@ -164,8 +184,10 @@ def main(args):
 
     # Run evaluation
     ## For standard query engine
+    if verbose:
+        print("Testing NLSQLTableQueryEngine ...")
     sql_eval = run_llamaindex_eval(
-        std_query_engine, sql_db, sql_queries_template, triplets
+        std_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
         f"{args.output_dir}llamaindex.{args.llm}.TableQuery.eval.tsv",
@@ -173,8 +195,10 @@ def main(args):
     )
 
     ## For advance query engine.
+    if verbose:
+        print("Testing SQLTableRetrieverQueryEngine ...")
     sql_eval = run_llamaindex_eval(
-        adv_query_engine, sql_db, sql_queries_template, triplets
+        adv_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
         f"{args.output_dir}llamaindex.{args.llm}.TableRetriever.eval.tsv",
@@ -187,15 +211,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test llamaindex txt2sql")
 
     # Add arguments
-    parser.add_argument("-user", type=str)
-    parser.add_argument("-pwd", type=str)
-    parser.add_argument("-sql_query_template", type=str)
-    parser.add_argument("-triplets", type=str)
-    parser.add_argument("--output_dir", type=str, default="./results/txt2sql/")
+    parser.add_argument("-user", type=str, help="AACT user name.")
+    parser.add_argument("-pwd", type=str, help="AACT password.")
+    parser.add_argument(
+        "-sql_query_template",
+        type=str,
+        help="yaml file containing query templates. Each template contains a user question and associated SQL query. templates assume the presence of {nctId}, {condition} and {intervention}.",
+    )
+    parser.add_argument(
+        "-triplets",
+        type=str,
+        help="TSV file containing nctId, condition, intervention triplets.",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="./results/txt2sql/",
+        help="path to directory where to store results.",
+    )
     parser.add_argument(
         "--llm", type=str, default="mistral", help="Ollama Large Language Model"
     )
-    parser.add_argument("--stop", type=list, nargs="+", default=["INST", "/INST"])
+    parser.add_argument(
+        "--stop", type=list, nargs="+", default=["INST", "/INST"], help=""
+    )
 
     args = parser.parse_args()
     main(args)
