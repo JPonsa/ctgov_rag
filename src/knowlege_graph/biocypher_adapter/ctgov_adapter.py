@@ -12,6 +12,12 @@ import yaml
 from biocypher._logger import logger
 from tqdm import tqdm
 
+
+def print_green(text):
+    """Print a text message in Green"""
+    print("\033[92m" + text + "\033[0m")
+
+
 logger.debug(f"Loading module {__name__}.")
 
 import requests
@@ -70,9 +76,11 @@ class ctGovAdapterNodeType(Enum):
     ARM_GROUP = auto()
     INTERVENTION_PROTOCOL = auto()
     OBSERVATION_PROTOCOL = auto()
+    PATIENT_REGISTRY = auto()
     ADVERSE_EVENT = auto()
     ADVERSE_EVENT_GROUP = auto()
     ADVERSE_EVENT_PROTOCOL = auto()
+    ORGAN_SYSTEM = auto()
 
 
 class ctGovAdapterStudyField(Enum):
@@ -125,12 +133,23 @@ class ctGovAdapterEdgeType(Enum):
     STUDY_TO_ELIGIBILITY = auto()
     STUDY_TO_ARM_GROUP = auto()
     STUDY_TO_BIOSPEC = auto()
-    STUDY_TO_OBSERVATION_PROTOCOL = auto()
     STUDY_TO_INTERVENTION_PROTOCOL = auto()
+    STUDY_TO_OBSERVATION_PROTOCOL = auto()
 
     STUDY_TO_ADVERSE_EVENT = auto()
-    STUDY_TO_ADVESE_EVENT_GROUP = auto()
+    STUDY_TO_ADVERSE_EVENT_GROUP = auto()
     STUDY_TO_ADVERSE_EVENT_PROTOCOL = auto()
+
+    SPONSOR_TO_STUDY = auto()
+    ORGANISATION_TO_STUDY = auto()
+    CONDITION_TO_STUDY = auto()
+
+    INTERVENTION_TO_STUDY = auto()
+    INTERVENTION_TO_ARM_GROUP = auto()
+
+    ADVERSE_EVENT_TO_STUDY = auto()
+    ADVERSE_EVENT_TO_ORGANS_SYSTEM = auto()
+    ADVERSE_EVENT_TO_ADVERSE_EVENT_GROUP = auto()
 
 
 class ctGovAdapter:
@@ -153,11 +172,8 @@ class ctGovAdapter:
         edge_fields: Optional[list] = None,
     ):
         self._set_types_and_fields(node_types, node_fields, edge_types, edge_fields)
-
         self.base_url = "https://clinicaltrials.gov/api/v2"
-
         self._api_response = self._get_studies(QUERY_PARAMS)
-
         self._preprocess()
 
     def _get_studies(self, query_params):
@@ -201,9 +217,11 @@ class ctGovAdapter:
         self._adverse_events = {}
         self._adverse_event_group = {}
         self._adverse_event_protocol = {}
+        self._organ_systems = {}
         # intervention or observational
         self._intervention_protocols = {}
         self._observation_protocols = {}
+        self._patient_registry = {}
         # results
         self._baseline = {}
         self._outcome_measures = {}
@@ -211,7 +229,7 @@ class ctGovAdapter:
         # BUG: outcome measure not getting exported to file
 
         # Edges
-        self._study_to_org_edges = []
+        self._study_to_organisation_edges = []
         self._study_to_sponsor_edges = []
         self._study_to_intervention_edges = []
         self._study_to_condition_edges = []
@@ -227,7 +245,16 @@ class ctGovAdapter:
         self._study_to_observation_protocol_edges = []
         self._study_to_outcome_measure_edges = []
 
+        self._sponsor_to_study_edges = []
+        self._organisation_to_study_edges = []
+        self._condition_to_study_edges = []
+
+        self._intervention_to_study_edges = []
         self._intervention_to_arm_group_edges = []
+
+        self._adverse_event_to_study_edges = []
+        self._adverse_event_to_organ_systems_edges = []
+        self._adverse_event_to_adverse_event_group_edges = []
 
         for study in tqdm(
             self._api_response, desc="Pre-precessing clinical trial protocols"
@@ -299,12 +326,23 @@ class ctGovAdapter:
                 )
 
                 # study to org edges
-                self._study_to_org_edges.append(
+                self._study_to_organisation_edges.append(
                     (
                         None,
                         nct_id,
                         _check_str_format(name),
-                        "study_has_org",
+                        "study_has_orgnisation",
+                        {},
+                    )
+                )
+
+                # org to study  edges
+                self._organisation_to_study_edges.append(
+                    (
+                        None,
+                        _check_str_format(name),
+                        nct_id,
+                        "conducts",
                         {},
                     )
                 )
@@ -339,10 +377,24 @@ class ctGovAdapter:
                     )
                 )
 
+                # sponsor to study edges
+                self._sponsor_to_study_edges.append(
+                    (
+                        None,
+                        _check_str_format(name),
+                        nct_id,
+                        "sponsors",
+                        {},
+                    )
+                )
+
         # outcomes
         if ctGovAdapterNodeType.OUTCOME in self.node_types:
             primary = get_recursive(protocol, "outcomesModule.primaryOutcomes")
             secondary = get_recursive(protocol, "outcomesModule.secondaryOutcomes")
+            other = get_recursive(
+                protocol, "protocolSection.outcomesModule.otherOutcomes"
+            )
             i = 0
             if primary:
                 for outcome in primary:
@@ -352,6 +404,12 @@ class ctGovAdapter:
                     self._add_outcome(i, nct_id, outcome, True)
 
             if secondary:
+                for outcome in secondary:
+                    # outcome node
+                    # study to outcome edge
+                    i += 1
+                    self._add_outcome(i, nct_id, outcome, False)
+            if other:
                 for outcome in secondary:
                     # outcome node
                     # study to outcome edge
@@ -427,6 +485,18 @@ class ctGovAdapter:
                                 {},
                             )
                         )
+
+                        # intervention to study edge
+                        self._intervention_to_study_edges.append(
+                            (
+                                None,
+                                _check_str_format(name),
+                                nct_id,
+                                "intervention_has_study",
+                                {},
+                            )
+                        )
+
                         # intervention to arm group edge
                         if arm_labels:
                             for arm in arm_labels:
@@ -470,6 +540,17 @@ class ctGovAdapter:
                             )
                         )
 
+                        # condition to study edges
+                        self._condition_to_study_edges.append(
+                            (
+                                None,
+                                condition,
+                                nct_id,
+                                "condition_has_study",
+                                {},
+                            )
+                        )
+
         # locations
         if ctGovAdapterNodeType.LOCATION in self.node_types:
 
@@ -506,7 +587,7 @@ class ctGovAdapter:
                                 None,
                                 nct_id,
                                 _check_str_format(name),
-                                "study_has_location",
+                                "conducted_at",
                                 {},
                             )
                         )
@@ -609,7 +690,7 @@ class ctGovAdapter:
                             None,
                             nct_id,
                             id,
-                            "study_has_intervention_protocol",
+                            "follows_intervention_protocol",
                             {},
                         )
                     )
@@ -650,25 +731,31 @@ class ctGovAdapter:
                             None,
                             nct_id,
                             id,
-                            "study_has_observation_protocol",
+                            "follows_observation_protocol",
                             {},
                         )
                     )
 
         # results -  outcome measures
         if results and ctGovAdapterNodeType.OUTCOME_MEASURES in self.node_types:
-            outcome_m = get_recursive(results, ".outcomeMeasuresModule.outcomeMeasures")
+            outcome_m = get_recursive(results, "outcomeMeasuresModule.outcomeMeasures")
 
             if outcome_m:
                 for i, outcome in enumerate(outcome_m):
-                    outcome_type = get_recursive(outcome_m, "type")
+                    outcome_title = get_recursive(outcome, "title")
+                    outcome_type = get_recursive(outcome, "type")
+                    outcome_desc = get_recursive(outcome, "description")
                     id = f"{nct_id}_outcome_measure_{i}"
                     if id not in self._outcome_measures.keys():
 
                         # outcome measure nodes
                         self._outcome_measures.update(
                             {
-                                id: {"description": outcome},
+                                id: {
+                                    "title": outcome_title,
+                                    "type": outcome_type,
+                                    "description": outcome_desc,
+                                },
                             }
                         )
 
@@ -679,7 +766,7 @@ class ctGovAdapter:
                                 nct_id,
                                 id,
                                 "study_has_outcome_measure",
-                                {"type:": outcome_type or "N/A"},
+                                {},
                             )
                         )
 
@@ -703,7 +790,7 @@ class ctGovAdapter:
 
                     # study to adverse event protocol edges
                     self._study_to_adverse_event_protocol_edges.append(
-                        (None, nct_id, id, "study_has_adverse_event_protocol", {})
+                        (None, nct_id, id, "follows_adverse_event_protocol", {})
                     )
         if results and ctGovAdapterNodeType.ADVERSE_EVENT_GROUP in self.node_types:
             groups = get_recursive(results, "adverseEventsModule.eventGroups")
@@ -810,30 +897,81 @@ class ctGovAdapter:
 
         term = get_recursive(adverse_event, "term")
         organ_system = get_recursive(adverse_event, "organSystem")
-        source_vocabulary = get_recursive(adverse_event, "sourceVocabulary")
         assessment_type = get_recursive(adverse_event, "assessmentType")
         notes = get_recursive(adverse_event, "notes")
         stats = get_recursive(adverse_event, "stats")
+        if stats:
+            stats_str = _check_str_format(stats)
+            stats_str = [
+                s.replace("\n\n", "\n").replace("\n", ", ").rstrip(", ")
+                for s in stats_str
+            ]
 
-        if term:
-            id = f"{nct_id}_AE_{i}"
-            if id not in self._adverse_events.keys():
-                self._adverse_events.update(
+        if notes:
+            notes = notes.replace("\n", "|")
+
+        prop = {
+            "serious_event": serious,
+            "assessment_type": assessment_type or "N/A",
+            "organ_system": organ_system or "N/A",
+            "notes": notes or "N/A",
+            "stats": stats_str or "N/A",
+        }
+
+        prop = check_node_props(prop)
+
+        if organ_system:
+            organ_system = organ_system.capitalize()
+            print_green(organ_system)
+            if organ_system not in self._organ_systems.keys():
+                self._organ_systems.update(
                     {
-                        id: {
-                            "term": term.capitalize(),
-                            "serious_event": serious,
-                            "organ_system": organ_system or "N/A",
-                            "source_vocabulary": source_vocabulary or "N/A",
-                            "assessment_type": assessment_type or "N/A",
-                            "notes": notes or "N/A",
-                            "stats": stats or "N/A",
-                        },
+                        organ_system: {},
                     }
                 )
-                self._study_to_adverse_event_edges.append(
-                    (None, nct_id, id, "study_has_adverse_event", {})
+        # BUG: Somehow not all organ systems are exported to the output file
+
+        if term:
+            term = term.capitalize()
+            if term not in self._adverse_events.keys():
+                self._adverse_events.update(
+                    {
+                        term: {},
+                    }
                 )
+
+            # Study to adverse event
+            self._study_to_adverse_event_edges.append(
+                (None, nct_id, term, "study_has_adverse_event", prop)
+            )
+
+            # Adverse event to study
+            self._adverse_event_to_study_edges.append(
+                (None, term, nct_id, "adverse_event_has_study", prop)
+            )
+
+            # Adverse event to organ system
+            self._adverse_event_to_organ_systems_edges.append(
+                (None, term, organ_system, "adverse_event_has_organ_system", {})
+            )
+
+            if stats:
+                for s in stats:
+                    g_id = f"{nct_id}_{s['groupId']}"
+                    g_stats = {
+                        "num_events": s.get("numEvents", None),
+                        "num_affected": s.get("numAffected", None),
+                        "num_at_risk": s.get("numAtRisk", None),
+                    }
+                    self._adverse_event_to_adverse_event_group_edges.append(
+                        (
+                            None,
+                            term,
+                            g_id,
+                            "adverse_event_has_adverse_event_group",
+                            g_stats,
+                        )
+                    )
 
     def get_nodes(self):
         """
@@ -940,6 +1078,13 @@ class ctGovAdapter:
                 formatted_props = check_node_props(props)
                 yield (name, "adverse_event_protocol", formatted_props)
 
+        if ctGovAdapterNodeType.ORGAN_SYSTEM in self.node_types:
+            print_green(len(self._organ_systems.keys()))
+            for name, props in self._organ_systems.items():
+                name = _check_str_format(name)
+                formatted_props = check_node_props(props)
+                yield (name, "organ_system", formatted_props)
+
     def get_edges(self):
         """
         Returns a generator of edge tuples for edge types specified in the
@@ -948,11 +1093,26 @@ class ctGovAdapter:
 
         logger.info("Generating edges.")
 
+        if ctGovAdapterEdgeType.STUDY_TO_ORGANISATION in self.edge_types:
+            yield from self._study_to_organisation_edges
+
+        if ctGovAdapterEdgeType.ORGANISATION_TO_STUDY in self.edge_types:
+            yield from self._organisation_to_study_edges
+
         if ctGovAdapterEdgeType.STUDY_TO_INTERVENTION in self.edge_types:
             yield from self._study_to_intervention_edges
 
+        if ctGovAdapterEdgeType.INTERVENTION_TO_STUDY in self.edge_types:
+            yield from self._intervention_to_study_edges
+
+        if ctGovAdapterEdgeType.INTERVENTION_TO_ARM_GROUP in self.edge_types:
+            yield from self._intervention_to_arm_group_edges
+
         if ctGovAdapterEdgeType.STUDY_TO_CONDITION in self.edge_types:
             yield from self._study_to_condition_edges
+
+        if ctGovAdapterEdgeType.CONDITION_TO_STUDY in self.edge_types:
+            yield from self._condition_to_study_edges
 
         if ctGovAdapterEdgeType.STUDY_TO_OUTCOME in self.edge_types:
             yield from self._study_to_outcome_edges
@@ -966,13 +1126,25 @@ class ctGovAdapter:
         if ctGovAdapterEdgeType.STUDY_TO_SPONSOR in self.edge_types:
             yield from self._study_to_sponsor_edges
 
+        if ctGovAdapterEdgeType.SPONSOR_TO_STUDY in self.edge_types:
+            yield from self._sponsor_to_study_edges
+
         if ctGovAdapterEdgeType.STUDY_TO_BIOSPEC in self.edge_types:
             yield from self._study_to_biospec_edges
 
         if ctGovAdapterEdgeType.STUDY_TO_ADVERSE_EVENT in self.edge_types:
             yield from self._study_to_adverse_event_edges
 
-        if ctGovAdapterEdgeType.STUDY_TO_ADVESE_EVENT_GROUP in self.edge_types:
+        if ctGovAdapterEdgeType.ADVERSE_EVENT_TO_STUDY in self.edge_types:
+            yield from self._adverse_event_to_study_edges
+
+        if ctGovAdapterEdgeType.ADVERSE_EVENT_TO_ORGANS_SYSTEM in self.edge_types:
+            yield from self._adverse_event_to_organ_systems_edges
+
+        if ctGovAdapterEdgeType.ADVERSE_EVENT_TO_ADVERSE_EVENT_GROUP in self.edge_types:
+            yield from self._adverse_event_to_adverse_event_group_edges
+
+        if ctGovAdapterEdgeType.STUDY_TO_ADVERSE_EVENT_GROUP in self.edge_types:
             yield from self._study_to_adverse_event_group_edges
 
         if ctGovAdapterEdgeType.STUDY_TO_ADVERSE_EVENT_PROTOCOL in self.edge_types:

@@ -55,6 +55,8 @@ outcome measure:
     represented_as: node
     input_label: outcome_measure
     properties:
+        title: str
+        type: str
         description: str
 
 condition:
@@ -133,13 +135,6 @@ adverse event:
     input_label: adverse_event
     is_a: adverse_event_of
     properties:
-        term: str
-        serious_event: bool
-        organ_system: str
-        source_vocabulary: str
-        assessment_type: str
-        notes: str
-        stats: str
         trial2vec_emb: float[]
         biobert_emb: float[]
 
@@ -151,9 +146,17 @@ adverse event group:
         title: str
         description: str
 
+organ system:
+    represented_as: node
+    input_label: organ_system
+    is_a: biological entity
+    properties:
+        trial2vec_emb: float[]
+        biobert_emb: float[]
+
 adverse event protocol:
     represented_as: node
-    input_label: adverse_event_protocol
+    input_label: adverse_event
     is_a: publication
     properties:
         timeframe: str
@@ -166,6 +169,13 @@ study to condition:
     source: study
     target: condition
 
+condition to study:
+    is_a: association
+    represented_as: edge
+    input_label: condition_has_study
+    source: condition
+    target: study
+
 study to organisation:
     is_a: association
     represented_as: edge
@@ -173,13 +183,33 @@ study to organisation:
     source: study
     target: organisation
 
+organisation to study:
+    is_a: association
+    represented_as: edge
+    input_label: conducts
+    source: organisation
+    target: study
+
 study to intervention association:
     is_a: association
     represented_as: edge
     input_label: study_has_intervention
     source: study
     target: intervention
-    properties:
+
+intervention to study association:
+    is_a: association
+    represented_as: edge
+    input_label: intervention_has_study
+    source: intervention
+    target: study
+
+intervention to arm group association:
+    is_a: association
+    represented_as: edge
+    input_label: intervention_has_arm
+    source: intervention
+    target: arm_group
 
 study to outcome association:
     is_a: association
@@ -191,7 +221,7 @@ study to outcome association:
 study to location association:
     is_a: association
     represented_as: edge
-    input_label: study_has_location
+    input_label: conducted_at
     source: study
     target: location
 
@@ -201,6 +231,13 @@ study to sponsor association:
     input_label: study_has_sponsor
     source: study
     target: sponsor
+
+sponsor to study association:
+    is_a: association
+    represented_as: edge
+    input_label: sponsors
+    source: sponsor
+    target: study
 
 study to arm_group association:
     is_a: association
@@ -226,14 +263,14 @@ study to biospec association:
 study to intervention protocol association:
     is_a: association
     represented_as: edge
-    input_label: study_has_intervention_protocol
+    input_label: follows_intervention_protocol
     source: study
     target: intervention_protocol
 
 study to observation protocol association:
     is_a: association
     represented_as: edge
-    input_label: study_has_observation_protocol
+    input_label: follows_observation_protocol
     source: study
     target: observation_protocol
 
@@ -243,6 +280,43 @@ study to adverse event association:
     input_label: study_has_adverse_event
     source: study
     target: adverse_event
+    properties:
+        serious_event: bool
+        assessment_type: str
+        organ_system: str
+        notes: str
+        stats: str
+
+adverse event to study association:
+    is_a: association
+    represented_as: edge
+    input_label: adverse_event_has_study
+    source: adverse_event
+    target: study
+    properties:
+        serious_event: bool
+        assessment_type: str
+        organ_system: str
+        notes: str
+        stats: str
+
+adverse event to organ system association:
+    is_a: association
+    represented_as: edge
+    input_label: adverse_event_has_organ_system
+    source: adverse_event
+    target: organ_system
+
+adverse event to adverse event group association:
+    is_a: association
+    represented_as: edge
+    input_label: adverse_event_has_adverse_event_group
+    source: adverse_event
+    target: adverse_event_group
+    properties:
+        num_events: int
+        num_affected: int
+        num_at_risk: int
 
 study to adverse event group association:
     is_a: association
@@ -254,7 +328,7 @@ study to adverse event group association:
 study to adverse event group protocol association:
     is_a: association
     represented_as: edge
-    input_label: study_has_adverse_event_protocol
+    input_label: follows_adverse_event_group_protocol
     source: study
     target: adverse_event_group_protocol
 
