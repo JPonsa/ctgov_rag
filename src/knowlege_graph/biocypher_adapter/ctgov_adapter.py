@@ -12,12 +12,6 @@ import yaml
 from biocypher._logger import logger
 from tqdm import tqdm
 
-
-def print_green(text):
-    """Print a text message in Green"""
-    print("\033[92m" + text + "\033[0m")
-
-
 logger.debug(f"Loading module {__name__}.")
 
 import requests
@@ -256,6 +250,12 @@ class ctGovAdapter:
         self._adverse_event_to_organ_systems_edges = []
         self._adverse_event_to_adverse_event_group_edges = []
 
+        # tracking lists
+        self._adverse_events_list = []
+        self._organ_system_list = []
+        self._interventions_list = []
+        self._locations_list = []
+
         for study in tqdm(
             self._api_response, desc="Pre-precessing clinical trial protocols"
         ):
@@ -464,10 +464,15 @@ class ctGovAdapter:
                     if name:
                         # intervention node
                         name = name.capitalize()
-                        if name not in self._interventions.keys():
+                        if name not in self._interventions_list:
+                            self._interventions_list.append(name)
+                            int_id = (
+                                f"Intervention_{self._interventions_list.index(name)+1}"
+                            )
                             self._interventions.update(
                                 {
-                                    name: {
+                                    int_id: {
+                                        "name": name,
                                         "type": intervention_type or "N/A",
                                         "description": description or "N/A",
                                         "other_names": other_names or "N/A",
@@ -475,12 +480,17 @@ class ctGovAdapter:
                                 }
                             )
 
+                        # intervention id
+                        int_id = (
+                            f"intervention_{self._interventions_list.index(name)+1}"
+                        )
+
                         # study to intervention edge
                         self._study_to_intervention_edges.append(
                             (
                                 None,
                                 nct_id,
-                                _check_str_format(name),
+                                int_id,
                                 "study_has_intervention",
                                 {},
                             )
@@ -490,7 +500,7 @@ class ctGovAdapter:
                         self._intervention_to_study_edges.append(
                             (
                                 None,
-                                _check_str_format(name),
+                                int_id,
                                 nct_id,
                                 "intervention_has_study",
                                 {},
@@ -505,7 +515,7 @@ class ctGovAdapter:
                                     self._intervention_to_arm_group_edges.append(
                                         (
                                             None,
-                                            _check_str_format(name),
+                                            int_id,
                                             arm,
                                             "intervention_has_arm",
                                             {},
@@ -521,11 +531,11 @@ class ctGovAdapter:
                 for mesh in meshes:
                     condition = mesh.get("term")
                     mesh_id = mesh.get("id")
-                    if condition not in self._conditions.keys():
+                    if mesh_id not in self._conditions.keys():
                         # condition node
                         self._conditions.update(
                             {
-                                condition: {"mesh_id": mesh_id},
+                                mesh_id: {"condition": condition},
                             }
                         )
 
@@ -534,7 +544,7 @@ class ctGovAdapter:
                             (
                                 None,
                                 nct_id,
-                                condition,
+                                mesh_id,
                                 "study_has_condition",
                                 {},
                             )
@@ -544,7 +554,7 @@ class ctGovAdapter:
                         self._condition_to_study_edges.append(
                             (
                                 None,
-                                condition,
+                                mesh_id,
                                 nct_id,
                                 "condition_has_study",
                                 {},
@@ -570,10 +580,15 @@ class ctGovAdapter:
                         name = None
 
                     if name:
-                        if name not in self._locations.keys():
+                        if name not in self._locations_list:
+                            self._locations_list.append(name)
+                            location_id = (
+                                f"location_{self._locations_list.index(name)+1}"
+                            )
                             self._locations.update(
                                 {
-                                    name: {
+                                    location_id: {
+                                        "facility": facility or "N/A",
                                         "city": city or "N/A",
                                         "state": state or "N/A",
                                         "country": country or "N/A",
@@ -581,12 +596,15 @@ class ctGovAdapter:
                                 }
                             )
 
+                        # location id
+                        location_id = f"location_{self._locations_list.index(name)+1}"
+
                         # study to location edges
                         self._study_to_location_edges.append(
                             (
                                 None,
                                 nct_id,
-                                _check_str_format(name),
+                                location_id,
                                 "conducted_at",
                                 {},
                             )
@@ -606,24 +624,28 @@ class ctGovAdapter:
 
                 id = f"{nct_id}_eligibility"
 
-                if id not in self._eligibility.keys():
-                    # create node
-                    self._eligibility.update(
-                        {
-                            id: {
-                                "sex": sex or "N/A",
-                                "healthy_volunteers": healthy_volunteers or False,
-                                "minimum_age": min_age or None,
-                                "maximum_age": max_age or None,
-                                "standarised_ages": standarised_ages or "N/A",
-                                "eligibility_criteria": eligibility_criteria or "N/A",
-                            },
-                        }
+                if id in self._eligibility.keys():
+                    raise ValueError(
+                        f"{id} already in the dataset. Duplication was not expected!"
                     )
-                    # create study to eligibity edges
-                    self._study_to_eligibility_edges.append(
-                        (None, nct_id, id, "study_has_eligibility", {})
-                    )
+
+                # create node
+                self._eligibility.update(
+                    {
+                        id: {
+                            "sex": sex or "N/A",
+                            "healthy_volunteers": healthy_volunteers or False,
+                            "minimum_age": min_age or None,
+                            "maximum_age": max_age or None,
+                            "standarised_ages": standarised_ages or "N/A",
+                            "eligibility_criteria": eligibility_criteria or "N/A",
+                        },
+                    }
+                )
+                # create study to eligibity edges
+                self._study_to_eligibility_edges.append(
+                    (None, nct_id, id, "study_has_eligibility", {})
+                )
 
         # biospeciment (aka biospec)
         if ctGovAdapterNodeType.BIOSPEC in self.node_types:
@@ -670,30 +692,34 @@ class ctGovAdapter:
 
             if model:
                 id = f"{nct_id}_int_protocol"
-                if id not in self._intervention_protocols.keys():
-                    # intervention protocol node
-                    self._intervention_protocols.update(
-                        {
-                            id: {
-                                "model": model or "N/A",
-                                "description": description or "N/A",
-                                "allocation": allocation or "N/A",
-                                "masking": masking or [],
-                                "masking_description": masking_desc or "N/A",
-                            }
-                        }
-                    )
 
-                    # study to intervention protocol edges
-                    self._study_to_intervention_protocol_edges.append(
-                        (
-                            None,
-                            nct_id,
-                            id,
-                            "follows_intervention_protocol",
-                            {},
-                        )
+                if id in self._intervention_protocols.keys():
+                    raise ValueError(
+                        f"{id} already in the dataset. Duplication was not expected!"
                     )
+                # intervention protocol node
+                self._intervention_protocols.update(
+                    {
+                        id: {
+                            "model": model or "N/A",
+                            "description": description or "N/A",
+                            "allocation": allocation or "N/A",
+                            "masking": masking or [],
+                            "masking_description": masking_desc or "N/A",
+                        }
+                    }
+                )
+
+                # study to intervention protocol edges
+                self._study_to_intervention_protocol_edges.append(
+                    (
+                        None,
+                        nct_id,
+                        id,
+                        "follows_intervention_protocol",
+                        {},
+                    )
+                )
 
         # observation protocol
         if ctGovAdapterNodeType.OBSERVATION_PROTOCOL in self.node_types:
@@ -711,30 +737,35 @@ class ctGovAdapter:
 
             if model:
                 id = f"{nct_id}_obs_protocol"
-                if nct_id not in self._observation_protocols.keys():
-                    # observation protocol node
-                    self._observation_protocols.update(
-                        {
-                            id: {
-                                "model": model or "N/A",
-                                "time_perspective": time_perspective or "N/A",
-                                "population": population or "N/A",
-                                "patient_registry": patient_registry or False,
-                                "sampling_method": sampling_method or "N/A",
-                            },
-                        }
+
+                if id in self._observation_protocols.keys():
+                    raise ValueError(
+                        f"{id} already in the dataset. Duplication was not expected!"
                     )
 
-                    # study to observation protocol edges
-                    self._study_to_observation_protocol_edges.append(
-                        (
-                            None,
-                            nct_id,
-                            id,
-                            "follows_observation_protocol",
-                            {},
-                        )
+                # observation protocol node
+                self._observation_protocols.update(
+                    {
+                        id: {
+                            "model": model or "N/A",
+                            "time_perspective": time_perspective or "N/A",
+                            "population": population or "N/A",
+                            "patient_registry": patient_registry or False,
+                            "sampling_method": sampling_method or "N/A",
+                        },
+                    }
+                )
+
+                # study to observation protocol edges
+                self._study_to_observation_protocol_edges.append(
+                    (
+                        None,
+                        nct_id,
+                        id,
+                        "follows_observation_protocol",
+                        {},
                     )
+                )
 
         # results -  outcome measures
         if results and ctGovAdapterNodeType.OUTCOME_MEASURES in self.node_types:
@@ -746,29 +777,33 @@ class ctGovAdapter:
                     outcome_type = get_recursive(outcome, "type")
                     outcome_desc = get_recursive(outcome, "description")
                     id = f"{nct_id}_outcome_measure_{i}"
-                    if id not in self._outcome_measures.keys():
 
-                        # outcome measure nodes
-                        self._outcome_measures.update(
-                            {
-                                id: {
-                                    "title": outcome_title,
-                                    "type": outcome_type,
-                                    "description": outcome_desc,
-                                },
-                            }
+                    if id in self._outcome_measures.keys():
+                        raise ValueError(
+                            f"{id} already in the dataset. Duplication was not expected!"
                         )
 
-                        # study to outcome measure edges
-                        self._study_to_outcome_measure_edges.append(
-                            (
-                                None,
-                                nct_id,
-                                id,
-                                "study_has_outcome_measure",
-                                {},
-                            )
+                    # outcome measure nodes
+                    self._outcome_measures.update(
+                        {
+                            id: {
+                                "title": outcome_title,
+                                "type": outcome_type,
+                                "description": outcome_desc,
+                            },
+                        }
+                    )
+
+                    # study to outcome measure edges
+                    self._study_to_outcome_measure_edges.append(
+                        (
+                            None,
+                            nct_id,
+                            id,
+                            "study_has_outcome_measure",
+                            {},
                         )
+                    )
 
         # Adverse Event protocol
         if results and ctGovAdapterNodeType.ADVERSE_EVENT_PROTOCOL in self.node_types:
@@ -777,21 +812,25 @@ class ctGovAdapter:
 
             if description:
                 id = f"{nct_id}_adverse_event_protocol"
-                if id not in self._adverse_event_protocol.keys():
-                    # adverser event protocol node
-                    self._adverse_event_protocol.update(
-                        {
-                            id: {
-                                "description": description or "N/A",
-                                "timeframe": timeframe or "N/A",
-                            },
-                        }
+                if id in self._adverse_event_protocol.keys():
+                    raise ValueError(
+                        f"{id} already in the dataset. Duplication was not expected!"
                     )
 
-                    # study to adverse event protocol edges
-                    self._study_to_adverse_event_protocol_edges.append(
-                        (None, nct_id, id, "follows_adverse_event_protocol", {})
-                    )
+                # adverser event protocol node
+                self._adverse_event_protocol.update(
+                    {
+                        id: {
+                            "description": description or "N/A",
+                            "timeframe": timeframe or "N/A",
+                        },
+                    }
+                )
+
+                # study to adverse event protocol edges
+                self._study_to_adverse_event_protocol_edges.append(
+                    (None, nct_id, id, "follows_adverse_event_protocol", {})
+                )
         if results and ctGovAdapterNodeType.ADVERSE_EVENT_GROUP in self.node_types:
             groups = get_recursive(results, "adverseEventsModule.eventGroups")
             if groups:
@@ -800,28 +839,32 @@ class ctGovAdapter:
                     title = get_recursive(group, "title")
                     description = get_recursive(group, "description")
                     g_id = f"{nct_id}_{id}"
-                    if g_id not in self._adverse_event_group.keys():
+
+                    if g_id in self._adverse_event_group.keys():
+                        raise ValueError(
+                            f"{g_id} already in the dataset. Duplication was not expected!"
+                        )
                         # event group node
 
-                        self._adverse_event_group.update(
-                            {
-                                g_id: {
-                                    "id": id,
-                                    "title": title or "N/A",
-                                    "description": description or "N/A",
-                                },
-                            }
+                    self._adverse_event_group.update(
+                        {
+                            g_id: {
+                                "id": id,
+                                "title": title or "N/A",
+                                "description": description or "N/A",
+                            },
+                        }
+                    )
+                    # study to event group edges
+                    self._study_to_adverse_event_group_edges.append(
+                        (
+                            None,
+                            nct_id,
+                            g_id,
+                            "study_has_adverse_event_group",
+                            {},
                         )
-                        # study to event group edges
-                        self._study_to_adverse_event_group_edges.append(
-                            (
-                                None,
-                                nct_id,
-                                g_id,
-                                "study_has_adverse_event_group",
-                                {},
-                            )
-                        )
+                    )
 
         # adverse events
         if results and ctGovAdapterNodeType.ADVERSE_EVENT in self.node_types:
@@ -857,28 +900,33 @@ class ctGovAdapter:
         description = get_recursive(outcome, "description")
 
         if measure:
-            name = f"{nct_id}_outcome_{i}"
-            if name not in self._outcomes.keys():
-                self._outcomes.update(
-                    {
-                        name: {
-                            "measure": measure,
-                            "time_frame": time_frame or "N/A",
-                            "description": description or "N/A",
-                            "primary": primary,
-                        },
-                    }
+            id = f"{nct_id}_outcome_{i}"
+
+            if id in self._outcomes.keys():
+                raise ValueError(
+                    f"{id} already in the dataset. Duplication was not expected!"
                 )
 
-                self._study_to_outcome_edges.append(
-                    (
-                        None,
-                        nct_id,
-                        _check_str_format(name),
-                        "study_has_outcome",
-                        {},
-                    )
+            self._outcomes.update(
+                {
+                    id: {
+                        "measure": measure,
+                        "time_frame": time_frame or "N/A",
+                        "description": description or "N/A",
+                        "primary": primary,
+                    },
+                }
+            )
+
+            self._study_to_outcome_edges.append(
+                (
+                    None,
+                    nct_id,
+                    id,
+                    "study_has_outcome",
+                    {},
                 )
+            )
 
     def _add_adverse_event(
         self, i: int, nct_id: str, adverse_event: dict, serious: bool
@@ -900,6 +948,7 @@ class ctGovAdapter:
         assessment_type = get_recursive(adverse_event, "assessmentType")
         notes = get_recursive(adverse_event, "notes")
         stats = get_recursive(adverse_event, "stats")
+
         if stats:
             stats_str = _check_str_format(stats)
             stats_str = [
@@ -921,39 +970,47 @@ class ctGovAdapter:
         prop = check_node_props(prop)
 
         if organ_system:
-            organ_system = organ_system.capitalize()
-            print_green(organ_system)
-            if organ_system not in self._organ_systems.keys():
+            organ_system = organ_system.capitalize().replace(",", "")
+            if organ_system not in self._organ_system_list:
+                self._organ_system_list.append(organ_system)
+                os_id = f"OrganSystem_{self._organ_system_list.index(organ_system)+1}"
                 self._organ_systems.update(
                     {
-                        organ_system: {},
+                        os_id: {"name": organ_system},
                     }
                 )
         # BUG: Somehow not all organ systems are exported to the output file
+        # As solution I had to create this unique id and store the list of orgs in a variable
+        # This raises concerns on what else could being removed.
 
         if term:
             term = term.capitalize()
-            if term not in self._adverse_events.keys():
+            if term not in self._adverse_events_list:
+                self._adverse_events_list.append(term)
+                ae_id = f"AdverseEvent_{self._adverse_events_list.index(term)+1}"
                 self._adverse_events.update(
                     {
-                        term: {},
+                        ae_id: {"term": term},
                     }
                 )
 
             # Study to adverse event
+            ae_id = f"AdverseEvent_{self._adverse_events_list.index(term)+1}"
             self._study_to_adverse_event_edges.append(
-                (None, nct_id, term, "study_has_adverse_event", prop)
+                (None, nct_id, ae_id, "study_has_adverse_event", prop)
             )
 
             # Adverse event to study
             self._adverse_event_to_study_edges.append(
-                (None, term, nct_id, "adverse_event_has_study", prop)
+                (None, ae_id, nct_id, "adverse_event_has_study", prop)
             )
 
-            # Adverse event to organ system
-            self._adverse_event_to_organ_systems_edges.append(
-                (None, term, organ_system, "adverse_event_has_organ_system", {})
-            )
+            if organ_system:
+                # Adverse event to organ system
+                os_id = f"OrganSystem_{self._organ_system_list.index(organ_system)+1}"
+                self._adverse_event_to_organ_systems_edges.append(
+                    (None, ae_id, os_id, "adverse_event_has_organ_system", {})
+                )
 
             if stats:
                 for s in stats:
@@ -966,7 +1023,7 @@ class ctGovAdapter:
                     self._adverse_event_to_adverse_event_group_edges.append(
                         (
                             None,
-                            term,
+                            ae_id,
                             g_id,
                             "adverse_event_has_adverse_event_group",
                             g_stats,
@@ -1079,11 +1136,8 @@ class ctGovAdapter:
                 yield (name, "adverse_event_protocol", formatted_props)
 
         if ctGovAdapterNodeType.ORGAN_SYSTEM in self.node_types:
-            print_green(len(self._organ_systems.keys()))
             for name, props in self._organ_systems.items():
-                name = _check_str_format(name)
-                formatted_props = check_node_props(props)
-                yield (name, "organ_system", formatted_props)
+                yield (name, "organ_system", props)
 
     def get_edges(self):
         """

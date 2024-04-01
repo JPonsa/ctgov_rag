@@ -64,6 +64,7 @@ condition:
     input_label: condition
     synonym_for: disease
     properties:
+        condition: str
         trial2vec_emb: float[]
         biobert_emb: float[]
 
@@ -72,6 +73,7 @@ location:
     represented_as: node
     input_label: location
     properties:
+        facility: str
         country: str
         state: str
         city: str
@@ -135,6 +137,7 @@ adverse event:
     input_label: adverse_event
     is_a: adverse_event_of
     properties:
+        term: str
         trial2vec_emb: float[]
         biobert_emb: float[]
 
@@ -149,14 +152,15 @@ adverse event group:
 organ system:
     represented_as: node
     input_label: organ_system
-    is_a: biological entity
+    is_a: named thing
     properties:
+        name: str
         trial2vec_emb: float[]
         biobert_emb: float[]
 
 adverse event protocol:
     represented_as: node
-    input_label: adverse_event
+    input_label: adverse_event_group_protocol
     is_a: publication
     properties:
         timeframe: str
@@ -239,7 +243,7 @@ sponsor to study association:
     source: sponsor
     target: study
 
-study to arm_group association:
+study to arm group association:
     is_a: association
     represented_as: edge
     input_label: study_has_arm_group
@@ -273,6 +277,13 @@ study to observation protocol association:
     input_label: follows_observation_protocol
     source: study
     target: observation_protocol
+
+study to adverse event protocol association:
+    is_a: association
+    represented_as: edge
+    input_label: follows_adverse_event_protocol
+    source: study
+    target: adverse_event_protocol
 
 study to adverse event association:
     is_a: association
