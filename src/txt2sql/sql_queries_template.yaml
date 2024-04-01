@@ -42,7 +42,7 @@ query_5:
   tables: [browse_conditions]
 
 query_6:
-  question: What drugs / treatments is studied in study {nctId}? Give mesh term.
+  question: What drugs / treatments is studied in clinical trial {nctId}? Give mesh term.
   SQL: |
     SELECT mesh_term 
     FROM browse_interventions 
@@ -66,7 +66,7 @@ query_9:
   tables: [studies]
 
 query_10:
-  question: What is the eligibility criteria for study {nctId}?
+  question: What is the eligibility criteria for clinical trial {nctId}?
   SQL: |
     SELECT *
     FROM eligibilities
@@ -74,7 +74,7 @@ query_10:
   tables: [eligibilities]
 
 query_11:
-  question: What is the min. and max. age range in study {nctId}?
+  question: What is the age range in study {nctId}?
   SQL: |
     SELECT 
       CAST(SUBSTRING(minimum_age FROM '^\d+') AS INTEGER) AS minimum_age,
@@ -177,7 +177,7 @@ query_24:
   tables: [reported_events]
 
 query_25:
-  question: Select all studies for condition '{condition}'
+  question: Write a list of all clinical trials studying condition '{condition}'
   SQL: |
     SELECT distinct nct_id 
     FROM browse_conditions 
@@ -185,7 +185,7 @@ query_25:
   tables: [browse_conditions]
 
 query_26:
-  question: Select all studies for intervention '{intervention}'
+  question: Write a list of all clinical trials studying intervention '{intervention}'
   SQL: |
     SELECT distinct nct_id 
     FROM browse_interventions
