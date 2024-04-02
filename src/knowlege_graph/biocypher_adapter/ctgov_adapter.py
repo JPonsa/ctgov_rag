@@ -535,7 +535,7 @@ class ctGovAdapter:
                         # condition node
                         self._conditions.update(
                             {
-                                mesh_id: {"condition": condition},
+                                mesh_id: {"name": condition},
                             }
                         )
 

@@ -4,73 +4,95 @@ import shutil
 import numpy as np
 import pandas as pd
 import torch
+from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 from trial2vec import Trial2Vec
 
-from src.embeddings.embeddings import BioBert2Vect
+from src.embeddings.Trial2Vec_embedding import ct_dict2pd
 from src.utils.utils import get_clinical_trial_study, print_green, print_red
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-trial2vec_model = Trial2Vec(device=device)
-trial2vec_model.from_pretrained()
+FORMATTER = {"float": lambda x: "%.10f" % x}
+SEPARATOR = "|"
+PRECISION = 10
 
-biobert2vect = BioBert2Vect()
+
+def trial2vect_encode_node(inp_path, out_path):
+
+    studies = []
+    study_pd = pd.DataFrame()
+
+    node_name = "ClinicalTrials"
+    header = pd.read_csv(f"{inp_path}{node_name}-header.csv", sep="\t")
+    df = pd.read_csv(f"{inp_path}{node_name}-part000.csv", sep="\t", header=None)
+    df.columns = header.columns
+
+    for nctId in df[":ID"].values:
+        studies.append(get_clinical_trial_study(nctId))
+
+    for study in studies:
+        tmp = ct_dict2pd(study)
+        study_pd = pd.concat([study_pd, tmp])
+
+    embeddings = trial2vec.encode({"x": study_pd})
+
+    for i, row in tqdm(df.iterrows(), desc=f"Embedding {node_name}"):
+
+        nctId = row[":ID"]
+        emb = embeddings[nctId]
+        emb_str = (
+            np.array2string(
+                emb, separator=SEPARATOR, precision=PRECISION, formatter=FORMATTER
+            )
+            .replace("\n", "")
+            .replace("[", "")
+            .replace("]", "")
+            .replace(" ", "")
+        )
+
+        df.at[i, "trial2vec_emb:double[]"] = emb_str
+
+    df.to_csv(f"{out_path}{node_name}-part000.csv", sep="\t", header=None, index=False)
 
 
-def enconde_node(inp_path, out_path, node_name, term, prefix: str = ""):
+def biobert_enconde_node(inp_path, out_path, node_name, term):
 
     header = pd.read_csv(f"{inp_path}{node_name}-header.csv", sep="\t")
     df = pd.read_csv(f"{inp_path}{node_name}-part000.csv", sep="\t", header=None)
     df.columns = header.columns
 
-    df["trial2vec_emb:double[]"] = df["trial2vec_emb:double[]"].astype(object)
-    df["biobert_emb:double[]"] = df["biobert_emb:double[]"].astype(object)
+    if "biobert_emb:double[]" not in df.columns:
+        return None
 
-    formatter = {"float": lambda x: "%.10f" % x}
-    separator = "|"
-    precision = 10
+    df["biobert_emb:double[]"] = df["biobert_emb:double[]"].astype(object)
 
     for i, row in tqdm(df.iterrows(), desc=f"Embedding {node_name}"):
 
-        sentence = prefix + row[term]
-
-        # Convert sentence to trial2vec embedding
-        t2v = trial2vec_model.sentence_vector(sentence)
-        t2v = t2v[0].numpy()
-        t2v = (
-            np.array2string(
-                t2v, separator=separator, precision=precision, formatter=formatter
-            )
-            .replace("\n", "")
-            .replace("[", "")
-            .replace("]", "")
-            .replace(" ", "")
-        )
-        df.at[i, "trial2vec_emb:double[]"] = t2v
+        sentence = row[term]
 
         # Convert sentence to biobert embedding
-        bio = biobert2vect.get_sentence_embedding(sentence, method="last_hidden_state")
-        bio = bio[0]
-        bio = (
+        bio_emb = biobert.encode(sentence)
+        bio_emb = bio_emb[0]
+        bio_emb = (
             np.array2string(
-                bio, separator=separator, precision=precision, formatter=formatter
+                bio_emb, separator=SEPARATOR, precision=PRECISION, formatter=FORMATTER
             )
             .replace("\n", "")
             .replace("[", "")
             .replace("]", "")
             .replace(" ", "")
         )
-        df.at[i, "biobert_emb:double[]"] = bio
+        df.at[i, "biobert_emb:double[]"] = bio_emb
 
     df.to_csv(f"{out_path}{node_name}-part000.csv", sep="\t", header=None, index=False)
 
 
 def main():
 
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    trial2vec_model = Trial2Vec(device=device)
-    trial2vec_model.from_pretrained()
+    trial2vec = Trial2Vec(device=DEVICE)
+    trial2vec.from_pretrained()
+    biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
     inp_path = "./data/raw/knowledge_graph/"
     out_path = "./data/preprocessed/knowledge_graph/"
@@ -82,12 +104,14 @@ def main():
     # Copy the entire input directory into the output directory
     shutil.copytree(inp_path, out_path)
 
-    enconde_node(out_path, out_path, "AdverseEvent", "term", "Adverse Event: ")
-    enconde_node(out_path, out_path, "Biospec", "description")
-    enconde_node(out_path, out_path, "Condition", ":ID", "Condition: ")
-    enconde_node(out_path, out_path, "Eligibility", "eligibility_criteria")
-    enconde_node(out_path, out_path, "Intervention", ":ID")
-    enconde_node(out_path, out_path, "Outcome", "measure")
+    trial2vect_encode_node(out_path, out_path)
+    biobert_enconde_node(out_path, out_path, "ClinicalTrial", "brief_title")
+    biobert_enconde_node(out_path, out_path, "AdverseEvent", "term")
+    biobert_enconde_node(out_path, out_path, "Biospec", "description")
+    biobert_enconde_node(out_path, out_path, "Condition", "name")
+    biobert_enconde_node(out_path, out_path, "Intervention", "name")
+    biobert_enconde_node(out_path, out_path, "Outcome", "measure")
+    biobert_enconde_node(out_path, out_path, "OrganSystem", "name")
 
     # update neo4j-admin command
     neo4j_admin = "neo4j-admin-import-call-windows.sh"

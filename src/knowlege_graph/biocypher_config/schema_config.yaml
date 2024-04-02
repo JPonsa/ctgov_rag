@@ -13,6 +13,7 @@ clinical trial:
         study_type: str
         why_stopped: str
         trial2vec_emb: float[]
+        biobert_emb: float[]
 
 intervention:
     represented_as: node
@@ -22,7 +23,6 @@ intervention:
         name: str
         type: str
         mapped_names: str[]
-        trial2vec_emb: float[]
         biobert_emb: float[]
 
 organisation:
@@ -47,7 +47,6 @@ outcome:
         measure: str
         timeframe: str
         description: str
-        trial2vec_emb: float[]
         biobert_emb: float[]
 
 outcome measure:
@@ -64,8 +63,7 @@ condition:
     input_label: condition
     synonym_for: disease
     properties:
-        condition: str
-        trial2vec_emb: float[]
+        name: str
         biobert_emb: float[]
 
 location:
@@ -89,8 +87,6 @@ eligibility:
         maximum_age: str
         standardised_ages: str[]
         eligibility_criteria: str
-        trial2vec_emb: float[]
-        biobert_emb: float[]
 
 biospec:
     represented_as: node
@@ -99,7 +95,6 @@ biospec:
     properties:
         retention: str
         description: str
-        trial2vec_emb: float[]
         biobert_emb: float[]
 
 arm group:
@@ -138,7 +133,6 @@ adverse event:
     is_a: adverse_event_of
     properties:
         term: str
-        trial2vec_emb: float[]
         biobert_emb: float[]
 
 adverse event group:
@@ -155,7 +149,6 @@ organ system:
     is_a: named thing
     properties:
         name: str
-        trial2vec_emb: float[]
         biobert_emb: float[]
 
 adverse event protocol:
