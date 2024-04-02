@@ -1,5 +1,14 @@
 class BioBert2Vect(object):
 
+    error_message = """
+    This is unnecessary. This can be replaced by:
+    from sentence_transformers import SentenceTransformer
+    biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
+    embeddings =  biobert.encode(sentences)
+    """
+
+    raise DeprecationWarning(error_message)
+
     def __init__(self) -> None:
         "Load BioBERT"
         from transformers import AutoModel, AutoTokenizer
@@ -9,7 +18,7 @@ class BioBert2Vect(object):
         )
         self.model = AutoModel.from_pretrained("dmis-lab/biobert-base-cased-v1.1")
 
-    def get_sentence_embedding(self, sentence, method: str = "pooler_output"):
+    def get_sentence_embedding(self, sentence, method: str = "last_hidden_state"):
         """Takes a list of sentences and converts them to BioBERT embeddings"""
         import torch
 
@@ -69,13 +78,18 @@ if __name__ == "__main__":
         "Protein folding is the physical process by which a protein structure assumes its functional three-dimensional structure from a linear chain of amino acids.",
     ]
 
-    biobert2vect = BioBert2Vect()
-    embeddings = biobert2vect.get_sentence_embedding(
-        sentences, method="last_hidden_state"
-    )
+    from sentence_transformers import SentenceTransformer
 
-    for sentence, embedding in zip(sentences, embeddings):
-        print(f"Sentence: {sentence}")
-        print(f"Embedding shape: {embedding.shape}")
-        print(f"Embedding: {embedding}")
-        print()
+    biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
+    embeddings = biobert.encode(sentences)
+
+    # biobert2vect = BioBert2Vect()
+    # embeddings = biobert2vect.get_sentence_embedding(
+    #     sentences, method="last_hidden_state"
+    # )
+
+    # for sentence, embedding in zip(sentences, embeddings):
+    #     print(f"Sentence: {sentence}")
+    #     print(f"Embedding shape: {embedding.shape}")
+    #     print(f"Embedding: {embedding}")
+    #     print()
