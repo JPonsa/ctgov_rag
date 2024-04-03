@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 
@@ -13,25 +14,53 @@ from src.utils.utils import get_clinical_trial_study, print_green, print_red
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-FORMATTER = {"float": lambda x: "%.10f" % x}
 SEPARATOR = "|"
-PRECISION = 10
+PRECISION = 15
+# FORMATTER = {"float": lambda x: f"%.{PRECISION}f" % x}
+
+trial2vec = Trial2Vec(device=DEVICE)
+trial2vec.from_pretrained()
+biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
 
-def trial2vect_encode_node(inp_path, out_path):
+def embedding_formatting(emb: np.array) -> str:
+    """Takes a embedding vector and reformats it to a string"""
+
+    emb = (
+        np.array2string(emb, separator=SEPARATOR, precision=PRECISION)
+        .replace("\n", "")
+        .replace("[", "")
+        .replace("]", "")
+        .replace(" ", "")
+    )
+    return emb
+
+
+def trial2vect_encode_node(inp_path: str, out_path: str):
+    """Apply trial2vec to the ClinicalTrail KG nodes
+
+    Parameters
+    ----------
+    inp_path : str
+        input data path
+    out_path : str
+        output data path
+    """
 
     studies = []
     study_pd = pd.DataFrame()
 
-    node_name = "ClinicalTrials"
+    node_name = "ClinicalTrial"
     header = pd.read_csv(f"{inp_path}{node_name}-header.csv", sep="\t")
     df = pd.read_csv(f"{inp_path}{node_name}-part000.csv", sep="\t", header=None)
     df.columns = header.columns
 
-    for nctId in df[":ID"].values:
+    df["trial2vec_emb:double[]"] = df["trial2vec_emb:double[]"].astype(object)
+
+    for i, nctId in enumerate(df[":ID"].values):
         studies.append(get_clinical_trial_study(nctId))
 
-    for study in studies:
+    for i, study in enumerate(studies):
         tmp = ct_dict2pd(study)
         study_pd = pd.concat([study_pd, tmp])
 
@@ -41,22 +70,28 @@ def trial2vect_encode_node(inp_path, out_path):
 
         nctId = row[":ID"]
         emb = embeddings[nctId]
-        emb_str = (
-            np.array2string(
-                emb, separator=SEPARATOR, precision=PRECISION, formatter=FORMATTER
-            )
-            .replace("\n", "")
-            .replace("[", "")
-            .replace("]", "")
-            .replace(" ", "")
-        )
+        emb_str = embedding_formatting(emb)
 
         df.at[i, "trial2vec_emb:double[]"] = emb_str
 
     df.to_csv(f"{out_path}{node_name}-part000.csv", sep="\t", header=None, index=False)
 
 
-def biobert_enconde_node(inp_path, out_path, node_name, term):
+def biobert_enconde_node(inp_path: str, out_path: str, node_name: str, term: str):
+    """Apply bioBERT embeddings to a KG node"
+
+    Parameters
+    ----------
+    inp_path : str
+        input data path
+    out_path : str
+        output data path
+    node_name : str
+        Name of the KG note that appears in the file name.
+        {inp_path}{node_name}-header.csv
+    term : str
+        fields in the file corresponding to the node attribute to be encoded
+    """
 
     header = pd.read_csv(f"{inp_path}{node_name}-header.csv", sep="\t")
     df = pd.read_csv(f"{inp_path}{node_name}-part000.csv", sep="\t", header=None)
@@ -73,29 +108,13 @@ def biobert_enconde_node(inp_path, out_path, node_name, term):
 
         # Convert sentence to biobert embedding
         bio_emb = biobert.encode(sentence)
-        bio_emb = bio_emb[0]
-        bio_emb = (
-            np.array2string(
-                bio_emb, separator=SEPARATOR, precision=PRECISION, formatter=FORMATTER
-            )
-            .replace("\n", "")
-            .replace("[", "")
-            .replace("]", "")
-            .replace(" ", "")
-        )
-        df.at[i, "biobert_emb:double[]"] = bio_emb
+        bio_emb_str = embedding_formatting(bio_emb)
+        df.at[i, "biobert_emb:double[]"] = bio_emb_str
 
     df.to_csv(f"{out_path}{node_name}-part000.csv", sep="\t", header=None, index=False)
 
 
-def main():
-
-    trial2vec = Trial2Vec(device=DEVICE)
-    trial2vec.from_pretrained()
-    biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
-
-    inp_path = "./data/raw/knowledge_graph/"
-    out_path = "./data/preprocessed/knowledge_graph/"
+def main(inp_path: str, out_path: str):
 
     if os.path.exists(out_path):
         print_red(f"WARNING! {out_path} already exist! in will be overwritten!")
@@ -130,4 +149,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser(description="Test llamaindex txt2sql")
+    parser.add_argument("input_path", type=str, help="Input path.")
+    parser.add_argument("output_path", type=str, help="Output path.")
+    args = parser.parse_args()
+    inp_path = "./data/raw/knowledge_graph/"
+    out_path = "./data/preprocessed/knowledge_graph/"
+    main(args.input_path, args.output_path)
