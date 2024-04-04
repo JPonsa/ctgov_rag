@@ -467,7 +467,7 @@ class ctGovAdapter:
                         if name not in self._interventions_list:
                             self._interventions_list.append(name)
                             int_id = (
-                                f"Intervention_{self._interventions_list.index(name)+1}"
+                                f"intervention_{self._interventions_list.index(name)+1}"
                             )
                             self._interventions.update(
                                 {

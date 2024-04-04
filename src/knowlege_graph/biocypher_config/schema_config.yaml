@@ -127,6 +127,14 @@ observation protocol:
         patient_registry: bool
         sampling_method: str
 
+adverse event protocol:
+    represented_as: node
+    input_label: adverse_event_protocol
+    is_a: publication
+    properties:
+        description: str
+        timeframe: str
+
 adverse event:
     represented_as: node
     input_label: adverse_event
@@ -150,14 +158,6 @@ organ system:
     properties:
         name: str
         biobert_emb: float[]
-
-adverse event protocol:
-    represented_as: node
-    input_label: adverse_event_group_protocol
-    is_a: publication
-    properties:
-        timeframe: str
-        description: str
 
 study to condition:
     is_a: association
