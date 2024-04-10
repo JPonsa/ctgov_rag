@@ -199,7 +199,6 @@ class CtGovStudyQuestioner:
         key = "protocolSection.descriptionModule.detailedDescription"
         context = get_recursive(study, key) or "NA"
         # Answer
-        key = "derivedSection.conditionBrowseModule.meshes.term"
         answer = self.conditions
         return question, context, answer
 
@@ -611,67 +610,17 @@ class CtGovStudyQuestioner:
         question = np.random.choice(questions, 1)
         # Context
         # TODO: add context
-        key = ""
+        key = "resultsSection.adverseEventsModule"
         context = get_recursive(study, key) or "NA"
         # Answer
         # TODO : add asnwer
-        key = ""
-        answer = get_recursive(study, key) or "NA"
-        return question, context, answer
+        key = "resultsSection.adverseEventsModule.seriousEvents"
+        serious = get_recursive(study, key) or "NA"
 
-    # Question N - Template
-    def question_n(self):
-        study = self.study
-        nctId = self.nctId
-        # Question
-        # TODO : add question
-        questions = []
-        question = np.random.choice(questions, 1)
-        # Context
-        # TODO: add context
-        key = ""
-        context = get_recursive(study, key) or "NA"
-        # Answer
-        # TODO : add asnwer
-        key = ""
-        answer = get_recursive(study, key) or "NA"
-        return question, context, answer
+        key = "resultsSection.adverseEventsModule.otherEvents"
+        other = get_recursive(study, key) or "NA"
 
-    # Question N - Template
-    def question_n(self):
-        study = self.study
-        nctId = self.nctId
-        # Question
-        # TODO : add question
-        questions = []
-        question = np.random.choice(questions, 1)
-        # Context
-        # TODO: add context
-        key = ""
-        context = get_recursive(study, key) or "NA"
-        # Answer
-        # TODO : add asnwer
-        key = ""
-        answer = get_recursive(study, key) or "NA"
-        return question, context, answer
-
-    # Question N - Template
-    def question_n(self):
-        study = self.study
-        nctId = self.nctId
-        # Question
-        # TODO : add question
-        questions = []
-        question = np.random.choice(questions, 1)
-        # Context
-        # TODO: add context
-        key = ""
-        context = get_recursive(study, key) or "NA"
-        # Answer
-        # TODO : add asnwer
-        key = ""
-        answer = get_recursive(study, key) or "NA"
-        return question, context, answer
+        return question, context, [serious, other]
 
     def get_single_question(self, nctId, idx):
         question_func = getattr(self, f"question_{idx}")
@@ -770,7 +719,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n", metavar="n", type=int, help="number of questions per study", default=5
     )
-    parser.add_argument("--l", type=int, help="Total number of questions t", default=5)
+    parser.add_argument("--l", type=int, help="Total number of questions", default=5)
 
     # Parse the arguments
     args = parser.parse_args()
@@ -784,7 +733,7 @@ if __name__ == "__main__":
 
     client = connect_to_mongoDB(MONGODB_USER, MONGODB_PWD)
     db = client["ctGov"]
-    collection = db["heart_failure"]
+    collection = db["preprocessed"]
     studies = collection.find({})
 
     # Generate dataset
