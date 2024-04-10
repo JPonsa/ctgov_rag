@@ -52,6 +52,47 @@ QUERY_PARAMS = {
 }
 
 
+class mongoDB:
+    def __init__(
+        self,
+        user: Optional[str] = None,
+        pwd: Optional[str] = None,
+        app_name: Optional[str] = "cluster0",
+        db_name: Optional[str] = "ctGov",
+        collection_name: Optional[str] = None,
+    ):
+        self.user = user
+        self.pwd = pwd
+        self.app = app_name
+        self.db = db_name
+        self.collection = collection_name
+
+    def connect_to_mongoDB(sefl, user: str, pwd: str, app_name: str = "cluster0"):
+
+        from pymongo.mongo_client import MongoClient
+        from pymongo.server_api import ServerApi
+
+        uri = f"mongodb+srv://{user}:{pwd}@{app_name}.bcn2gwy.mongodb.net/?retryWrites=true&w=majority&appName={app_name.capitalize()}"
+
+        # Create a new client and connect to the server
+        client = MongoClient(uri, server_api=ServerApi("1"), connectTimeoutMS=100_000)
+
+        # Send a ping to confirm a successful connection
+        try:
+            client.admin.command("ping")
+            print("Pinged your deployment. You successfully connected to MongoDB!")
+            return client
+        except Exception as e:
+            print(e)
+
+    def get_documents(self):
+        with self.connect_to_mongoDB(self.user, self.pwd) as client:
+            db = client[self.db]
+            collection = db[self.collection]
+            studies = [doc for doc in collection.find({})]
+        return studies
+
+
 class ctGovAdapterNodeType(Enum):
     """
     Define types of nodes the adapter can provide.
@@ -164,13 +205,27 @@ class ctGovAdapter:
         node_fields: Optional[list] = None,
         edge_types: Optional[list] = None,
         edge_fields: Optional[list] = None,
+        mongodb_user: Optional[str] = None,
+        mongodb_pwd: Optional[str] = None,
+        mongodb_app: Optional[str] = "cluster0",
+        mongodb_db: Optional[str] = "ctGov",
+        mongodb_collection: Optional[str] = None,
     ):
         self._set_types_and_fields(node_types, node_fields, edge_types, edge_fields)
         self.base_url = "https://clinicaltrials.gov/api/v2"
+        self.mongodb = mongoDB(
+            mongodb_user, mongodb_pwd, mongodb_app, mongodb_db, mongodb_collection
+        )
         self._api_response = self._get_studies(QUERY_PARAMS)
         self._preprocess()
 
     def _get_studies(self, query_params):
+        if self.mongodb.user:
+            return self.mongodb.get_documents()
+        else:
+            return self._get_studies_from_ctGov(query_params)
+
+    def _get_studies_from_ctGov(self, query_params):
         """
         Get all studies fitting the parameters from the API.
 
