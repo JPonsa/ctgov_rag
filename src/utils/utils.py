@@ -30,7 +30,7 @@ def get_clinical_trial_study(nct_id: str) -> dict:
 
 def connect_to_mongoDB(user: str, pwd: str, app_name: str = "cluster0") -> MongoClient:
 
-    uri = f'mongodb+srv://{user}:{pwd}@{app_name}.bcn2gwy.mongodb.net/?retryWrites="TRUE"&w=majority&appName={app_name.capitalize()}'
+    uri = f"mongodb+srv://{user}:{pwd}@{app_name}.bcn2gwy.mongodb.net/?retryWrites=true&w=majority&appName={app_name.capitalize()}"
 
     # Create a new client and connect to the server
     client = MongoClient(uri, server_api=ServerApi("1"))
