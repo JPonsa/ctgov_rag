@@ -33,7 +33,7 @@ def connect_to_mongoDB(user: str, pwd: str, app_name: str = "cluster0") -> Mongo
     uri = f"mongodb+srv://{user}:{pwd}@{app_name}.bcn2gwy.mongodb.net/?retryWrites=true&w=majority&appName={app_name.capitalize()}"
 
     # Create a new client and connect to the server
-    client = MongoClient(uri, server_api=ServerApi("1"))
+    client = MongoClient(uri, server_api=ServerApi("1"), connectTimeoutMS=100_000)
 
     # Send a ping to confirm a successful connection
     try:

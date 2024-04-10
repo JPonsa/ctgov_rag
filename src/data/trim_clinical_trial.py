@@ -21,43 +21,63 @@ sys.path.append(parent_dir)
 from utils.utils import connect_to_mongoDB
 
 
+def trim_collection(collection, file_path: str):
+    # remove unnecessary / unwanted fields
+    for sheet in [
+        "protocolSection",
+        "resultsSection",
+        "annotationSection",
+        "documentSection",
+        "derivedSection",
+    ]:
+        df = pd.read_excel(file_path, sheet)
+
+        for idx in df.loc[df["Used"] == "N", "Index Field"].values:
+            collection.update_many({}, {"$unset": {idx: 1}})
+
+    collection.update_many({}, {"$unset": {"trial2vec": 1}})
+
+
 def main(
-    user: str, pwd: str, db_name: str, collections: list[str], file_path: str
+    user: str,
+    pwd: str,
+    db_name: str,
+    collections: list[str],
+    file_path: str,
+    overwrite: bool = False,
 ) -> None:
 
     with connect_to_mongoDB(user, pwd) as client:
         db = client[db_name]
 
-        preprocessed = db["preprocessed"]
-        preprocessed.delete_many({})
+        if overwrite:  # Trim the existing collection
+            for c in collections.split(","):
+                collection = db[c]
+                trim_collection(collection, file_path)
+                print(f"Trimming {c} collection - done")
 
-        # merge all collections into one
-        for c in collections.split(","):
-            collection = db[c]
-            preprocessed.with_options(write_concern=WriteConcern(w=0)).insert_many(
-                collection.find({}), ordered=False
-            )
+        else:  # Create a copy called preprocessed and trim it.
+            preprocessed = db["preprocessed"]
+            preprocessed.delete_many({})
+            print("Clearing preprocessed collection -  done")
 
-        # remove unnecessary / unwanted fields
-        for sheet in [
-            "protocolSection",
-            "resultsSection",
-            "annotationSection",
-            "documentSection",
-            "derivedSection",
-        ]:
-            df = pd.read_excel(file_path, sheet)
+            # merge all collections into one
+            for c in collections.split(","):
+                print(f"Coping {c} collection into preprocessed ...")
+                collection = db[c]
+                preprocessed.with_options(write_concern=WriteConcern(w=0)).insert_many(
+                    collection.find({}), ordered=False
+                )
 
-            for idx in df.loc[df["Used"] == "N", "Index Field"].values:
-                preprocessed.update_many({}, {"$unset": {idx: 1}})
-
-        preprocessed.update_many({}, {"$unset": {"trial2vec": 1}})
+            print("Copying to preprocessed collection - done")
+            trim_collection(preprocessed, file_path)
+            print("Trimming preprocessed collection - done")
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Copy a list of studies from clinicaltrials.gov into Mongo DB cloud"
+        description="Trims aMongo DB cloud collection based on metadata"
     )
     parser.add_argument("-u", "--user", type=str, help="MONGODB user name.")
     parser.add_argument("-p", "--pwd", type=str, help="MONGODB password.")
@@ -74,6 +94,14 @@ if __name__ == "__main__":
         help="path to studies metadata file",
         default="./docs/ctGov.metadata.xlsx",
     )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        dest="overwrite",
+        action="store_true",
+        help="Set the overwrite value to True. If True, the trimming happens directly in the collection. Otherwise, creates a copy called 'preprocessed' and  applies the trimming there.",
+    )
+    parser.set_defaults(overwrite=False)
 
     args = parser.parse_args()
     user = args.user
@@ -81,5 +109,6 @@ if __name__ == "__main__":
     db_name = args.database
     collections = args.collections
     file_path = args.metadata
+    overwrite = args.overwrite
 
-    main(user, pwd, db_name, collections, file_path)
+    main(user, pwd, db_name, collections, file_path, overwrite)

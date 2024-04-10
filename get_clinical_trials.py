@@ -45,22 +45,22 @@ MONGODB_PWD = os.getenv("MONGODB_PWD")
 
 
 # Get trialgpt studies
-subprocess.run(
-    [
-        ".\.venv\Scripts\python.exe",
-        "./src/data/ctgov_to_mongodb.py",
-        "--user",
-        MONGODB_USER,
-        "--pwd",
-        MONGODB_PWD,
-        "--database",
-        "ctGov",
-        "--collection",
-        "trialgpt",
-        "--studies",
-        "./data/trialgtp.studies_list.csv",
-    ]
-)
+# subprocess.run(
+#     [
+#         ".\.venv\Scripts\python.exe",
+#         "./src/data/ctgov_to_mongodb.py",
+#         "--user",
+#         MONGODB_USER,
+#         "--pwd",
+#         MONGODB_PWD,
+#         "--database",
+#         "ctGov",
+#         "--collection",
+#         "trialgpt",
+#         "--studies",
+#         "./data/trialgtp.studies_list.csv",
+#     ]
+# )
 
 
 # Combine previous collections and remove unwanted fields
@@ -75,8 +75,9 @@ subprocess.run(
         "--database",
         "ctGov",
         "--collections",
-        "asthma,heart_failure,trialgpt",
+        "trialgpt",
         "--metadata",
         "./docs/ctGov.metadata.xlsx",
+        "--overwrite",
     ]
 )
