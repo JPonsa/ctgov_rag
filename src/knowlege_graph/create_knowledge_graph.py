@@ -3,8 +3,14 @@ import shutil
 
 from biocypher import BioCypher
 from biocypher_adapter.ctgov_adapter import ctGovAdapter
+from dotenv import load_dotenv
 
 if __name__ == "__main__":
+
+    load_dotenv("../../.env")
+
+    MONGODB_USER = os.getenv("MONGODB_USER")
+    MONGODB_PWD = os.getenv("MONGODB_PWD")
 
     biocypher_config_dir = "./src/knowlege_graph/biocypher_config/"
     output_dir = "./data/raw/knowledge_graph/"
@@ -27,7 +33,12 @@ if __name__ == "__main__":
         schema_config_path=biocypher_config_dir + "schema_config.yaml",
         output_directory=output_dir,
     )
-    adapter = ctGovAdapter()
+    adapter = ctGovAdapter(
+        mongodb_user=MONGODB_USER,
+        mongodb_pwd=MONGODB_PWD,
+        mongodb_db="ctGov",
+        mongodb_collection="trialgpt",
+    )
 
     bc.write_nodes(adapter.get_nodes())
     bc.write_edges(adapter.get_edges())
