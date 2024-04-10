@@ -13,7 +13,7 @@ from src.embeddings.Trial2Vec_embedding import ct_dict2pd
 from src.utils.utils import get_clinical_trial_study, print_green, print_red
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-
+print(f"Using {DEVICE}")
 SEPARATOR = "|"
 PRECISION = 15
 # FORMATTER = {"float": lambda x: f"%.{PRECISION}f" % x}
