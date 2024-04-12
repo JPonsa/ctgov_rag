@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ctGov_KG_Embedding
 # Max run time in H:M:S
-#$ -l h_rt=12:00:0
+#$ -l h_rt=7:00:0
 # Memory
 #$ -l mem=2G
 #$ -pe smp 2  # see not askin for smp works with gpus
