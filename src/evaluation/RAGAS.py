@@ -42,16 +42,17 @@ def create_documents(args):
     # this it needed for the RAGAS lib.
     for d in docs:
         d.metadata["filename"] = d.page_content[2:13]
+        
     return docs
 
 
 def set_llms(args):
     # Set the LLM
     if args.hf:  # if HuggingFace token provided
-        from langchain_community.llms import HuggingFaceHub
-
-        generator_llm = HuggingFaceHub(report_id=args.generator, task="text-generation")
-        critic_llm = HuggingFaceHub(report_id=args.critic, task="text-generation")
+        os.environ["HUGGINGFACEHUB_API_TOKEN"] = args.hf
+        from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
+        generator_llm = HuggingFacePipeline.from_model_id(model_id=args.generator, task="text-generation", device_map="auto", pipeline_kwargs={"max_new_tokens": 2_500})
+        critic_llm = HuggingFacePipeline.from_model_id(model_id=args.critic, task="text-generation", device_map="auto", pipeline_kwargs={"max_new_tokens": 2_500})
     else:  # Else assumes that use Ollama
         from langchain_community.llms import Ollama
 
@@ -62,9 +63,9 @@ def set_llms(args):
 
 
 def main(args):
-
+    
     os.environ["LANGCHAIN_PROJECT"] = "RAGAS"
-    os.environ["LANGCHAIN_TRACING_V2"] = True if args.ls else False
+    os.environ["LANGCHAIN_TRACING_V2"] = "true" if args.ls else "false"
 
     docs = create_documents(args)
     generator_llm, critic_llm = set_llms(args)
@@ -80,6 +81,8 @@ def main(args):
         f"{args.reasoning*100:.2f}% reasoning, ",
         f"{args.multi_context*100:.2f}% multi context)",
     )
+    print(f"Number of documents {len(docs)}")
+    
     eval_ds = generator.generate_with_langchain_docs(
         docs,
         test_size=args.test_size,
@@ -95,7 +98,7 @@ def main(args):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Generate RAG evaluation dataset")
-    parser.add_argument("output", type=str, dest="path to output file")
+    parser.add_argument("output", type=str, help="path to output file")
     # Mongo DB connection settings
     parser.add_argument("-user", type=str, help="MongoDB user name")
     parser.add_argument("-pwd", type=str, help="MongoDB password")
@@ -132,7 +135,7 @@ if __name__ == "__main__":
         help="LLM user as generator E.g. For Ollama use 'mistral', for HF use 'mistralai/Mistral-7B-Instruct-v0.2'",
     )
     parser.add_argument(
-        "-c",
+        "-cr",
         "--critic",
         type=str,
         default="mistral",
@@ -141,7 +144,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "-e",
-        "-embeddings",
+        "--embeddings",
         type=str,
         default="all-MiniLM-L6-v2",
         help="HuggingFace embeddings'",
@@ -155,20 +158,20 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-s", "--simple", type=float, defualt=0.5, help="Proportion of simple questions"
+        "-s", "--simple", type=float, default=0.5, help="Proportion of simple questions"
     )
     parser.add_argument(
         "-r",
         "--reasoning",
         type=float,
-        defualt=0.25,
+        default=0.25,
         help="Proportion of reasoning questions",
     )
     parser.add_argument(
         "-mc",
         "--multi_context",
         type=float,
-        defualt=0.25,
+        default=0.25,
         help="Proportion of multi context questions",
     )
 
