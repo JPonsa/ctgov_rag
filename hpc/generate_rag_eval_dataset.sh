@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ctGov_eval_RAGAS
 # Max run time in H:M:S
-#$ -l h_rt=1:30:0
+#$ -l h_rt=3:0:0
 # Memory
 #$ -l mem=80G
 #$ -l gpu=1
@@ -35,5 +35,7 @@ poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mistral_7b.csv \
     -ls $LS_KEY -hf $HF_TOKEN \
     --generator mistralai/Mistral-7B-Instruct-v0.2 \
     --critic mistralai/Mistral-7B-Instruct-v0.2 \
-    --embeddings all-MiniLM-L6-v2 \
+    --embeddings sentence-transformers/all-mpnet-base-v2 \
     -test_size 10 -s 0.4 -r 0.4 -mc 0.2
+
+#  --embeddings all-MiniLM-L6-v2 \
