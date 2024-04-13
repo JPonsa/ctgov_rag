@@ -1,10 +1,11 @@
 #!/bin/bash -l
 #$ -N ctGov_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=0:15:0
+#$ -l h_rt=0:30:0
 # Memory
 #$ -l mem=64G
 #$ -l gpu=1
+
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
@@ -36,7 +37,7 @@ poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
 -llm mistralai/Mistral-7B-Instruct-v0.2 \
--stop "[INST]" "[/INST]"
+-stop '[INST]' '[/INST]'
 
 # ruse --stdout --time=900 -s \
 # poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd $AACT_PWD \

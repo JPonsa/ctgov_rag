@@ -114,29 +114,26 @@ def run_llamaindex_eval(
             
             response = query_engine.query(question)
             llamaIndex_query = response.metadata["sql_query"]
-            print(response)
-            print(type(response))
-            print(dir(response))
             
             tmp.at[q, "llamaIndex_query"] = llamaIndex_query.replace("\n", " ")
             tmp.at[q, "llamaIndex_answer"] = response.response.replace("\n", "|")
 
             # Get LlamaIndex SQL query and answer
-            # try:
-            #     response = query_engine.query(question)
-            #     llamaIndex_query = response.metadata["sql_query"]
-            #     tmp.at[q, "llamaIndex_query"] = llamaIndex_query.replace("\n", " ")
-            #     tmp.at[q, "llamaIndex_answer"] = response.response.replace("\n", "|")
-            # except (ReadTimeout, Timeout, TimeoutError):
-            #     if verbose:
-            #         print("Time out!")
-            #     tmp.at[q, "llamaIndex_query"] = "ReadTimeout"
-            #     tmp.at[q, "llamaIndex_answer"] = "ReadTimeout"
-            # except Exception as e:
-            #     if verbose:
-            #         print(f"Error - {e}")
-            #     tmp.at[q, "llamaIndex_query"] = f"Error - {e}"
-            #     tmp.at[q, "llamaIndex_answer"] = f"Error - {e}"
+            try:
+                response = query_engine.query(question)
+                llamaIndex_query = response.metadata["sql_query"]
+                tmp.at[q, "llamaIndex_query"] = llamaIndex_query.replace("\n", " ")
+                tmp.at[q, "llamaIndex_answer"] = response.response.replace("\n", "|")
+            except (ReadTimeout, Timeout, TimeoutError):
+                if verbose:
+                    print("Time out!")
+                tmp.at[q, "llamaIndex_query"] = "ReadTimeout"
+                tmp.at[q, "llamaIndex_answer"] = "ReadTimeout"
+            except Exception as e:
+                if verbose:
+                    print(f"Error - {e}")
+                tmp.at[q, "llamaIndex_query"] = f"Error - {e}"
+                tmp.at[q, "llamaIndex_answer"] = f"Error - {e}"
 
         sql_eval = pd.concat([sql_eval, tmp], ignore_index=True)
 
@@ -265,7 +262,7 @@ if __name__ == "__main__":
         "-llm", type=str, default="mistral", help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'"
     )
     parser.add_argument(
-        "-stop", type=list, nargs="+", default=["INST", "/INST"], help=""
+        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
     )
 
     parser.set_defaults(hf=None)
