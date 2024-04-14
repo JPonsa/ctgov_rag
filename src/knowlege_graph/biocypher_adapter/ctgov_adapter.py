@@ -275,8 +275,6 @@ class ctGovAdapter:
         self._baseline = {}
         self._outcome_measures = {}
 
-        # BUG: outcome measure not getting exported to file
-
         # Edges
         self._study_to_organisation_edges = []
         self._study_to_sponsor_edges = []
@@ -1034,9 +1032,6 @@ class ctGovAdapter:
                         os_id: {"name": organ_system},
                     }
                 )
-        # BUG: Somehow not all organ systems are exported to the output file
-        # As solution I had to create this unique id and store the list of orgs in a variable
-        # This raises concerns on what else could being removed.
 
         if term:
             term = term.capitalize()
