@@ -33,7 +33,7 @@ openinference-instrumentation-dspy = "0.1.6"
 opentelemetry-sdk = "1.23.0"
 arize-phoenix = "3.18.1"
 llama-index-llms-huggingface = "^0.1.4"
-bitsandbytes = "^0.43.1"
+bitsandbytes = "^0.42.0"
 
 
 [tool.poetry.group.dev.dependencies]
