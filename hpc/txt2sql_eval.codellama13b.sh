@@ -1,9 +1,9 @@
 #!/bin/bash -l
-#$ -N ctGov_txt2SQL_eval
+#$ -N codellama_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=1:0:0
+#$ -l h_rt=1:20:0
 # Memory
-#$ -l mem=32G
+#$ -l mem=10G
 #$ -l gpu=1
 
 
@@ -27,23 +27,11 @@ HF_TOKEN=${HF_TOKEN//$'\r'}
 
 
 pip install poetry
-# poetry lock
-# poetry install
-
 ruse --stdout --time=150 -s \
 poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd $AACT_PWD \
 -sql_query_template ./src/txt2sql/sql_queries_template.yaml \
 -triplets  ./src/txt2sql/txt2_sql_eval_triplets.tsv \
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
--llm mistralai/Mistral-7B-Instruct-v0.2 \
+-llm codellama/CodeLlama-13b-hf \
 -stop '[INST]' '[/INST]'
-
-# ruse --stdout --time=900 -s \
-# poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd $AACT_PWD \
-# -sql_query_template ./src/txt2sql/sql_queries_template.yaml \
-# -triplets  ./src/txt2sql/txt2_sql_eval_triplets.tsv \
-# -output_dir ./results/txt2sql/ \
-# -hf $HF_TOKEN \
-# -llm defog/sqlcoder \
-# -stop "['', '']"
