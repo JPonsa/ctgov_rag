@@ -7,7 +7,6 @@ from llama_index.core import Settings, SQLDatabase, VectorStoreIndex
 from llama_index.core.indices.struct_store.sql_query import SQLTableRetrieverQueryEngine
 from llama_index.core.objects import ObjectIndex, SQLTableNodeMapping, SQLTableSchema
 from llama_index.core.query_engine import NLSQLTableQueryEngine
-
 from requests.exceptions import ReadTimeout, Timeout
 from sqlalchemy import create_engine
 from tqdm import tqdm
@@ -111,12 +110,6 @@ def run_llamaindex_eval(
                 answer = "No answer"
 
             tmp.at[q, "gold_std_answer"] = answer.replace("\n", "|")
-            
-            response = query_engine.query(question)
-            llamaIndex_query = response.metadata["sql_query"]
-            
-            tmp.at[q, "llamaIndex_query"] = llamaIndex_query.replace("\n", " ")
-            tmp.at[q, "llamaIndex_answer"] = response.response.replace("\n", "|")
 
             # Get LlamaIndex SQL query and answer
             try:
@@ -141,7 +134,7 @@ def run_llamaindex_eval(
 
 
 def main(args, verbose: bool = False):
-    
+
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
@@ -161,17 +154,20 @@ def main(args, verbose: bool = False):
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
         from llama_index.llms.huggingface import HuggingFaceLLM
-        lm = HuggingFaceLLM(model_name=args.llm,
-                            tokenizer_name=args.llm,
-                            generate_kwargs={"temperature": 0.0},
-                            device_map="auto",
-                            model_kwargs={"load_in_4bit":True},
-                            completion_to_prompt=completion_to_prompt,
-                            messages_to_prompt=messages_to_prompt,
-                            )
-    
+
+        lm = HuggingFaceLLM(
+            model_name=args.llm,
+            tokenizer_name=args.llm,
+            generate_kwargs={"temperature": 0.0},
+            device_map="auto",
+            model_kwargs={"load_in_4bit": True},
+            completion_to_prompt=completion_to_prompt,
+            messages_to_prompt=messages_to_prompt,
+        )
+
     else:
         from llama_index.llms.ollama import Ollama
+
         lm = Ollama(
             model=args.llm,
             temperature=0.0,
@@ -247,21 +243,26 @@ if __name__ == "__main__":
         type=str,
         help="TSV file containing nctId, condition, intervention triplets.",
     )
+
+    # TODO: Change so you specify the output file, not just the output directory
     parser.add_argument(
         "-output_dir",
         type=str,
         default="./results/txt2sql/",
         help="path to directory where to store results.",
     )
-    
+
     parser.add_argument(
-         "-hf",
+        "-hf",
         default=argparse.SUPPRESS,
         help="HuggingFace Token. If not provided, assumes that Ollama.",
     )
 
     parser.add_argument(
-        "-llm", type=str, default="mistral", help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'"
+        "-llm",
+        type=str,
+        default="mistral",
+        help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'",
     )
     parser.add_argument(
         "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
