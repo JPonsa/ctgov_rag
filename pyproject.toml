@@ -34,6 +34,7 @@ opentelemetry-sdk = "1.23.0"
 arize-phoenix = "3.18.1"
 llama-index-llms-huggingface = "^0.1.4"
 bitsandbytes = "^0.42.0"
+psycopg2-binary = "^2.9.9"
 
 
 [tool.poetry.group.dev.dependencies]

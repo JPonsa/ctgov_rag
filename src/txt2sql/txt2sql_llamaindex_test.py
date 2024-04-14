@@ -270,4 +270,4 @@ if __name__ == "__main__":
     parser.set_defaults(hf=None)
 
     args = parser.parse_args()
-    main(args, verbose=True)
+    main(args, verbose=False)
