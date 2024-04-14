@@ -244,7 +244,6 @@ if __name__ == "__main__":
         help="TSV file containing nctId, condition, intervention triplets.",
     )
 
-    # TODO: Change so you specify the output file, not just the output directory
     parser.add_argument(
         "-output_dir",
         type=str,
