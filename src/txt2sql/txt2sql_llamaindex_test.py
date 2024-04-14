@@ -164,6 +164,8 @@ def main(args, verbose: bool = False):
         lm = HuggingFaceLLM(model_name=args.llm,
                             tokenizer_name=args.llm,
                             generate_kwargs={"temperature": 0.0},
+                            device_map="auto",
+                            model_kwargs={"load_in_4bit":True},
                             completion_to_prompt=completion_to_prompt,
                             messages_to_prompt=messages_to_prompt,
                             )
