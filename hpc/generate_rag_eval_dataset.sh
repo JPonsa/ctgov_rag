@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ctGov_eval_RAGAS
 # Max run time in H:M:S
-#$ -l h_rt=3:0:0
+#$ -l h_rt=6:0:0
 # Memory
 #$ -l mem=80G
 #$ -l gpu=1
@@ -25,7 +25,7 @@ LS_KEY=${LANGCHAIN_API_KEY//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
 pip install poetry
-poetry install
+# poetry install
 
 # Track memory usage
 ruse --stdout --time=150 -s \
