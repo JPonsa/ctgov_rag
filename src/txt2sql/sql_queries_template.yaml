@@ -15,7 +15,7 @@ query_2:
   tables: [brief_summaries]
 
 query_3:
-  question: Is study {nctId} and interventional or observational study? [INTERVENTIONAL, OBSERVATIONAL].
+  question: Is study {nctId} and interventional or observational study? Select relevant from [INTERVENTIONAL, OBSERVATIONAL].
   SQL: |
     SELECT study_type 
     FROM studies 
@@ -131,7 +131,7 @@ query_18:
   tables: [design]
 
 query_19:
-  question: Does study {nctId} uses a patient registry? [TRUE, FALSE]
+  question: Does study {nctId} uses a patient registry? Select relevant from [TRUE, FALSE]
   SQL: |
     SELECT 'Observational [Patient Registry]' IN (
       SELECT study_type 
