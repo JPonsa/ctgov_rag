@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import pandas as pd
 import yaml
@@ -6,7 +7,7 @@ from llama_index.core import Settings, SQLDatabase, VectorStoreIndex
 from llama_index.core.indices.struct_store.sql_query import SQLTableRetrieverQueryEngine
 from llama_index.core.objects import ObjectIndex, SQLTableNodeMapping, SQLTableSchema
 from llama_index.core.query_engine import NLSQLTableQueryEngine
-from llama_index.llms.ollama import Ollama
+
 from requests.exceptions import ReadTimeout, Timeout
 from sqlalchemy import create_engine
 from tqdm import tqdm
@@ -110,6 +111,12 @@ def run_llamaindex_eval(
                 answer = "No answer"
 
             tmp.at[q, "gold_std_answer"] = answer.replace("\n", "|")
+            
+            response = query_engine.query(question)
+            llamaIndex_query = response.metadata["sql_query"]
+            
+            tmp.at[q, "llamaIndex_query"] = llamaIndex_query.replace("\n", " ")
+            tmp.at[q, "llamaIndex_answer"] = response.response.replace("\n", "|")
 
             # Get LlamaIndex SQL query and answer
             try:
@@ -124,9 +131,9 @@ def run_llamaindex_eval(
                 tmp.at[q, "llamaIndex_answer"] = "ReadTimeout"
             except Exception as e:
                 if verbose:
-                    print(e)
-                tmp.at[q, "llamaIndex_query"] = e
-                tmp.at[q, "llamaIndex_answer"] = e
+                    print(f"Error - {e}")
+                tmp.at[q, "llamaIndex_query"] = f"Error - {e}"
+                tmp.at[q, "llamaIndex_answer"] = f"Error - {e}"
 
         sql_eval = pd.concat([sql_eval, tmp], ignore_index=True)
 
@@ -134,6 +141,9 @@ def run_llamaindex_eval(
 
 
 def main(args, verbose: bool = False):
+    
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
     # Load SQL evaluation template
     with open(args.sql_query_template, "r") as f:
@@ -148,13 +158,27 @@ def main(args, verbose: bool = False):
     # Set LLM
     completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
 
-    lm = Ollama(
-        model=args.llm,
-        temperature=0.0,
-        request_timeout=100,
-        completion_to_prompt=completion_to_prompt,
-        messages_to_prompt=messages_to_prompt,
-    )
+    if args.hf:
+        os.environ["HUGGING_FACE_TOKEN"] = args.hf
+        from llama_index.llms.huggingface import HuggingFaceLLM
+        lm = HuggingFaceLLM(model_name=args.llm,
+                            tokenizer_name=args.llm,
+                            generate_kwargs={"temperature": 0.0},
+                            device_map="auto",
+                            model_kwargs={"load_in_4bit":True},
+                            completion_to_prompt=completion_to_prompt,
+                            messages_to_prompt=messages_to_prompt,
+                            )
+    
+    else:
+        from llama_index.llms.ollama import Ollama
+        lm = Ollama(
+            model=args.llm,
+            temperature=0.0,
+            request_timeout=100,
+            completion_to_prompt=completion_to_prompt,
+            messages_to_prompt=messages_to_prompt,
+        )
     Settings.llm = lm
     Settings.embed_model = "local"
 
@@ -190,7 +214,7 @@ def main(args, verbose: bool = False):
         std_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm}.TableQuery.eval.tsv",
+        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableQuery.eval.tsv",
         sep="\t",
     )
 
@@ -201,7 +225,7 @@ def main(args, verbose: bool = False):
         adv_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm}.TableRetriever.eval.tsv",
+        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableRetriever.eval.tsv",
         sep="\t",
     )
 
@@ -224,17 +248,26 @@ if __name__ == "__main__":
         help="TSV file containing nctId, condition, intervention triplets.",
     )
     parser.add_argument(
-        "--output_dir",
+        "-output_dir",
         type=str,
         default="./results/txt2sql/",
         help="path to directory where to store results.",
     )
+    
     parser.add_argument(
-        "--llm", type=str, default="mistral", help="Ollama Large Language Model"
-    )
-    parser.add_argument(
-        "--stop", type=list, nargs="+", default=["INST", "/INST"], help=""
+         "-hf",
+        default=argparse.SUPPRESS,
+        help="HuggingFace Token. If not provided, assumes that Ollama.",
     )
 
+    parser.add_argument(
+        "-llm", type=str, default="mistral", help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'"
+    )
+    parser.add_argument(
+        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
+    )
+
+    parser.set_defaults(hf=None)
+
     args = parser.parse_args()
-    main(args)
+    main(args, verbose=True)

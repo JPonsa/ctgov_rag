@@ -51,8 +51,19 @@ def set_llms(args):
     if args.hf:  # if HuggingFace token provided
         os.environ["HUGGINGFACEHUB_API_TOKEN"] = args.hf
         from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
-        generator_llm = HuggingFacePipeline.from_model_id(model_id=args.generator, task="text-generation", device_map="auto", pipeline_kwargs={"max_new_tokens": 2_500})
-        critic_llm = HuggingFacePipeline.from_model_id(model_id=args.critic, task="text-generation", device_map="auto", pipeline_kwargs={"max_new_tokens": 2_500})
+        generator_llm = HuggingFacePipeline.from_model_id(model_id=args.generator, 
+                                                          task="text-generation", 
+                                                          device_map="auto",
+                                                          model_kwargs={"load_in_4bit":True}, 
+                                                          pipeline_kwargs={"max_new_tokens": 2_500},
+                                                          )
+        
+        critic_llm = HuggingFacePipeline.from_model_id(model_id=args.critic, 
+                                                       task="text-generation", 
+                                                       device_map="auto", 
+                                                       model_kwargs={"load_in_4bit":True},
+                                                       pipeline_kwargs={"max_new_tokens": 2_500},
+                                                       )
     else:  # Else assumes that use Ollama
         from langchain_community.llms import Ollama
 
