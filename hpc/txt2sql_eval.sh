@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #$ -N ctGov_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=0:30:0
+#$ -l h_rt=1:0:0
 # Memory
-#$ -l mem=64G
+#$ -l mem=32G
 #$ -l gpu=1
 
 
@@ -28,7 +28,7 @@ HF_TOKEN=${HF_TOKEN//$'\r'}
 
 pip install poetry
 # poetry lock
-poetry install
+# poetry install
 
 ruse --stdout --time=150 -s \
 poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd $AACT_PWD \
