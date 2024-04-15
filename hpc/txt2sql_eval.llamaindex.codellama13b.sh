@@ -34,4 +34,4 @@ poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
 -llm codellama/CodeLlama-13b-hf \
--stop '[INST]' '[/INST]'
+-stop '' ''
