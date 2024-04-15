@@ -211,7 +211,7 @@ class Txt2SqlAgent(dspy.Module):
         self.sql_schema = sql_schema
         self.common_mistakes = common_mistakes
 
-    def forward(self, question: str, n: int = 3) -> str:
+    def forward(self, question: str, n: int = 3, verbose:bool=False) -> str:
         response = {}
         attempts = 0
         sql_output = None
@@ -221,12 +221,18 @@ class Txt2SqlAgent(dspy.Module):
             question=question,
         )
         
-        response["sql_query"] = response["txt2sql"].sql_query.copy()
+        response["sql_query"] = response["txt2sql"].sql_query
+        
+        if verbose:
+            print(f"Initial SQL query: {response["sql_query"]}")
 
         while attempts < n and sql_output is None:
             try:
                 sql_output = self.sql_db.run_sql(response["sql_query"])
             except Exception as e:
+                
+                if verbose:
+                    print(str(e))
 
                 response["review_query"] = self.review_query(
                     context=str(e),
@@ -235,11 +241,14 @@ class Txt2SqlAgent(dspy.Module):
 
                 response["review_schema"] = self.review_schema(
                     context=self.sql_schema,
-                    sql_query=response["check_sql_query"].revised_sql,
+                    sql_query=response["review_query"].revised_sql,
                     )
                 
+                response["sql_query"] = response["review_schema"].revised_sql
                 
-                response["sql_query"] = response["review_schema"].revised_sql.copy()
+                if verbose:
+                    print(f"Revised SQL query attempt {attempts}: {response["sql_query"]}")
+                
 
                 attempts += 1
 
@@ -324,7 +333,7 @@ def run_sql_eval(
             tmp.at[q, "gold_std_answer"] = answer.replace("\n", "|")
             
             # Get the answer from the LLM
-            response = query_engine.forward(question)
+            response = query_engine.forward(question, verbose=verbose)
             tmp.at[q, "llm_query"] = response["sql_query"].replace("\n", " ")
             tmp.at[q, "llm_answer"] = response["final_answer"].answer.replace("\n", "|")
 
@@ -362,7 +371,8 @@ def main(args, verbose: bool = False):
         
         # TODO: Not sure if hf_automodel_kwargs is used at all. Review documentation
         hf_automodel_kwargs = {
-            "load_in_4bit": True,
+            # BUG: bitsandbytes not finding CUDA lib in HPC. Fix and activate
+            "load_in_4bit": False,
             "temperature": 0.1,
             "do_sample": False,
         }
