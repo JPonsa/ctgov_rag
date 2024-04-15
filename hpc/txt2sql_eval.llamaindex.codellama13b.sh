@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N codellama_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=1:20:0
+#$ -l h_rt=3:00:0
 # Memory
 #$ -l mem=15G
 #$ -l gpu=1
@@ -10,10 +10,10 @@
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
 
-module load openssl/1.1.1t python/3.11.3
-module unload compilers mpi
-module load compilers/gnu/4.9.2
-module load cuda/7.5.18/gnu-4.9.2
+module purge
+module load gcc-libs/10.2.0
+module load compilers/gnu/10.2.0
+module load python/3.11
 module load ruse/2.0
 
 
