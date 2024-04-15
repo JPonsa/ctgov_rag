@@ -150,6 +150,10 @@ def main(args, verbose: bool = False):
 
     # Set LLM
     completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
+    
+    if verbose:
+        print(completion_to_prompt("completion_to_promp test"))
+        print(messages_to_prompt(["messages_to_prompt", "test"]))
 
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
