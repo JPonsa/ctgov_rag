@@ -5,7 +5,6 @@ import sys
 import dspy
 import pandas as pd
 import yaml
-from sqlalchemy import create_engine
 from tqdm import tqdm
 
 ####### Add src folder to the system path so it can call utils
@@ -192,7 +191,7 @@ class QuestionSqlAnswer(dspy.Signature):
     """Given an input question and the result of a SQL query that could provide useful information regarding the question, produce an answer."""
 
     question: str = dspy.InputField(prefix="Question:", desc="user question")
-    sql_output: str = dspy.InputField(
+    context: str = dspy.InputField(
         prefix="SQL output:",
         desc="SQL output that could provide useful information regarding the question",
     )
@@ -204,7 +203,7 @@ class Txt2SqlAgent(dspy.Module):
         self, sql_db: SQLDatabase, sql_schema: str, common_mistakes: str
     ) -> None:
         super().__init__()
-        self.text_2_sql = dspy.Predict(Text2Sql)
+        self.txt2sql = dspy.Predict(Text2Sql)
         self.review_query = dspy.Predict(CheckSqlQuery)
         self.review_schema = dspy.Predict(CheckSqlSchema)
         self.question_sql_answer = dspy.Predict(QuestionSqlAnswer)
@@ -217,29 +216,30 @@ class Txt2SqlAgent(dspy.Module):
         attempts = 0
         sql_output = None
 
-        response["txt2sql"] = self.text_2_sql(
+        response["txt2sql"] = self.txt2sql(
             context=self.sql_schema,
             question=question,
         )
+        
+        response["sql_query"] = response["txt2sql"].sql_query.copy()
 
         while attempts < n and sql_output is None:
             try:
-                sql_output = self.sql_db.run_sql(response["txt2sql"].sql_query)
+                sql_output = self.sql_db.run_sql(response["sql_query"])
             except Exception as e:
 
-                print("EXCEPTION !!!!")
-
-                print(response["txt2sql"].sql_query)
-
-                response["check_sql_query"] = self.review_query(
+                response["review_query"] = self.review_query(
                     context=str(e),
-                    sql_query=response["txt2sql"].sql_query,
-                )
+                    sql_query = response["sql_query"],
+                    )
 
-                response["txt2sql"].sql_query = self.review_schema(
+                response["review_schema"] = self.review_schema(
                     context=self.sql_schema,
                     sql_query=response["check_sql_query"].revised_sql,
-                ).revised_sql
+                    )
+                
+                
+                response["sql_query"] = response["review_schema"].revised_sql.copy()
 
                 attempts += 1
 
@@ -251,7 +251,7 @@ class Txt2SqlAgent(dspy.Module):
         response["final_answer"] = self.question_sql_answer(
             context=sql_output,
             question=question,
-        )
+            )
         return response
 
 
@@ -321,15 +321,12 @@ def run_sql_eval(
                 answer = sql_db.run_sql(sql_query)[0]
             except:
                 answer = "No answer"
-
             tmp.at[q, "gold_std_answer"] = answer.replace("\n", "|")
-
+            
+            # Get the answer from the LLM
             response = query_engine.forward(question)
-
-            tmp.at[q, "llm_query"] = response["txt2sql"].sql_query.replace("\n", " ")
+            tmp.at[q, "llm_query"] = response["sql_query"].replace("\n", " ")
             tmp.at[q, "llm_answer"] = response["final_answer"].answer.replace("\n", "|")
-
-            break
 
         sql_eval = pd.concat([sql_eval, tmp], ignore_index=True)
 
@@ -356,11 +353,14 @@ def main(args, verbose: bool = False):
     sql_db = SQLDatabase.from_uri(db_uri, include_tables=AACT_TABLES)
     sql_schema = [STUDY_TABLE] + [sql_db.get_single_table_info(t) for t in AACT_TABLES]
     sql_schema = "\n".join(sql_schema)
-    # if verbose:
-    #     print("SQL db schema:\n" + sql_schema)
+    
+    if verbose:
+        print("SQL db schema:\n" + sql_schema)
 
     # Load LLM
     if args.hf:
+        
+        # TODO: Not sure if hf_automodel_kwargs is used at all. Review documentation
         hf_automodel_kwargs = {
             "load_in_4bit": True,
             "temperature": 0.1,
@@ -372,6 +372,8 @@ def main(args, verbose: bool = False):
             model=args.llm, stop=args.stop, max_tokens=500, timeout_s=2000
         )
 
+    dspy.settings.configure(lm=lm, temperature=0.1)
+        
     query_engine = Txt2SqlAgent(sql_db, sql_schema, COMMON_MISTAKES)
 
     if verbose:
@@ -428,7 +430,7 @@ if __name__ == "__main__":
         help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'",
     )
     parser.add_argument(
-        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
+        "-stop", type=str, nargs="+", default=["INST", "/INST"], help="list of flanking stop tokens"
     )
 
     parser.set_defaults(hf=None)
