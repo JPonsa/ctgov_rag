@@ -160,7 +160,8 @@ def main(args, verbose: bool = False):
             tokenizer_name=args.llm,
             generate_kwargs={"temperature": 0.0},
             device_map="auto",
-            model_kwargs={"load_in_4bit": True},
+            # BUG: bitsandbytes not finding CUDA lib in HPC. Fix and activate
+            model_kwargs={"load_in_4bit": False},
             completion_to_prompt=completion_to_prompt,
             messages_to_prompt=messages_to_prompt,
         )

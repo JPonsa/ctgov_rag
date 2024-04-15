@@ -54,14 +54,16 @@ def set_llms(args):
         generator_llm = HuggingFacePipeline.from_model_id(model_id=args.generator, 
                                                           task="text-generation", 
                                                           device_map="auto",
-                                                          model_kwargs={"load_in_4bit":True}, 
+                                                          # BUG: bitsandbytes not finding CUDA lib in HPC. Fix and activate
+                                                          model_kwargs={"load_in_4bit":False},
                                                           pipeline_kwargs={"max_new_tokens": 2_500},
                                                           )
         
         critic_llm = HuggingFacePipeline.from_model_id(model_id=args.critic, 
                                                        task="text-generation", 
                                                        device_map="auto", 
-                                                       model_kwargs={"load_in_4bit":True},
+                                                       # BUG: bitsandbytes not finding CUDA lib in HPC. Fix and activate
+                                                       model_kwargs={"load_in_4bit":False},
                                                        pipeline_kwargs={"max_new_tokens": 2_500},
                                                        )
     else:  # Else assumes that use Ollama
