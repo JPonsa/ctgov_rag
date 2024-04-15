@@ -3,7 +3,7 @@
 # Max run time in H:M:S
 #$ -l h_rt=1:20:0
 # Memory
-#$ -l mem=10G
+#$ -l mem=15G
 #$ -l gpu=1
 
 
