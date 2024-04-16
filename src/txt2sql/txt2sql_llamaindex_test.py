@@ -32,7 +32,7 @@ HOST = "aact-db.ctti-clinicaltrials.org"
 PORT = 5432
 
 
-def generate_prompt_adapter_func(stop: list = ["[INST]", "[/INST]"]):
+def generate_prompt_adapter_func(stop: list = ["<s>[INST]", "[/INST] </s>"]):
     "Given a list of stop tokens, generates functions to the llamaindex prompts"
 
     def completion_to_prompt(completion: str) -> str:
@@ -165,8 +165,9 @@ def main(args, verbose: bool = False):
             generate_kwargs={"temperature": 0.0},
             device_map="auto",
             model_kwargs={"load_in_4bit": True},
-            completion_to_prompt=completion_to_prompt,
-            messages_to_prompt=messages_to_prompt,
+            # BUG: Disabled as this is giving me issues with codellama 13b
+            # completion_to_prompt=completion_to_prompt,
+            # messages_to_prompt=messages_to_prompt,
         )
 
     else:
@@ -274,4 +275,4 @@ if __name__ == "__main__":
     parser.set_defaults(hf=None)
 
     args = parser.parse_args()
-    main(args, verbose=False)
+    main(args, verbose=True)
