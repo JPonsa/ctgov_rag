@@ -224,7 +224,7 @@ class Txt2SqlAgent(dspy.Module):
         response["sql_query"] = response["txt2sql"].sql_query
         
         if verbose:
-            print(f"Initial SQL query: {response["sql_query"]}")
+            print(f"Initial SQL query: {response['sql_query']}")
 
         while attempts < n and sql_output is None:
             try:
@@ -247,7 +247,7 @@ class Txt2SqlAgent(dspy.Module):
                 response["sql_query"] = response["review_schema"].revised_sql
                 
                 if verbose:
-                    print(f"Revised SQL query attempt {attempts}: {response["sql_query"]}")
+                    print(f"Revised SQL query attempt {attempts}: {response['sql_query']}")
                 
 
                 attempts += 1
@@ -379,7 +379,7 @@ def main(args, verbose: bool = False):
         lm = dspy.HFModel(model=args.llm, token=args.hf, hf_device_map="auto")
     else:
         lm = dspy.OllamaLocal(
-            model=args.llm, stop=args.stop, max_tokens=500, timeout_s=2000
+            model=args.llm, stop=args.stop, max_tokens=500, timeout_s=2_000
         )
 
     dspy.settings.configure(lm=lm, temperature=0.1)
