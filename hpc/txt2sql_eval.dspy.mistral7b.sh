@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #$ -N mistral_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=1:20:0
+#$ -l h_rt=0:30:0
 # Memory
-#$ -l mem=8G
+#$ -l mem=15G
 #$ -l gpu=1
 
 

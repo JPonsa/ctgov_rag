@@ -54,15 +54,15 @@ def set_llms(args):
         generator_llm = HuggingFacePipeline.from_model_id(model_id=args.generator, 
                                                           task="text-generation", 
                                                           device_map="auto",
-                                                          model_kwargs={"load_in_4bit":True}, 
-                                                          pipeline_kwargs={"max_new_tokens": 2_500},
+                                                          model_kwargs={"load_in_4bit":True},
+                                                          pipeline_kwargs={"max_new_tokens": int(args.size)},
                                                           )
         
         critic_llm = HuggingFacePipeline.from_model_id(model_id=args.critic, 
                                                        task="text-generation", 
                                                        device_map="auto", 
                                                        model_kwargs={"load_in_4bit":True},
-                                                       pipeline_kwargs={"max_new_tokens": 2_500},
+                                                       pipeline_kwargs={"max_new_tokens": int(args.size)},
                                                        )
     else:  # Else assumes that use Ollama
         from langchain_community.llms import Ollama
@@ -73,30 +73,36 @@ def set_llms(args):
     return generator_llm, critic_llm
 
 
-def main(args):
+def main(args, verbose:bool=False):
     
     os.environ["LANGCHAIN_PROJECT"] = "RAGAS"
     os.environ["LANGCHAIN_TRACING_V2"] = "true" if args.ls else "false"
 
     docs = create_documents(args)
+    
+    if verbose:
+        print(docs)
+    
     generator_llm, critic_llm = set_llms(args)
     embeddings = HuggingFaceEmbeddings(model_name=args.embeddings)
     generator = TestsetGenerator.from_langchain(generator_llm, critic_llm, embeddings)
-    print("Generating RAG evaluation data using RAGAS:")
-    print(f"- Generator: {args.generator.split('/')[-1]}")
-    print(f"- Critic: {args.critic.split('/')[-1]}")
-    print(f"- Embeddings: {args.embeddings.split('/')[-1]}")
-    print(
-        f"- Eval dataset: size {args.test_size} ",
-        f"({args.simple*100:.2f}% simple, ",
-        f"{args.reasoning*100:.2f}% reasoning, ",
-        f"{args.multi_context*100:.2f}% multi context)",
-    )
-    print(f"Number of documents {len(docs)}")
+    
+    if verbose:
+        print("Generating RAG evaluation data using RAGAS:")
+        print(f"- Generator: {args.generator.split('/')[-1]}")
+        print(f"- Critic: {args.critic.split('/')[-1]}")
+        print(f"- Embeddings: {args.embeddings.split('/')[-1]}")
+        print(
+            f"- Eval dataset: size {args.test_size} ",
+            f"({args.simple*100:.2f}% simple, ",
+            f"{args.reasoning*100:.2f}% reasoning, ",
+            f"{args.multi_context*100:.2f}% multi context)",
+        )
+        print(f"Number of documents {len(docs)}")
     
     eval_ds = generator.generate_with_langchain_docs(
         docs,
-        test_size=args.test_size,
+        test_size=int(args.test_size),
         distributions={
             simple: args.simple,
             reasoning: args.reasoning,
@@ -165,7 +171,7 @@ if __name__ == "__main__":
         "-test_size",
         type=int,
         default=10,
-        help="Number of question-context-answer tripplets",
+        help="Number of question-context-answer triplets",
     )
 
     parser.add_argument(
@@ -188,4 +194,4 @@ if __name__ == "__main__":
 
     parser.set_defaults(hf=False, ls=False)
     args = parser.parse_args()
-    main(args)
+    main(args, True)

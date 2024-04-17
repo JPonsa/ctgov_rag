@@ -150,6 +150,10 @@ def main(args, verbose: bool = False):
 
     # Set LLM
     completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
+    
+    if verbose:
+        print(completion_to_prompt("completion_to_promp test"))
+        print(messages_to_prompt(["messages_to_prompt", "test"]))
 
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
@@ -210,7 +214,7 @@ def main(args, verbose: bool = False):
         std_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableQuery.eval.tsv",
+        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.4bit.TableQuery.eval.tsv",
         sep="\t",
     )
 
@@ -221,7 +225,7 @@ def main(args, verbose: bool = False):
         adv_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableRetriever.eval.tsv",
+        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.4bit.TableRetriever.eval.tsv",
         sep="\t",
     )
 
