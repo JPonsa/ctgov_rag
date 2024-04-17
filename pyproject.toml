@@ -9,9 +9,8 @@ package-mode = false
 
 [tool.poetry.dependencies]
 #python = "^3.11"
-python = ">=3.11,<3.13"
+python = ">=3.11,<3.12"
 llama-index = "^0.10.20"
-dspy-ai = {extras = ["neo4j"], version = "^2.4.0"}
 pandas = "^2.2.1"
 ollama = "^0.1.7"
 tqdm = "^4.66.2"
@@ -35,6 +34,7 @@ arize-phoenix = "3.18.1"
 llama-index-llms-huggingface = "^0.1.4"
 bitsandbytes = "^0.42.0"
 psycopg2-binary = "^2.9.9"
+dspy = {git = "https://github.com/stanfordnlp/dspy.git"}
 
 
 [tool.poetry.group.dev.dependencies]
