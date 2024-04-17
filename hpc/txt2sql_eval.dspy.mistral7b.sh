@@ -27,7 +27,9 @@ HF_TOKEN=${HF_TOKEN//$'\r'}
 
 
 pip install poetry
-apptainer instance start --nv ollama.sif ollama
+ruse --stdout --time=150 -s \
+poetry run python -m vllm.entrypoints.openai.api_server --model mistralai/Mistral-7B-Instruct-v0.2 --port 8000
+# apptainer instance start --nv ollama.sif ollama
 ruse --stdout --time=150 -s \
 poetry run python ./src/txt2sql/txt2sql_dspy_test.py -user $AACT_USER -pwd $AACT_PWD \
 -sql_query_template ./src/txt2sql/sql_queries_template.yaml \

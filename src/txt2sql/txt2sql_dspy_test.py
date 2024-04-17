@@ -376,7 +376,10 @@ def main(args, verbose: bool = False):
             "temperature": 0.1,
             "do_sample": False,
         }
-        lm = dspy.HFModel(model=args.llm, token=args.hf, hf_device_map="auto")
+        # lm = dspy.HFModel(model=args.llm, token=args.hf, hf_device_map="auto")
+        
+           lm = dspy.HFClientVLLM(model=args.llm, port=8000, url="http://localhost")
+        
     else:
         lm = dspy.OllamaLocal(
             model=args.llm, stop=args.stop, max_tokens=500, timeout_s=2_000
