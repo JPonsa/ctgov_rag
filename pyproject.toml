@@ -15,7 +15,7 @@ pandas = "^2.2.1"
 ollama = "^0.1.7"
 tqdm = "^4.66.2"
 sqlalchemy = "^2.0.28"
-torch = "^2.2.1" # trial2vec needs downgrade
+torch = "^2.1.2" 
 transformers = {extras = ["torch"], version = "^4.39.3"} # trial2vec needs downgrade
 llama-index-llms-ollama = "^0.1.2"
 llama-index-embeddings-huggingface = "0.1.4" # There is a bug with 0.1.5 #11939
@@ -35,6 +35,7 @@ llama-index-llms-huggingface = "^0.1.4"
 bitsandbytes = "^0.42.0"
 psycopg2-binary = "^2.9.9"
 dspy = {git = "https://github.com/stanfordnlp/dspy.git"}
+vllm = "^0.4.0.post1"
 
 
 [tool.poetry.group.dev.dependencies]
