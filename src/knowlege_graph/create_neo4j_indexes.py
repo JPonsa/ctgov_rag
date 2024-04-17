@@ -141,9 +141,12 @@ if __name__ == "__main__":
         description="Create Neo4j Node Vector Indexes and Node Keywords indexes"
     )
 
-    NEO4J_USER = "tester"
+    # NEO4J_USER = "tester"
+    # NEO4J_PWD = "password"
+
+    NEO4J_USER = "neo4j"
     NEO4J_PWD = "password"
-    URI = "bolt://localhost:7689"
+    URI = "bolt://localhost:7687"
     AUTH = (NEO4J_USER, NEO4J_PWD)
     DB_NAME = "ctgov"
 
