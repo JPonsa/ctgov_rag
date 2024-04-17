@@ -164,7 +164,7 @@ def main(args, verbose: bool = False):
             tokenizer_name=args.llm,
             generate_kwargs={"temperature": 0.0},
             device_map="auto",
-            model_kwargs={"load_in_4bit": True},
+            model_kwargs={"load_in_4bit": False},
             # BUG: Disabled as this is giving me issues with codellama 13b
             # completion_to_prompt=completion_to_prompt,
             # messages_to_prompt=messages_to_prompt,
@@ -215,7 +215,7 @@ def main(args, verbose: bool = False):
         std_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.4bit.TableQuery.eval.tsv",
+        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableQuery.eval.tsv",
         sep="\t",
     )
 
@@ -226,7 +226,7 @@ def main(args, verbose: bool = False):
         adv_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.4bit.TableRetriever.eval.tsv",
+        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableRetriever.eval.tsv",
         sep="\t",
     )
 
