@@ -16,6 +16,7 @@ parent_dir = os.path.dirname(script_dir)
 sys.path.append(parent_dir)
 
 from utils.sql_wrapper import SQLDatabase
+from utils.utils import dspy_tracing
 
 # AACT Connection parameters
 DATABASE = "aact"
@@ -128,7 +129,7 @@ COMMON_MISTAKES = (
     "(10) Not using ILIKE instead of LIKE; ILIKE is always preferred over LIKE "
     "(11) Not making all WHERE statements case insensitive using LOWER."
 )
-
+    
 
 class Text2Sql(dspy.Signature):
     """Given an input question and a SQL db schema, produce a syntactically correct PostgreSQL query to run.
@@ -364,26 +365,29 @@ def main(args, verbose: bool = False):
     sql_schema = "\n".join(sql_schema)
     
     if verbose:
+        # dspy_tracing(host="myriad.rc.ucl.ac.uk")
         print("SQL db schema:\n" + sql_schema)
 
-    # Load LLM
-    if args.hf:
+    # lm = dspy.HFClientVLLM(model=args.llm, port=8000, url="http://0.0.0.0")
+    lm = dspy.HFClientVLLM(model=args.llm, port=8001, url="http://myriad.rc.ucl.ac.uk")
+    # # Load LLM
+    # if args.hf:
         
-        # TODO: Not sure if hf_automodel_kwargs is used at all. Review documentation
-        hf_automodel_kwargs = {
-            # BUG: bitsandbytes not finding CUDA lib in HPC. Fix and activate
-            "load_in_4bit": False,
-            "temperature": 0.1,
-            "do_sample": False,
-        }
-        # lm = dspy.HFModel(model=args.llm, token=args.hf, hf_device_map="auto")
+    #     # TODO: Not sure if hf_automodel_kwargs is used at all. Review documentation
+    #     hf_automodel_kwargs = {
+    #         # BUG: bitsandbytes not finding CUDA lib in HPC. Fix and activate
+    #         "load_in_4bit": False,
+    #         "temperature": 0.1,
+    #         "do_sample": False,
+    #     }
+    #     lm = dspy.HFModel(model=args.llm, token=args.hf, hf_device_map="auto")
         
-           lm = dspy.HFClientVLLM(model=args.llm, port=8000, url="http://localhost")
         
-    else:
-        lm = dspy.OllamaLocal(
-            model=args.llm, stop=args.stop, max_tokens=500, timeout_s=2_000
-        )
+        
+    # else:
+    #     lm = dspy.OllamaLocal(
+    #         model=args.llm, stop=args.stop, max_tokens=500, timeout_s=2_000
+        # )
 
     dspy.settings.configure(lm=lm, temperature=0.1)
         
@@ -443,10 +447,11 @@ if __name__ == "__main__":
         help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'",
     )
     parser.add_argument(
-        "-stop", type=str, nargs="+", default=["INST", "/INST"], help="list of flanking stop tokens"
+        "-stop", type=str, nargs="+", default=["INST", "/INST"], 
+        help="list of flanking stop tokens"
     )
 
     parser.set_defaults(hf=None)
 
     args = parser.parse_args()
-    main(args, verbose=True)
+    main(args, verbose=False)
