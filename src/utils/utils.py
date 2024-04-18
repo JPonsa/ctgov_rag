@@ -52,3 +52,17 @@ def print_red(text):
 def print_green(text):
     """Print a text message in Green"""
     print("\033[92m" + text + "\033[0m")
+
+def dspy_tracing(host:str= "localhost", port:int=6006):
+    import phoenix
+    from openinference.instrumentation.dspy import DSPyInstrumentor
+    from opentelemetry import trace as trace_api
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk import trace as trace_sdk
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+
+    phoenix.launch_app(host=host, port=port)
+    tracer_provider = trace_sdk.TracerProvider()
+    tracer_provider.add_span_processor(SimpleSpanProcessor(span_exporter=OTLPSpanExporter(endpoint=f"http://{host}:{port}/v1/traces")))
+    trace_api.set_tracer_provider(tracer_provider=tracer_provider)
+    DSPyInstrumentor().instrument()
