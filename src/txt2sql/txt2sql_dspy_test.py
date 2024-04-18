@@ -309,11 +309,19 @@ def run_sql_eval(
             )
         tmp = pd.DataFrame([], index=sql_eval_rows, columns=sql_eval_cols)
         for q, d in tqdm(sql_queries_templates.items(), desc="Evaluating llama index"):
+                            
             question = d["question"].format(
                 nctId=nctId,
                 condition=condition,
                 intervention=intervention,
             )
+            i = int(q.split("_")[-1])
+            if i >= 9 and i < 15:
+                print(f"Skipping {q} : {question}")
+                continue
+                #TODO: Remove, add it because vLLMs has giving some problems around this question. 
+                # Testing whether the issue is with the question per se.
+            
             sql_query = d["SQL"].format(
                 nctId=nctId,
                 condition=condition,
@@ -344,6 +352,8 @@ def run_sql_eval(
 
 
 def main(args, verbose: bool = False):
+    
+    file_tags = ["dspy"]
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -365,36 +375,25 @@ def main(args, verbose: bool = False):
     sql_schema = "\n".join(sql_schema)
     
     if verbose:
-        # dspy_tracing(host="myriad.rc.ucl.ac.uk")
+        #dspy_tracing(host="http://0.0.0.0")
         print("SQL db schema:\n" + sql_schema)
 
-    # lm = dspy.HFClientVLLM(model=args.llm, port=8000, url="http://0.0.0.0")
-    lm = dspy.HFClientVLLM(model=args.llm, port=8001, url="http://myriad.rc.ucl.ac.uk")
-    # # Load LLM
-    # if args.hf:
+    if args.hf:
+        os.environ["HUGGING_FACE_TOKEN"] = args.hf
+    
+    if args.vllm:
+        lm = dspy.HFClientVLLM(model=args.vllm, port=8000, url="http://0.0.0.0")
+        file_tags.append(args.vllm.split("/")[-1])
         
-    #     # TODO: Not sure if hf_automodel_kwargs is used at all. Review documentation
-    #     hf_automodel_kwargs = {
-    #         # BUG: bitsandbytes not finding CUDA lib in HPC. Fix and activate
-    #         "load_in_4bit": False,
-    #         "temperature": 0.1,
-    #         "do_sample": False,
-    #     }
-    #     lm = dspy.HFModel(model=args.llm, token=args.hf, hf_device_map="auto")
-        
-        
-        
-    # else:
-    #     lm = dspy.OllamaLocal(
-    #         model=args.llm, stop=args.stop, max_tokens=500, timeout_s=2_000
-        # )
+    elif args.ollama:
+        lm = dspy.OllamaLocal(
+            model=args.ollama, stop=args.stop, max_tokens=500, timeout_s=2_000
+        )
+        file_tags.append(args.ollama)
 
     dspy.settings.configure(lm=lm, temperature=0.1)
         
     query_engine = Txt2SqlAgent(sql_db, sql_schema, COMMON_MISTAKES)
-
-    if verbose:
-        print(f"Testing Llama-index with LLM {args.llm}")
 
     sql_eval = run_sql_eval(
         query_engine,
@@ -404,7 +403,7 @@ def main(args, verbose: bool = False):
         verbose,
     )
     sql_eval.to_csv(
-        f"{args.output_dir}dsply.{args.llm.split('/')[-1]}.eval.tsv",
+        f"{args.output_dir}{'.'.join(file_tags)}.eval.tsv",
         sep="\t",
     )
 
@@ -437,21 +436,26 @@ if __name__ == "__main__":
     parser.add_argument(
         "-hf",
         default=argparse.SUPPRESS,
-        help="HuggingFace Token. If not provided, assumes that Ollama.",
+        help="HuggingFace Token.",
+    )
+    
+    parser.add_argument(
+        "-vllm",
+        default=argparse.SUPPRESS,
+        help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
     )
 
     parser.add_argument(
-        "-llm",
+        "-ollama",
         type=str,
         default="mistral",
-        help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'",
+        help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
     parser.add_argument(
-        "-stop", type=str, nargs="+", default=["INST", "/INST"], 
-        help="list of flanking stop tokens"
+        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
     )
 
-    parser.set_defaults(hf=None)
+    parser.set_defaults(hf=None, vllm=None)
 
     args = parser.parse_args()
     main(args, verbose=False)

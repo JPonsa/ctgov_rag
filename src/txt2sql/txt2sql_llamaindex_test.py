@@ -134,6 +134,8 @@ def run_llamaindex_eval(
 
 
 def main(args, verbose: bool = False):
+    
+    file_tags = ["llamaindex"]
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -155,36 +157,33 @@ def main(args, verbose: bool = False):
         print(completion_to_prompt("completion_to_promp test"))
         print(messages_to_prompt(["messages_to_prompt", "test"]))
 
+    
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
-        from llama_index.llms.huggingface import HuggingFaceLLM
+    
+    if args.vllm:
+        from llama_index.core.llms.vllm import VllmServer
+        
+        lm = VllmServer(api_url="http://localhost:8000/generate", max_new_tokens=1_000, temperature=0)
+        
+        file_tags.append(args.vllm.split("/")[-1])
 
-        lm = HuggingFaceLLM(
-            model_name=args.llm,
-            tokenizer_name=args.llm,
-            generate_kwargs={"temperature": 0.0},
-            device_map="auto",
-            model_kwargs={"load_in_4bit": False},
-            # BUG: Disabled as this is giving me issues with codellama 13b
-            # completion_to_prompt=completion_to_prompt,
-            # messages_to_prompt=messages_to_prompt,
-        )
 
-    else:
+    elif args.ollama:
         from llama_index.llms.ollama import Ollama
 
         lm = Ollama(
-            model=args.llm,
+            model=args.ollama,
             temperature=0.0,
             request_timeout=100,
             completion_to_prompt=completion_to_prompt,
             messages_to_prompt=messages_to_prompt,
         )
+        
+        file_tags.append(args.ollama)
+        
     Settings.llm = lm
     Settings.embed_model = "local"
-
-    if verbose:
-        print(f"Testing Llama-index with LLM {args.llm}")
 
     # Set SQL DB connection
     db_uri = f"postgresql+psycopg2://{args.user}:{args.pwd}@{HOST}:{PORT}/{DATABASE}"
@@ -215,7 +214,7 @@ def main(args, verbose: bool = False):
         std_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableQuery.eval.tsv",
+        f"{args.output_dir}.{'.'.join(file_tags)}.TableQuery.eval.tsv",
         sep="\t",
     )
 
@@ -226,7 +225,7 @@ def main(args, verbose: bool = False):
         adv_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}llamaindex.{args.llm.split('/')[-1]}.TableRetriever.eval.tsv",
+        f"{args.output_dir}{'.'.join(file_tags)}.TableRetriever.eval.tsv",
         sep="\t",
     )
 
@@ -259,20 +258,26 @@ if __name__ == "__main__":
     parser.add_argument(
         "-hf",
         default=argparse.SUPPRESS,
-        help="HuggingFace Token. If not provided, assumes that Ollama.",
+        help="HuggingFace Token.",
+    )
+    
+    parser.add_argument(
+        "-vllm",
+        default=argparse.SUPPRESS,
+        help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
     )
 
     parser.add_argument(
-        "-llm",
+        "-ollama",
         type=str,
         default="mistral",
-        help="Large Language Model. E.g for Ollama use 'mistral' for HF use 'mistralai/Mistral-7B-Instruct-v0.2'",
+        help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
     parser.add_argument(
         "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
     )
 
-    parser.set_defaults(hf=None)
+    parser.set_defaults(hf=None, vllm=None)
 
     args = parser.parse_args()
     main(args, verbose=True)
