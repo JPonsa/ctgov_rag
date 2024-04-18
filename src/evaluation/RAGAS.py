@@ -50,20 +50,26 @@ def set_llms(args):
     # Set the LLM
     if args.hf:  # if HuggingFace token provided
         os.environ["HUGGINGFACEHUB_API_TOKEN"] = args.hf
-        from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
-        generator_llm = HuggingFacePipeline.from_model_id(model_id=args.generator, 
-                                                          task="text-generation", 
-                                                          device_map="auto",
-                                                          model_kwargs={"load_in_4bit":True},
-                                                          pipeline_kwargs={"max_new_tokens": int(args.size)},
-                                                          )
+        from langchain_community.llms import VLLM
         
-        critic_llm = HuggingFacePipeline.from_model_id(model_id=args.critic, 
-                                                       task="text-generation", 
-                                                       device_map="auto", 
-                                                       model_kwargs={"load_in_4bit":True},
-                                                       pipeline_kwargs={"max_new_tokens": int(args.size)},
-                                                       )
+        generator_llm = VLLM(model=args.generator,
+                            trust_remote_code=True,  # mandatory for hf models
+                            max_new_tokens=128,
+                            top_k=10,
+                            top_p=0.95,
+                            temperature=0.8,
+                            dtype="half",
+                            )
+                            
+        critic_llm = VLLM(model=args.critic,
+                            trust_remote_code=True,  # mandatory for hf models
+                            max_new_tokens=128,
+                            top_k=10,
+                            top_p=0.95,
+                            temperature=0.8,
+                            dtype="half",
+                            )
+        
     else:  # Else assumes that use Ollama
         from langchain_community.llms import Ollama
 
@@ -79,9 +85,6 @@ def main(args, verbose:bool=False):
     os.environ["LANGCHAIN_TRACING_V2"] = "true" if args.ls else "false"
 
     docs = create_documents(args)
-    
-    if verbose:
-        print(docs)
     
     generator_llm, critic_llm = set_llms(args)
     embeddings = HuggingFaceEmbeddings(model_name=args.embeddings)
