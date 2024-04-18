@@ -126,9 +126,9 @@ query_18:
   question: What is the allocation strategy employed in study {nctId}?
   SQL: |
     SELECT allocation 
-    FROM design
+    FROM designs
     WHERE nct_id = '{nctId}';
-  tables: [design]
+  tables: [designs]
 
 query_19:
   question: Does study {nctId} uses a patient registry? Select relevant from [TRUE, FALSE]
