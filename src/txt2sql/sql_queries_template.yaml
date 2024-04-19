@@ -177,17 +177,17 @@ query_24:
   tables: [reported_events]
 
 query_25:
-  question: Write a list of all clinical trials studying condition '{condition}'
+  question: How many clinical trials studying condition '{condition}'
   SQL: |
-    SELECT distinct nct_id 
+    SELECT COUNT(distinct nct_id)
     FROM browse_conditions 
     WHERE mesh_term ILIKE '{condition}';
   tables: [browse_conditions]
 
 query_26:
-  question: Write a list of all clinical trials studying intervention '{intervention}'
+  question: How many clinical trials studying intervention '{intervention}'
   SQL: |
-    SELECT distinct nct_id 
+    SELECT COUNT(distinct nct_id)
     FROM browse_interventions
     WHERE mesh_term ILIKE '{intervention}';
   tables: [browse_interventions]
