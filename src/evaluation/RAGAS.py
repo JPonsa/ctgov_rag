@@ -19,6 +19,11 @@ sys.path.append(parent_dir)
 from utils.utils import connect_to_mongoDB
 
 
+# TODO: Remove nest_asyncio if not necessary
+import nest_asyncio
+nest_asyncio.apply()
+
+
 def create_documents(args):
 
     studies = []
@@ -59,16 +64,21 @@ def set_llms(args):
                             top_p=0.95,
                             temperature=0.8,
                             dtype="half",
+                            enforce_eager=True,
                             )
-                            
-        critic_llm = VLLM(model=args.critic,
-                            trust_remote_code=True,  # mandatory for hf models
-                            max_new_tokens=128,
-                            top_k=10,
-                            top_p=0.95,
-                            temperature=0.8,
-                            dtype="half",
-                            )
+        
+        # TODO: I keep running out of memory when setting 2 llms.
+        # critic_llm = VLLM(model=args.critic,
+        #                     trust_remote_code=True,  # mandatory for hf models
+        #                     max_new_tokens=128,
+        #                     top_k=10,
+        #                     top_p=0.95,
+        #                     temperature=0.8,
+        #                     dtype="half",
+        #                     enforce_eager=True,
+        #                     )
+        
+        critic_llm = generator_llm.copy()
         
     else:  # Else assumes that use Ollama
         from langchain_community.llms import Ollama
@@ -111,6 +121,7 @@ def main(args, verbose:bool=False):
             reasoning: args.reasoning,
             multi_context: args.multi_context,
         },
+        is_async = True # as per https://github.com/explodinggradients/ragas/issues/709
     )
     eval_ds.to_pandas().to_csv(args.output)
 
