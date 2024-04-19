@@ -146,7 +146,7 @@ class Text2Sql(dspy.Signature):
     )
 
 
-class CheckSqlQuery(dspy.Signature):
+class CheckSqlCommonMistakes(dspy.Signature):
     """Given a SQL query and a list of common mistakes, produce a revised SQL query."""
 
     context: str = dspy.InputField(
@@ -205,7 +205,8 @@ class Txt2SqlAgent(dspy.Module):
     ) -> None:
         super().__init__()
         self.txt2sql = dspy.Predict(Text2Sql)
-        self.review_query = dspy.Predict(CheckSqlQuery)
+        self.review_error = dspy.Predict(CheckSqlError)
+        self.review_common_mistakes = dspy.Predict(CheckSqlCommonMistakes)
         self.review_schema = dspy.Predict(CheckSqlSchema)
         self.question_sql_answer = dspy.Predict(QuestionSqlAnswer)
         self.sql_db = sql_db
@@ -235,16 +236,26 @@ class Txt2SqlAgent(dspy.Module):
                 if verbose:
                     print(str(e))
 
-                response["review_query"] = self.review_query(
-                    context=str(e),
-                    sql_query = response["sql_query"],
+                # Review SQL error
+                response["review_error"] = self.review_error(
+                    error=str(e),
+                    db_schema=self.sql_schema,
+                    sql_query=response["sql_query"],
                     )
 
+                # Review Common mistakes
+                response["review_common_mistakes"] = self.review_common_mistakes(
+                    context=self.common_mistakes,
+                    sql_query=response["review_error"].revised_sql,
+                    )
+
+                # Review Schema
                 response["review_schema"] = self.review_schema(
                     context=self.sql_schema,
-                    sql_query=response["review_query"].revised_sql,
+                    sql_query=response["review_common_mistakes"].revised_sql,
                     )
                 
+                # Final SQL query
                 response["sql_query"] = response["review_schema"].revised_sql
                 
                 if verbose:
