@@ -76,9 +76,10 @@ def run_llamaindex_eval(
     sql_eval_cols = [
         "question",
         "gold_std_query",
-        "gold_std_answer",
-        "llamaIndex_query",
-        "llamaIndex_answer",
+        "gold_std_output",
+        "llm_query",
+        "llm_output",
+        "llm_answer",
     ]
     sql_eval_rows = list(sql_queries_templates.keys())
     sql_eval = pd.DataFrame([], columns=sql_eval_cols)
@@ -115,18 +116,23 @@ def run_llamaindex_eval(
             try:
                 response = query_engine.query(question)
                 llamaIndex_query = response.metadata["sql_query"]
-                tmp.at[q, "llamaIndex_query"] = llamaIndex_query.replace("\n", " ")
-                tmp.at[q, "llamaIndex_answer"] = response.response.replace("\n", "|")
+                tmp.at[q, "llm_query"] = llamaIndex_query.replace("\n", " ")
+                tmp.at[q, "llm_answer"] = response.response.replace("\n", "|")
             except (ReadTimeout, Timeout, TimeoutError):
                 if verbose:
                     print("Time out!")
-                tmp.at[q, "llamaIndex_query"] = "ReadTimeout"
-                tmp.at[q, "llamaIndex_answer"] = "ReadTimeout"
+                tmp.at[q, "llm_query"] = "ReadTimeout"
+                tmp.at[q, "llm_answer"] = "ReadTimeout"
             except Exception as e:
                 if verbose:
                     print(f"Error - {e}")
-                tmp.at[q, "llamaIndex_query"] = f"Error - {e}"
-                tmp.at[q, "llamaIndex_answer"] = f"Error - {e}"
+                tmp.at[q, "llm_query"] = f"Error - {e}"
+                tmp.at[q, "llm_answer"] = f"Error - {e}"
+                
+            try:
+                tmp.at[q, "llm_output"] = sql_db.run_sql(response.metadata["sql_query"])[0].replace("\n", " ")
+            except Exception as e:
+                tmp.at[q, "llm_output"] = "No output"
 
         sql_eval = pd.concat([sql_eval, tmp], ignore_index=True)
 
@@ -162,9 +168,22 @@ def main(args, verbose: bool = False):
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
     if args.vllm:
-        from llama_index.core.llms.vllm import VllmServer
+        from llama_index.llms.vllm import VllmServer, Vllm
         
-        lm = VllmServer(api_url="http://localhost:8000/generate", max_new_tokens=1_000, temperature=0)
+        # lm = VllmServer(api_url="http://localhost:8000/generate", max_new_tokens=1_000, temperature=0)
+        
+        llm = Vllm(
+            model=args.vllm,
+            dtype="half",
+            # tensor_parallel_size=4,
+            temperature=0,
+            max_new_tokens=1_000,
+            vllm_kwargs={
+                # "swap_space": 1,
+                "gpu_memory_utilization": 0.95,
+                # "max_model_len": 4096,
+            },
+        )
         
         file_tags.append(args.vllm.split("/")[-1])
 
@@ -214,7 +233,7 @@ def main(args, verbose: bool = False):
         std_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}.{'.'.join(file_tags)}.TableQuery.eval.tsv",
+        f"{args.output_dir}{'.'.join(file_tags)}.TableQuery.eval.tsv",
         sep="\t",
     )
 

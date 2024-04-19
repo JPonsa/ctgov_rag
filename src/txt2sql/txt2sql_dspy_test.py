@@ -230,7 +230,7 @@ class Txt2SqlAgent(dspy.Module):
 
         while attempts < n and sql_output is None:
             try:
-                sql_output = self.sql_db.run_sql(response["sql_query"])
+                sql_output = self.sql_db.run_sql(response["sql_query"])[0]
             except Exception as e:
                 
                 if verbose:
@@ -266,6 +266,9 @@ class Txt2SqlAgent(dspy.Module):
 
         if not sql_output:
             sql_output = "Information not found."
+            
+        
+        response["sql_output"] = sql_output
 
         print(type(sql_output))
 
@@ -306,8 +309,9 @@ def run_sql_eval(
     sql_eval_cols = [
         "question",
         "gold_std_query",
-        "gold_std_answer",
+        "gold_std_output",
         "llm_query",
+        "llm_output"
         "llm_answer",
     ]
     sql_eval_rows = list(sql_queries_templates.keys())
@@ -343,12 +347,13 @@ def run_sql_eval(
             try:
                 answer = sql_db.run_sql(sql_query)[0]
             except:
-                answer = "No answer"
-            tmp.at[q, "gold_std_answer"] = answer.replace("\n", "|")
+                answer = "No output"
+            tmp.at[q, "gold_std_output"] = answer.replace("\n", "|")
             
             # Get the answer from the LLM
             response = query_engine.forward(question, verbose=verbose)
             tmp.at[q, "llm_query"] = response["sql_query"].replace("\n", " ")
+            tmp.at[q, "llm_output"] = response["sql_output"].replace("\n", " ")
             tmp.at[q, "llm_answer"] = response["final_answer"].answer.replace("\n", "|")
 
         sql_eval = pd.concat([sql_eval, tmp], ignore_index=True)
