@@ -36,6 +36,7 @@ bitsandbytes = "^0.42.0"
 psycopg2-binary = "^2.9.9"
 dspy = {git = "https://github.com/stanfordnlp/dspy.git"}
 vllm = "^0.4.0.post1"
+llama-index-llms-vllm = "^0.1.7"
 
 
 [tool.poetry.group.dev.dependencies]
