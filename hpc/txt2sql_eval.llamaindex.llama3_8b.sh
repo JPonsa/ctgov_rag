@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N dspy_mistral_txt2SQL_eval
+#$ -N li_llama3_txt2SQL_eval
 # Max run time in H:M:S
 #$ -l h_rt=2:00:0
 # Memory
@@ -23,19 +23,18 @@ source .env set
 AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
-
-MODEL=mistralai/Mistral-7B-Instruct-v0.2
+MODEL=meta-llama/Meta-Llama-3-8B-Instruct
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port 8000 --dtype half --enforce-eager --gpu-memory-utilization 0.95 &
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port 8000 --dtype half --enforce-eager &
 echo I am going to sleep
-sleep 5m # Go to sleep so I vLLM server has time to start.
+sleep 5m # Go to sleep so I vLLM server has time to start
 echo I am awake
-# apptainer instance start --nv ollama.sif ollama
-ruse --stdout --time=600 -s poetry run python ./src/txt2sql/txt2sql_dspy_test.py -user $AACT_USER -pwd $AACT_PWD \
+# ruse --stdout --time=150 -s \
+poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd $AACT_PWD \
 -sql_query_template ./src/txt2sql/sql_queries_template.yaml \
 -triplets  ./src/txt2sql/txt2_sql_eval_triplets.tsv \
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
 -vllm $MODEL \
--stop '[INST]' '[/INST]'
+-stop '' ''

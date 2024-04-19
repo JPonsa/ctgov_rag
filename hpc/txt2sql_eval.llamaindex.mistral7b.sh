@@ -1,9 +1,9 @@
 #!/bin/bash -l
-#$ -N mistral_txt2SQL_eval
+#$ -N li_mistral_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=1:20:0
+#$ -l h_rt=2:00:0
 # Memory
-#$ -l mem=8G
+#$ -l mem=32G
 #$ -l gpu=1
 
 
@@ -23,19 +23,18 @@ source .env set
 AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
-
-MODE=mistralai/Mistral-7B-Instruct-v0.2
+MODEL=mistralai/Mistral-7B-Instruct-v0.2
 
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port 8000 --dtype half --enforce-eager &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start
 echo I am awake
-ruse --stdout --time=150 -s \
+# ruse --stdout --time=150 -s \
 poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd $AACT_PWD \
 -sql_query_template ./src/txt2sql/sql_queries_template.yaml \
 -triplets  ./src/txt2sql/txt2_sql_eval_triplets.tsv \
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
--llm $MODEL \
+-vllm $MODEL \
 -stop '[INST]' '[/INST]'
