@@ -308,19 +308,13 @@ def run_sql_eval(
                 f"Triplet: nctId: {nctId} | condition: {condition} | intervention: {intervention}"
             )
         tmp = pd.DataFrame([], index=sql_eval_rows, columns=sql_eval_cols)
-        for q, d in tqdm(sql_queries_templates.items(), desc="Evaluating llama index"):
+        for q, d in tqdm(sql_queries_templates.items(), desc="Evaluating txt2sql dspy"):
                             
             question = d["question"].format(
                 nctId=nctId,
                 condition=condition,
                 intervention=intervention,
             )
-            i = int(q.split("_")[-1])
-            if i >= 9 and i < 15:
-                print(f"Skipping {q} : {question}")
-                continue
-                #TODO: Remove, add it because vLLMs has giving some problems around this question. 
-                # Testing whether the issue is with the question per se.
             
             sql_query = d["SQL"].format(
                 nctId=nctId,
@@ -382,12 +376,12 @@ def main(args, verbose: bool = False):
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
     if args.vllm:
-        lm = dspy.HFClientVLLM(model=args.vllm, port=8000, url="http://0.0.0.0")
+        lm = dspy.HFClientVLLM(model=args.vllm, port=8000, url="http://0.0.0.0", max_tokens=1_000, timeout_s=2_000)
         file_tags.append(args.vllm.split("/")[-1])
         
     elif args.ollama:
         lm = dspy.OllamaLocal(
-            model=args.ollama, stop=args.stop, max_tokens=500, timeout_s=2_000
+            model=args.ollama, stop=args.stop, max_tokens=1_000, timeout_s=2_000
         )
         file_tags.append(args.ollama)
 
