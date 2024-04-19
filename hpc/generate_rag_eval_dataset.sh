@@ -32,7 +32,7 @@ poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mistral_7b.csv \
     -n 2 -size 2000 \
     -hf $HF_TOKEN \
     --generator mistralai/Mistral-7B-Instruct-v0.2 \
-    --critic mistralai/Mistral-7B-Instruct-v0.2 \
+    --critic meta-llama/Meta-Llama-3-8B-Instruct \
     --embeddings sentence-transformers/all-mpnet-base-v2 \
     -test_size 10 -s 0.4 -r 0.4 -mc 0.2
 

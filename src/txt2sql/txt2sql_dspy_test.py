@@ -17,6 +17,7 @@ sys.path.append(parent_dir)
 
 from utils.sql_wrapper import SQLDatabase
 from utils.utils import dspy_tracing
+from utils.utils import dspy_tracing
 
 # AACT Connection parameters
 DATABASE = "aact"
@@ -129,6 +130,7 @@ COMMON_MISTAKES = (
     "(10) Not using ILIKE instead of LIKE; ILIKE is always preferred over LIKE "
     "(11) Not making all WHERE statements case insensitive using LOWER."
 )
+    
     
 
 class Text2Sql(dspy.Signature):
@@ -364,6 +366,8 @@ def run_sql_eval(
 def main(args, verbose: bool = False):
     
     file_tags = ["dspy"]
+    
+    file_tags = ["dspy"]
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -386,6 +390,7 @@ def main(args, verbose: bool = False):
     
     if verbose:
         #dspy_tracing(host="http://0.0.0.0")
+        #dspy_tracing(host="http://0.0.0.0")
         print("SQL db schema:\n" + sql_schema)
 
     if args.hf:
@@ -400,6 +405,7 @@ def main(args, verbose: bool = False):
             model=args.ollama, stop=args.stop, max_tokens=1_000, timeout_s=2_000
         )
         file_tags.append(args.ollama)
+        file_tags.append(args.ollama)
 
     dspy.settings.configure(lm=lm, temperature=0.1)
         
@@ -413,6 +419,7 @@ def main(args, verbose: bool = False):
         verbose,
     )
     sql_eval.to_csv(
+        f"{args.output_dir}{'.'.join(file_tags)}.eval.tsv",
         f"{args.output_dir}{'.'.join(file_tags)}.eval.tsv",
         sep="\t",
     )
@@ -447,9 +454,18 @@ if __name__ == "__main__":
         "-hf",
         default=argparse.SUPPRESS,
         help="HuggingFace Token.",
+        help="HuggingFace Token.",
     )
     
+    
     parser.add_argument(
+        "-vllm",
+        default=argparse.SUPPRESS,
+        help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
+    )
+
+    parser.add_argument(
+        "-ollama",
         "-vllm",
         default=argparse.SUPPRESS,
         help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
@@ -460,12 +476,16 @@ if __name__ == "__main__":
         type=str,
         default="mistral",
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
+        help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
     parser.add_argument(
+        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
         "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
     )
 
     parser.set_defaults(hf=None, vllm=None)
+    parser.set_defaults(hf=None, vllm=None)
 
     args = parser.parse_args()
+    main(args, verbose=False)
     main(args, verbose=False)

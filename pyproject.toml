@@ -16,6 +16,7 @@ ollama = "^0.1.7"
 tqdm = "^4.66.2"
 sqlalchemy = "^2.0.28"
 torch = "^2.1.2" 
+torch = "^2.1.2" 
 transformers = {extras = ["torch"], version = "^4.39.3"} # trial2vec needs downgrade
 llama-index-llms-ollama = "^0.1.2"
 llama-index-embeddings-huggingface = "0.1.4" # There is a bug with 0.1.5 #11939

@@ -4,6 +4,7 @@
 #$ -l h_rt=2:00:0
 # Memory
 #$ -l mem=32G
+#$ -l mem=32G
 #$ -l gpu=1
 
 

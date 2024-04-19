@@ -164,6 +164,8 @@ def main(args, verbose: bool = False):
         print(messages_to_prompt(["messages_to_prompt", "test"]))
 
     
+
+    
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
@@ -193,11 +195,15 @@ def main(args, verbose: bool = False):
 
         lm = Ollama(
             model=args.ollama,
+            model=args.ollama,
             temperature=0.0,
             request_timeout=100,
             completion_to_prompt=completion_to_prompt,
             messages_to_prompt=messages_to_prompt,
         )
+        
+        file_tags.append(args.ollama)
+        
         
         file_tags.append(args.ollama)
         
@@ -245,6 +251,7 @@ def main(args, verbose: bool = False):
     )
     sql_eval.to_csv(
         f"{args.output_dir}{'.'.join(file_tags)}.TableRetriever.eval.tsv",
+        f"{args.output_dir}{'.'.join(file_tags)}.TableRetriever.eval.tsv",
         sep="\t",
     )
 
@@ -278,9 +285,18 @@ if __name__ == "__main__":
         "-hf",
         default=argparse.SUPPRESS,
         help="HuggingFace Token.",
+        help="HuggingFace Token.",
     )
     
+    
     parser.add_argument(
+        "-vllm",
+        default=argparse.SUPPRESS,
+        help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
+    )
+
+    parser.add_argument(
+        "-ollama",
         "-vllm",
         default=argparse.SUPPRESS,
         help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
@@ -291,11 +307,13 @@ if __name__ == "__main__":
         type=str,
         default="mistral",
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
+        help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
     parser.add_argument(
         "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
     )
 
+    parser.set_defaults(hf=None, vllm=None)
     parser.set_defaults(hf=None, vllm=None)
 
     args = parser.parse_args()
