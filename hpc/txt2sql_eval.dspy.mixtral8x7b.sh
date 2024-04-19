@@ -1,10 +1,10 @@
 #!/bin/bash -l
-#$ -N mistral_txt2SQL_eval
+#$ -N mixtral8x7b_txt2SQL_eval
 # Max run time in H:M:S
 #$ -l h_rt=1:00:0
 # Memory
-#$ -l mem=32G
-#$ -l gpu=1
+#$ -l mem=190G
+#$ -l gpu=2
 
 
 # workig directory. Use #S -cwd to use current working dir
@@ -23,11 +23,17 @@ source .env set
 AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
-
-MODEL=mistralai/Mistral-7B-Instruct-v0.2
+MODEL=mistralai/Mixtral-8x7B-Instruct-v0.1
+# MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-AWQ
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port 8000 --dtype half --enforce-eager &
+
+# Arize tracing
+# ssh -L 6006:myriad.rc.ucl.ac.uk:6006 rmhijpo@ssh-gateway.ucl.ac.uk -f
+echo Env config:
+poetry run python collect_env.py
+echo =================================
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port 8000 --dtype half --enforce-eager --gpu-memory-utilization 0.95 &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake

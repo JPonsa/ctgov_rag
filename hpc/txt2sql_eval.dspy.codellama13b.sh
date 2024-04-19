@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N mistral_txt2SQL_eval
+#$ -N codellama_txt2SQL_eval
 # Max run time in H:M:S
 #$ -l h_rt=1:00:0
 # Memory
@@ -23,13 +23,17 @@ source .env set
 AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
+MODEL=codellama/CodeLlama-13b-hf
 
-MODEL=mistralai/Mistral-7B-Instruct-v0.2
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port 8000 --dtype half --enforce-eager &
+
+# Arize tracing
+ssh -L 6006:myriad.rc.ucl.ac.uk:6006 rmhijpo@ssh-gateway.ucl.ac.uk -f
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port 8000 --dtype half --enforce-eager --gpu-memory-utilization 0.95 --max-model-len 2500 &
 echo I am going to sleep
-sleep 5m # Go to sleep so I vLLM server has time to start.
+sleep 5m # Go to sleep so I vLLM server has time to start
+sleep 10m # Give time do download the model. Only needed the 1st time
 echo I am awake
 # apptainer instance start --nv ollama.sif ollama
 ruse --stdout --time=600 -s poetry run python ./src/txt2sql/txt2sql_dspy_test.py -user $AACT_USER -pwd $AACT_PWD \
