@@ -17,7 +17,6 @@ sys.path.append(parent_dir)
 
 from utils.sql_wrapper import SQLDatabase
 from utils.utils import dspy_tracing
-from utils.utils import dspy_tracing
 
 # AACT Connection parameters
 DATABASE = "aact"
@@ -27,6 +26,7 @@ PORT = 5432
 # Selection of relevant tables in AACT
 AACT_TABLES = [
     "browse_interventions",
+    "interventions",
     "sponsors",
     "detailed_descriptions",
     "facilities",
@@ -134,7 +134,7 @@ COMMON_MISTAKES = (
     
 
 class Text2Sql(dspy.Signature):
-    """Given an input question and a SQL db schema, produce a syntactically correct PostgreSQL query to run.
+    """Take an input question and a SQL db schema, produce a syntactically correct PostgreSQL query to run.
     Never query for all the columns from a specific table, only ask for a few relevant columns given the question.
     Pay attention to use only the column names that you can see in the schema description.
     Be careful to not query for columns that do not exist. Pay attention to which column is in which table.
@@ -149,7 +149,7 @@ class Text2Sql(dspy.Signature):
 
 
 class CheckSqlCommonMistakes(dspy.Signature):
-    """Given a SQL query and a list of common mistakes, produce a revised SQL query."""
+    """Take a SQL query and a list of common mistakes, produces a revised SQL query."""
 
     context: str = dspy.InputField(
         prefix="Common mistakes:",
@@ -166,7 +166,7 @@ class CheckSqlCommonMistakes(dspy.Signature):
 
 
 class CheckSqlSchema(dspy.Signature):
-    """Given a SQL query and a SQL db schema, produce a revised SQL query."""
+    """Take a SQL query and a SQL db schema, produce a revised SQL query."""
 
     context: str = dspy.InputField(prefix="SQL db schema:")
     sql_query: str = dspy.InputField(prefix="SQL query:", desc="original sql query")
@@ -177,7 +177,7 @@ class CheckSqlSchema(dspy.Signature):
 
 
 class CheckSqlError(dspy.Signature):
-    """Give a SQL query, a SQL schema and the error raised when running it, produce a revised SQL query."""
+    """Take a SQL query, a SQL schema and the error raised when running it, produce a revised SQL query."""
 
     db_schema: str = dspy.InputField(prefix="Schema:", desc="SQL DB schema")
     sql_query: str = dspy.InputField(prefix="SQL query:", desc="original SQL query")
@@ -191,7 +191,7 @@ class CheckSqlError(dspy.Signature):
 
 
 class QuestionSqlAnswer(dspy.Signature):
-    """Given an input question and the result of a SQL query that could provide useful information regarding the question, produce an answer."""
+    """Take an input question and the result of a SQL query that could provide useful information regarding the question, produce an answer."""
 
     question: str = dspy.InputField(prefix="Question:", desc="user question")
     context: str = dspy.InputField(
@@ -366,8 +366,6 @@ def run_sql_eval(
 def main(args, verbose: bool = False):
     
     file_tags = ["dspy"]
-    
-    file_tags = ["dspy"]
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -390,14 +388,13 @@ def main(args, verbose: bool = False):
     
     if verbose:
         #dspy_tracing(host="http://0.0.0.0")
-        #dspy_tracing(host="http://0.0.0.0")
         print("SQL db schema:\n" + sql_schema)
 
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
     if args.vllm:
-        lm = dspy.HFClientVLLM(model=args.vllm, port=8000, url="http://0.0.0.0", max_tokens=1_000, timeout_s=2_000)
+        lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000)
         file_tags.append(args.vllm.split("/")[-1])
         
     elif args.ollama:
@@ -405,8 +402,7 @@ def main(args, verbose: bool = False):
             model=args.ollama, stop=args.stop, max_tokens=1_000, timeout_s=2_000
         )
         file_tags.append(args.ollama)
-        file_tags.append(args.ollama)
-
+        
     dspy.settings.configure(lm=lm, temperature=0.1)
         
     query_engine = Txt2SqlAgent(sql_db, sql_schema, COMMON_MISTAKES)
@@ -419,7 +415,6 @@ def main(args, verbose: bool = False):
         verbose,
     )
     sql_eval.to_csv(
-        f"{args.output_dir}{'.'.join(file_tags)}.eval.tsv",
         f"{args.output_dir}{'.'.join(file_tags)}.eval.tsv",
         sep="\t",
     )
@@ -454,9 +449,7 @@ if __name__ == "__main__":
         "-hf",
         default=argparse.SUPPRESS,
         help="HuggingFace Token.",
-        help="HuggingFace Token.",
     )
-    
     
     parser.add_argument(
         "-vllm",
@@ -465,27 +458,31 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-ollama",
-        "-vllm",
-        default=argparse.SUPPRESS,
-        help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
+        "-host",
+        type=str,
+        default="http://0.0.0.0",
+        help="LLM server host.",
     )
 
+    parser.add_argument(
+        "-port",
+        type=int,
+        default=8000,
+        help="LLM server port.",
+    )
+    
     parser.add_argument(
         "-ollama",
         type=str,
         default="mistral",
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
-        help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
+    
     parser.add_argument(
-        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
         "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
     )
 
-    parser.set_defaults(hf=None, vllm=None)
     parser.set_defaults(hf=None, vllm=None)
 
     args = parser.parse_args()
-    main(args, verbose=False)
-    main(args, verbose=False)
+    main(args, verbose=True)
