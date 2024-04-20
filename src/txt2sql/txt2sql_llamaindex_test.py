@@ -11,12 +11,13 @@ from requests.exceptions import ReadTimeout, Timeout
 from sqlalchemy import create_engine
 from tqdm import tqdm
 
-TABLES = [
+AACT_TABLES = [
     "browse_interventions",
+    "interventions",
     "sponsors",
     "detailed_descriptions",
     "facilities",
-    "studies",
+    # "studies",
     "outcomes",
     "browse_conditions",
     "keywords",
@@ -33,7 +34,7 @@ PORT = 5432
 
 
 def generate_prompt_adapter_func(stop: list = ["<s>[INST]", "[/INST] </s>"]):
-    "Given a list of stop tokens, generates functions to the llamaindex prompts"
+    "Takes a list of stop tokens, produces functions to the llamaindex prompts"
 
     def completion_to_prompt(completion: str) -> str:
         return f"{stop[0]} {completion} {stop[1]} "
@@ -52,7 +53,7 @@ def run_llamaindex_eval(
     triplets: list[list[str]],
     verbose: bool = False,
 ) -> pd.DataFrame:
-    """_summary_
+    """Takes a SQL query engine and tests a the answering of questions in natural languange
 
     Parameters
     ----------
@@ -163,29 +164,27 @@ def main(args, verbose: bool = False):
         print(completion_to_prompt("completion_to_promp test"))
         print(messages_to_prompt(["messages_to_prompt", "test"]))
 
-    
-
-    
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
     if args.vllm:
         from llama_index.llms.vllm import VllmServer, Vllm
         
-        # lm = VllmServer(api_url="http://localhost:8000/generate", max_new_tokens=1_000, temperature=0)
+        lm = VllmServer(api_url=f"{args.host}:{args.port}", max_new_tokens=1_000, temperature=0)
         
-        llm = Vllm(
-            model=args.vllm,
-            dtype="half",
-            # tensor_parallel_size=4,
-            temperature=0,
-            max_new_tokens=1_000,
-            vllm_kwargs={
-                # "swap_space": 1,
-                "gpu_memory_utilization": 0.95,
-                # "max_model_len": 4096,
-            },
-        )
+        # lm = Vllm(
+        #     model=args.vllm,
+        #     dtype="half",
+        #     # tensor_parallel_size=4,
+        #     temperature=0,
+        #     max_new_tokens=1_000,
+        #     api_url=f"{args.host}:{args.port}/generate",
+        #     vllm_kwargs={
+        #         # "swap_space": 1,
+        #         "gpu_memory_utilization": 0.95,
+        #         # "max_model_len": 4_096,
+        #     },
+        # )
         
         file_tags.append(args.vllm.split("/")[-1])
 
@@ -194,7 +193,6 @@ def main(args, verbose: bool = False):
         from llama_index.llms.ollama import Ollama
 
         lm = Ollama(
-            model=args.ollama,
             model=args.ollama,
             temperature=0.0,
             request_timeout=100,
@@ -205,22 +203,20 @@ def main(args, verbose: bool = False):
         file_tags.append(args.ollama)
         
         
-        file_tags.append(args.ollama)
-        
     Settings.llm = lm
     Settings.embed_model = "local"
 
     # Set SQL DB connection
     db_uri = f"postgresql+psycopg2://{args.user}:{args.pwd}@{HOST}:{PORT}/{DATABASE}"
     db_engine = create_engine(db_uri)
-    sql_db = SQLDatabase(db_engine, include_tables=TABLES)
+    sql_db = SQLDatabase(db_engine, include_tables=AACT_TABLES)
 
     # Standard query engine
     std_query_engine = NLSQLTableQueryEngine(sql_database=sql_db)
 
     # Advance query engine
     table_node_mapping = SQLTableNodeMapping(sql_db)
-    table_schema_objs = [(SQLTableSchema(table_name=t)) for t in TABLES]
+    table_schema_objs = [(SQLTableSchema(table_name=t)) for t in AACT_TABLES]
 
     obj_index = ObjectIndex.from_objects(
         table_schema_objs,
@@ -250,7 +246,6 @@ def main(args, verbose: bool = False):
         adv_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
     sql_eval.to_csv(
-        f"{args.output_dir}{'.'.join(file_tags)}.TableRetriever.eval.tsv",
         f"{args.output_dir}{'.'.join(file_tags)}.TableRetriever.eval.tsv",
         sep="\t",
     )
@@ -285,21 +280,26 @@ if __name__ == "__main__":
         "-hf",
         default=argparse.SUPPRESS,
         help="HuggingFace Token.",
-        help="HuggingFace Token.",
     )
-    
     
     parser.add_argument(
         "-vllm",
         default=argparse.SUPPRESS,
         help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
+    )
+    
+    parser.add_argument(
+        "-host",
+        type=str,
+        default="http://0.0.0.0",
+        help="LLM server host.",
     )
 
     parser.add_argument(
-        "-ollama",
-        "-vllm",
-        default=argparse.SUPPRESS,
-        help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
+        "-port",
+        type=int,
+        default=8000,
+        help="LLM server port.",
     )
 
     parser.add_argument(
@@ -307,13 +307,11 @@ if __name__ == "__main__":
         type=str,
         default="mistral",
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
-        help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
     parser.add_argument(
         "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
     )
 
-    parser.set_defaults(hf=None, vllm=None)
     parser.set_defaults(hf=None, vllm=None)
 
     args = parser.parse_args()
