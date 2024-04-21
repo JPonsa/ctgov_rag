@@ -31,7 +31,7 @@ PORT=8011
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 3000 \
+--max-model-len 4000 \
 --gpu-memory-utilization 0.80 &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
@@ -43,5 +43,5 @@ poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
 -vllm $MODEL \
--port $PORT
-# -stop '[INST]' '[/INST]'
+-port $PORT \
+-stop '[INST]' '[/INST]'

@@ -33,17 +33,17 @@ HOST = "aact-db.ctti-clinicaltrials.org"
 PORT = 5432
 
 # TODO: Review how this needs to be implemented property
-# def generate_prompt_adapter_func(stop: list = ["<s>[INST]", "[/INST] </s>"]):
-#     "Takes a list of stop tokens, produces functions to the llamaindex prompts"
+def generate_prompt_adapter_func(stop: list = ["<s>[INST]", "[/INST] </s>"]):
+    "Takes a list of stop tokens, produces functions to the llamaindex prompts"
 
-#     def completion_to_prompt(completion: str) -> str:
-#         return f"{stop[0]} {completion} {stop[1]} "
+    def completion_to_prompt(completion: str) -> str:
+        return f"{stop[0]} {completion} {stop[1]} "
 
-#     def messages_to_prompt(messages: list) -> str:
-#         messages_str = "\n".join(str(x) for x in messages)
-#         return f"{stop[0]} {messages_str} {stop[1]} "
+    def messages_to_prompt(messages: list) -> str:
+        messages_str = "\n".join(str(x) for x in messages)
+        return f"{stop[0]} {messages_str} {stop[1]} "
 
-#     return completion_to_prompt, messages_to_prompt
+    return completion_to_prompt, messages_to_prompt
 
 
 def run_llamaindex_eval(
@@ -142,7 +142,7 @@ def run_llamaindex_eval(
 
 def main(args, verbose: bool = False):
     
-    file_tags = ["llamaindex"]
+    file_tags = ["llamaindex", "w_completion_propmt"]
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -158,10 +158,10 @@ def main(args, verbose: bool = False):
     triplets = [t.rstrip("\n").split("\t") for t in triplets]
 
     # Set LLM
-    # completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
+    completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
     
-    # if verbose:
-    #     print(completion_to_prompt("completion_to_promp test"))
+    if verbose:
+        print(completion_to_prompt("completion_to_prompt test"))
     #     print(messages_to_prompt(["messages_to_prompt", "test"]))
 
     if args.hf:
@@ -169,7 +169,8 @@ def main(args, verbose: bool = False):
     
     if args.vllm:
         from llama_index.llms.openai_like import OpenAILike
-        lm = OpenAILike(model=args.vllm, api_base=f"{args.host}:{args.port}/v1/", api_key="fake", temperature=0, max_tokens=1_000)        
+        lm = OpenAILike(model=args.vllm, api_base=f"{args.host}:{args.port}/v1/", api_key="fake", temperature=0, max_tokens=1_000,
+                        completion_to_prompt=completion_to_prompt)        
         file_tags.append(args.vllm.split("/")[-1])
 
 
@@ -295,10 +296,10 @@ if __name__ == "__main__":
         default="mistral",
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
-    # TODO: Removed as I don't fully understand what is doing
-    # parser.add_argument(
-    #     "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
-    # )
+    # TODO: Review, as it is not fully understood
+    parser.add_argument(
+        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
+    )
 
     parser.set_defaults(hf=None, vllm=None)
 
