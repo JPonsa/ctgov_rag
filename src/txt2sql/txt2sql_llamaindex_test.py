@@ -17,7 +17,7 @@ AACT_TABLES = [
     "sponsors",
     "detailed_descriptions",
     "facilities",
-    # "studies",
+    "studies",
     "outcomes",
     "browse_conditions",
     "keywords",
@@ -32,18 +32,18 @@ DATABASE = "aact"
 HOST = "aact-db.ctti-clinicaltrials.org"
 PORT = 5432
 
+# TODO: Review how this needs to be implemented property
+# def generate_prompt_adapter_func(stop: list = ["<s>[INST]", "[/INST] </s>"]):
+#     "Takes a list of stop tokens, produces functions to the llamaindex prompts"
 
-def generate_prompt_adapter_func(stop: list = ["<s>[INST]", "[/INST] </s>"]):
-    "Takes a list of stop tokens, produces functions to the llamaindex prompts"
+#     def completion_to_prompt(completion: str) -> str:
+#         return f"{stop[0]} {completion} {stop[1]} "
 
-    def completion_to_prompt(completion: str) -> str:
-        return f"{stop[0]} {completion} {stop[1]} "
+#     def messages_to_prompt(messages: list) -> str:
+#         messages_str = "\n".join(str(x) for x in messages)
+#         return f"{stop[0]} {messages_str} {stop[1]} "
 
-    def messages_to_prompt(messages: list) -> str:
-        messages_str = "\n".join(str(x) for x in messages)
-        return f"{stop[0]} {messages_str} {stop[1]} "
-
-    return completion_to_prompt, messages_to_prompt
+#     return completion_to_prompt, messages_to_prompt
 
 
 def run_llamaindex_eval(
@@ -111,7 +111,7 @@ def run_llamaindex_eval(
             except:
                 answer = "No answer"
 
-            tmp.at[q, "gold_std_answer"] = answer.replace("\n", "|")
+            tmp.at[q, "gold_std_output"] = answer.replace("\n", "|")
 
             # Get LlamaIndex SQL query and answer
             try:
@@ -158,19 +158,25 @@ def main(args, verbose: bool = False):
     triplets = [t.rstrip("\n").split("\t") for t in triplets]
 
     # Set LLM
-    completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
+    # completion_to_prompt, messages_to_prompt = generate_prompt_adapter_func(args.stop)
     
-    if verbose:
-        print(completion_to_prompt("completion_to_promp test"))
-        print(messages_to_prompt(["messages_to_prompt", "test"]))
+    # if verbose:
+    #     print(completion_to_prompt("completion_to_promp test"))
+    #     print(messages_to_prompt(["messages_to_prompt", "test"]))
 
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
     if args.vllm:
-        from llama_index.llms.vllm import VllmServer, Vllm
+        # from llama_index.llms.vllm import VllmServer, Vllm
+        from llama_index.llms.openai_like import OpenAILike
+        print(f"{args.host}:{args.port}")
+        lm = OpenAILike(model=args.vllm, api_base=f"{args.host}:{args.port}/v1/", api_key="fake", temperature=0, max_tokens=1_000)
+        # TODO: Remove after testing
+        response = lm.complete("Hello World!")
+        print(str(response))
         
-        lm = VllmServer(api_url=f"{args.host}:{args.port}", max_new_tokens=1_000, temperature=0)
+        # lm = VllmServer(model=args.vllm, api_url=f"{args.host}:{args.port}", max_new_tokens=1_000, temperature=0, dtype="half")
         
         # lm = Vllm(
         #     model=args.vllm,
@@ -196,8 +202,8 @@ def main(args, verbose: bool = False):
             model=args.ollama,
             temperature=0.0,
             request_timeout=100,
-            completion_to_prompt=completion_to_prompt,
-            messages_to_prompt=messages_to_prompt,
+            # completion_to_prompt=completion_to_prompt,
+            # messages_to_prompt=messages_to_prompt,
         )
         
         file_tags.append(args.ollama)
@@ -308,9 +314,10 @@ if __name__ == "__main__":
         default="mistral",
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
-    parser.add_argument(
-        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
-    )
+    # TODO: Removed as I don't fully understand what is doing
+    # parser.add_argument(
+    #     "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
+    # )
 
     parser.set_defaults(hf=None, vllm=None)
 
