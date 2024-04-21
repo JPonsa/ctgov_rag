@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N mixtral8x7b_txt2SQL_eval
+#$ -N dspy_mixtral8x7b_txt2SQL_eval
 # Max run time in H:M:S
 #$ -l h_rt=6:00:0
 # Memory
