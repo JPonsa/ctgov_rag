@@ -80,14 +80,14 @@ def set_llms(args):
         
         generator_llm = VLLMOpenAI(
             openai_api_key="EMPTY",
-            openai_api_base=f"{args.host}:{args.port[0]}/",
+            openai_api_base=f"{args.host}:{args.ports[0]}/v1/",
             model_name=args.generator,
             model_kwargs={"stop": ["."]},
             )
         
         critic_llm = VLLMOpenAI(
             openai_api_key="EMPTY",
-            openai_api_base=f"{args.host}:{args.port[1]}/",
+            openai_api_base=f"{args.host}:{args.ports[1]}/v1/",
             model_name=args.critic,
             model_kwargs={"stop": ["."]},
             )
@@ -133,7 +133,8 @@ def main(args, verbose:bool=False):
             reasoning: args.reasoning,
             multi_context: args.multi_context,
         },
-        is_async = True # as per https://github.com/explodinggradients/ragas/issues/709
+        raise_exceptions=False,
+        is_async=True # as per https://github.com/explodinggradients/ragas/issues/709
     )
     eval_ds.to_pandas().to_csv(args.output)
 
