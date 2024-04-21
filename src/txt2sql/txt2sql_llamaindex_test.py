@@ -168,30 +168,8 @@ def main(args, verbose: bool = False):
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
     if args.vllm:
-        # from llama_index.llms.vllm import VllmServer, Vllm
         from llama_index.llms.openai_like import OpenAILike
-        print(f"{args.host}:{args.port}")
-        lm = OpenAILike(model=args.vllm, api_base=f"{args.host}:{args.port}/v1/", api_key="fake", temperature=0, max_tokens=1_000)
-        # TODO: Remove after testing
-        response = lm.complete("Hello World!")
-        print(str(response))
-        
-        # lm = VllmServer(model=args.vllm, api_url=f"{args.host}:{args.port}", max_new_tokens=1_000, temperature=0, dtype="half")
-        
-        # lm = Vllm(
-        #     model=args.vllm,
-        #     dtype="half",
-        #     # tensor_parallel_size=4,
-        #     temperature=0,
-        #     max_new_tokens=1_000,
-        #     api_url=f"{args.host}:{args.port}/generate",
-        #     vllm_kwargs={
-        #         # "swap_space": 1,
-        #         "gpu_memory_utilization": 0.95,
-        #         # "max_model_len": 4_096,
-        #     },
-        # )
-        
+        lm = OpenAILike(model=args.vllm, api_base=f"{args.host}:{args.port}/v1/", api_key="fake", temperature=0, max_tokens=1_000)        
         file_tags.append(args.vllm.split("/")[-1])
 
 
@@ -237,6 +215,7 @@ def main(args, verbose: bool = False):
     ## For standard query engine
     if verbose:
         print("Testing NLSQLTableQueryEngine ...")
+        
     sql_eval = run_llamaindex_eval(
         std_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
@@ -248,6 +227,7 @@ def main(args, verbose: bool = False):
     ## For advance query engine.
     if verbose:
         print("Testing SQLTableRetrieverQueryEngine ...")
+        
     sql_eval = run_llamaindex_eval(
         adv_query_engine, sql_db, sql_queries_templates, triplets, verbose
     )
@@ -256,6 +236,7 @@ def main(args, verbose: bool = False):
         sep="\t",
     )
 
+    print("Testing LLamaindex txt2sql completed !")
 
 if __name__ == "__main__":
 
