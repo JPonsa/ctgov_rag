@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N li_llama3_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=2:00:0
+#$ -l h_rt=3:00:0
 # Memory
 #$ -l mem=32G
 #$ -l gpu=1
@@ -29,7 +29,7 @@ MODEL=meta-llama/Meta-Llama-3-8B-Instruct
 PORT=8013
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.95 &
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.80 &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
