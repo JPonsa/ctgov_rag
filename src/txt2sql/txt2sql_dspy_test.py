@@ -215,7 +215,7 @@ class Txt2SqlAgent(dspy.Module):
         self.common_mistakes = common_mistakes
         
         
-    def _trim_sql_query(query:str)->str:
+    def _trim_sql_query(self, query:str)->str:
         """Takes a SQL query and removes unnecessary element frequently added by the LLM"""
         # Sometimes the LLM adds comments after the query 
         # or generates multiple query due to hallucinations
@@ -235,7 +235,6 @@ class Txt2SqlAgent(dspy.Module):
             context=self.sql_schema,
             question=question,
         )
-        
         
         response["sql_query"] = self._trim_sql_query(response["txt2sql"])
         
