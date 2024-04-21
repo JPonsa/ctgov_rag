@@ -223,7 +223,7 @@ class Txt2SqlAgent(dspy.Module):
         
         # Sometimes the LLM adds the term sql in front of the query
         # to indicate is generating sql code 
-        query = query.lstrip("sql ").lstrip("SQL ")
+        query = query.replace("sql ", "", 1).replace("SQL ", "", 1)
         return query
 
     def forward(self, question: str, n: int = 3, verbose:bool=False) -> str:
@@ -236,7 +236,7 @@ class Txt2SqlAgent(dspy.Module):
             question=question,
         )
         
-        response["sql_query"] = self._trim_sql_query(response["txt2sql"])
+        response["sql_query"] = self._trim_sql_query(response["txt2sql"].sql_query)
         
         if verbose:
             print(f"Initial SQL query: {response['sql_query']}\n")
@@ -251,8 +251,8 @@ class Txt2SqlAgent(dspy.Module):
                 
                 # If the error message is too long. Trim it, so it doesn't fill
                 # the context window
-                if len(e) > 2_000:
-                    e = "Error: ... "+e[-2_000:]
+                if len(e) > 8_000:
+                    e = "Error: ... "+e[-8_000:]
                 
                 if verbose:
                     print("Error msg ===========================")
@@ -278,7 +278,7 @@ class Txt2SqlAgent(dspy.Module):
                     )
                 
                 # Final SQL query
-                response["sql_query"] = self._trim_sql_query(response["review_schema"].revised_sql),
+                response["sql_query"] = self._trim_sql_query(response["review_schema"].revised_sql)
                 
                 if verbose:
                     print(f"Revised SQL query attempt {attempts}: {response['sql_query']}\n")
@@ -291,9 +291,13 @@ class Txt2SqlAgent(dspy.Module):
             
         
         response["sql_output"] = sql_output
+        
+        if len(response["sql_output"])> 8_000:
+            print(response["sql_output"])
+            response["sql_output"] = response["sql_output"][:8_000]
 
         response["final_answer"] = self.question_sql_answer(
-            context=sql_output,
+            context=response["sql_output"],
             question=question,
             )
         return response
@@ -371,7 +375,7 @@ def run_sql_eval(
             tmp.at[q, "gold_std_output"] = answer.replace("\n", "|")
             
             # Get the answer from the LLM
-            response = query_engine.forward(question, verbose=verbose)
+            response = query_engine.forward(question, verbose=verbose, n=2)
             tmp.at[q, "llm_query"] = response["sql_query"].replace("\n", " ")
             tmp.at[q, "llm_output"] = response["sql_output"].replace("\n", " ")
             tmp.at[q, "llm_answer"] = response["final_answer"].answer.replace("\n", "|")
