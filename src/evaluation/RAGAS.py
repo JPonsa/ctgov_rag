@@ -55,17 +55,17 @@ def set_llms(args):
     # Set the LLM
     if args.hf:  # if HuggingFace token provided
         os.environ["HUGGINGFACEHUB_API_TOKEN"] = args.hf
-        from langchain_community.llms import VLLM
+        from langchain_community.llms import VLLM, VLLMOpenAI
         
-        generator_llm = VLLM(model=args.generator,
-                            trust_remote_code=True,  # mandatory for hf models
-                            max_new_tokens=128,
-                            top_k=10,
-                            top_p=0.95,
-                            temperature=0.8,
-                            dtype="half",
-                            enforce_eager=True,
-                            )
+        # generator_llm = VLLM(model=args.generator,
+        #                     trust_remote_code=True,  # mandatory for hf models
+        #                     max_new_tokens=128,
+        #                     top_k=10,
+        #                     top_p=0.95,
+        #                     temperature=0.8,
+        #                     dtype="half",
+        #                     enforce_eager=True,
+        #                     )
         
         # TODO: I keep running out of memory when setting 2 llms.
         # critic_llm = VLLM(model=args.critic,
@@ -78,7 +78,19 @@ def set_llms(args):
         #                     enforce_eager=True,
         #                     )
         
-        critic_llm = generator_llm.copy()
+        generator_llm = VLLMOpenAI(
+            openai_api_key="EMPTY",
+            openai_api_base=f"{args.host}:{args.port[0]}/",
+            model_name=args.generator,
+            model_kwargs={"stop": ["."]},
+            )
+        
+        critic_llm = VLLMOpenAI(
+            openai_api_key="EMPTY",
+            openai_api_base=f"{args.host}:{args.port[1]}/",
+            model_name=args.critic,
+            model_kwargs={"stop": ["."]},
+            )
         
     else:  # Else assumes that use Ollama
         from langchain_community.llms import Ollama
@@ -158,6 +170,19 @@ if __name__ == "__main__":
         default=argparse.SUPPRESS,
         help="HuggingFace Token. If not provided, assumes that Ollama.",
     )
+    
+    parser.add_argument(
+        "-host",
+        type=str,
+        default="http://0.0.0.0",
+        help="LLM server host.",
+    )
+    
+    parser.add_argument(
+        "-ports", type=str, nargs="+", default=["8000", "8001"], help="2 LLM server ports. One for the generator and critic."
+    )
+    
+    
     parser.add_argument(
         "-g",
         "--generator",
