@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N li_mistral_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=2:00:0
+#$ -l h_rt=0:30:0
 # Memory
 #$ -l mem=32G
 #$ -l gpu=1
@@ -40,5 +40,5 @@ poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
 -vllm $MODEL \
--port $PORT \
--stop '[INST]' '[/INST]'
+-port $PORT
+# -stop '[INST]' '[/INST]'

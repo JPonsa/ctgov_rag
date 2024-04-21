@@ -40,5 +40,5 @@ poetry run python ./src/txt2sql/txt2sql_dspy_test.py -user $AACT_USER -pwd $AACT
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
 -vllm $MODEL \
--port $PORT \
--stop '\n' ''
+-port $PORT
+# -stop '\n' ''

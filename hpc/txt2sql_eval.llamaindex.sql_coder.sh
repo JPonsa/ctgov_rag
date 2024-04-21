@@ -32,5 +32,5 @@ poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd
 -triplets  ./src/txt2sql/txt2_sql_eval_triplets.tsv \
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
--vllm defog/sqlcoder-7b-2 \
--stop '' ''
+-vllm defog/sqlcoder-7b-2
+# -stop '' ''

@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #$ -N dspy_mistral_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=2:00:0
+#$ -l h_rt=4:00:0
 # Memory
-#$ -l mem=32G
+#$ -l mem=48G
 #$ -l gpu=1
 
 
@@ -40,5 +40,5 @@ poetry run python ./src/txt2sql/txt2sql_dspy_test.py -user $AACT_USER -pwd $AACT
 -output_dir ./results/txt2sql/ \
 -hf $HF_TOKEN \
 -vllm $MODEL \
--port $PORT \
--stop '[INST]' '[/INST]'
+-port $PORT
+# -stop '[INST]' '[/INST]'
