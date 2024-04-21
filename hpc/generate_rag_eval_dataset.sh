@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ctGov_eval_RAGAS
 # Max run time in H:M:S
-#$ -l h_rt=1:0:0
+#$ -l h_rt=2:0:0
 # Memory
 #$ -l mem=100G
 #$ -l gpu=2
@@ -35,12 +35,12 @@ pip install poetry
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 2000 \
+--max-model-len 3000 \
 --gpu-memory-utilization 0.45 &
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 2000 \
+--max-model-len 3000 \
 --gpu-memory-utilization 0.45 &
 
 echo I am going to sleep
@@ -51,12 +51,12 @@ echo I am awake
 ruse --stdout --time=150 -s \
 poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.meditron.csv \
     -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt \
-    -n 2 -size 2000 \
+    -n 100 -size 2000 \
     -hf $HF_TOKEN \
     -ports 8031 8032 \
     --generator $GENERATOR \
     --critic $CRITIC \
     --embeddings sentence-transformers/all-mpnet-base-v2 \
-    -test_size 10 -s 0.4 -r 0.4 -mc 0.2
+    -test_size 50 -s 0.4 -r 0.4 -mc 0.2
 
 #  --embeddings all-MiniLM-L6-v2 \
