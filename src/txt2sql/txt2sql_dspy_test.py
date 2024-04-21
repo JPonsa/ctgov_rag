@@ -161,14 +161,14 @@ class CheckSqlCommonMistakes(dspy.Signature):
     )
     revised_sql: str = dspy.OutputField(
         prefix="Revised SQL query:",
-        desc="sql query correcting any common mistake",
+        desc="sql query correcting any common mistake. Does not include any comment.",
     )
 
 
 class CheckSqlSchema(dspy.Signature):
     """Take a SQL query and a SQL db schema, produce a revised SQL query."""
 
-    context: str = dspy.InputField(prefix="SQL db schema:")
+    context: str = dspy.InputField(prefix="Schema:", desc="SQL db schema")
     sql_query: str = dspy.InputField(prefix="SQL query:", desc="original sql query")
     revised_sql: str = dspy.OutputField(
         prefix="Revised SQL query:",
@@ -179,15 +179,14 @@ class CheckSqlSchema(dspy.Signature):
 class CheckSqlError(dspy.Signature):
     """Take a SQL query, a SQL schema and the error raised when running it, produce a revised SQL query."""
 
-    db_schema: str = dspy.InputField(prefix="Schema:", desc="SQL DB schema")
+    db_schema: str = dspy.InputField(prefix="Schema:", desc="SQL db schema")
     sql_query: str = dspy.InputField(prefix="SQL query:", desc="original SQL query")
-    error: str = dspy.InputField(
-        desc="Exception through when running  the original SQL query",
-        prefix="Exception: ",
-    )
-    revised_sql = dspy.OutputField(
-        prefix="Revised: ", desc="Revised SQL query that addresses the error"
-    )
+    error: str = dspy.InputField(prefix="Exception:",
+                                 desc="Error through when running the original SQL query",
+                                 )
+    revised_sql = dspy.OutputField(prefix="Revised:",
+                                   desc="Revised SQL query that addresses the error",
+                                   )
 
 
 class QuestionSqlAnswer(dspy.Signature):
@@ -214,6 +213,18 @@ class Txt2SqlAgent(dspy.Module):
         self.sql_db = sql_db
         self.sql_schema = sql_schema
         self.common_mistakes = common_mistakes
+        
+        
+    def _trim_sql_query(query:str)->str:
+        """Takes a SQL query and removes unnecessary element frequently added by the LLM"""
+        # Sometimes the LLM adds comments after the query 
+        # or generates multiple query due to hallucinations
+        query = query.split(";")[0]+";" 
+        
+        # Sometimes the LLM adds the term sql in front of the query
+        # to indicate is generating sql code 
+        query = query.lstrip("sql ").lstrip("SQL ")
+        return query
 
     def forward(self, question: str, n: int = 3, verbose:bool=False) -> str:
         response = {}
@@ -225,22 +236,32 @@ class Txt2SqlAgent(dspy.Module):
             question=question,
         )
         
-        response["sql_query"] = response["txt2sql"].sql_query
+        
+        response["sql_query"] = self._trim_sql_query(response["txt2sql"])
         
         if verbose:
-            print(f"Initial SQL query: {response['sql_query']}")
+            print(f"Initial SQL query: {response['sql_query']}\n")
 
         while attempts < n and sql_output is None:
             try:
                 sql_output = self.sql_db.run_sql(response["sql_query"])[0]
             except Exception as e:
                 
+                # Concert error to text
+                e =  str(e)
+                
+                # If the error message is too long. Trim it, so it doesn't fill
+                # the context window
+                if len(e) > 2_000:
+                    e = "Error: ... "+e[-2_000:]
+                
                 if verbose:
-                    print(str(e))
-
+                    print("Error msg ===========================")
+                    print(e)
+                    print("=====================================")
                 # Review SQL error
                 response["review_error"] = self.review_error(
-                    error=str(e),
+                    error=e,
                     db_schema=self.sql_schema,
                     sql_query=response["sql_query"],
                     )
@@ -248,20 +269,20 @@ class Txt2SqlAgent(dspy.Module):
                 # Review Common mistakes
                 response["review_common_mistakes"] = self.review_common_mistakes(
                     context=self.common_mistakes,
-                    sql_query=response["review_error"].revised_sql,
+                    sql_query=self._trim_sql_query(response["review_error"].revised_sql)
                     )
 
                 # Review Schema
                 response["review_schema"] = self.review_schema(
                     context=self.sql_schema,
-                    sql_query=response["review_common_mistakes"].revised_sql,
+                    sql_query=self._trim_sql_query(response["review_common_mistakes"].revised_sql),
                     )
                 
                 # Final SQL query
-                response["sql_query"] = response["review_schema"].revised_sql
+                response["sql_query"] = self._trim_sql_query(response["review_schema"].revised_sql),
                 
                 if verbose:
-                    print(f"Revised SQL query attempt {attempts}: {response['sql_query']}")
+                    print(f"Revised SQL query attempt {attempts}: {response['sql_query']}\n")
                 
 
                 attempts += 1
@@ -271,8 +292,6 @@ class Txt2SqlAgent(dspy.Module):
             
         
         response["sql_output"] = sql_output
-
-        print(type(sql_output))
 
         response["final_answer"] = self.question_sql_answer(
             context=sql_output,
@@ -340,7 +359,7 @@ def run_sql_eval(
             )
 
             if verbose:
-                print(f"{q} : {question}")
+                print(f"{q} : {question}\n")
 
             tmp.at[q, "question"] = question.replace("\n", "|")
             tmp.at[q, "gold_std_query"] = sql_query.replace("\n", " ")
@@ -388,7 +407,7 @@ def main(args, verbose: bool = False):
     
     if verbose:
         #dspy_tracing(host="http://0.0.0.0")
-        print("SQL db schema:\n" + sql_schema)
+        print(f"SQL db schema:\n{sql_schema}\n")
 
     if args.hf:
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
@@ -398,9 +417,7 @@ def main(args, verbose: bool = False):
         file_tags.append(args.vllm.split("/")[-1])
         
     elif args.ollama:
-        lm = dspy.OllamaLocal(
-            model=args.ollama, stop=args.stop, max_tokens=1_000, timeout_s=2_000
-        )
+        lm = dspy.OllamaLocal(model=args.ollama, max_tokens=1_000, timeout_s=2_000)
         file_tags.append(args.ollama)
         
     dspy.settings.configure(lm=lm, temperature=0.1)
@@ -467,7 +484,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-port",
         type=int,
-        default=8000,
+        default=8_000,
         help="LLM server port.",
     )
     
@@ -478,9 +495,10 @@ if __name__ == "__main__":
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
     
-    parser.add_argument(
-        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
-    )
+    # TODO: Removed as I don't understand how it works. REVIEW and reimplement
+    # parser.add_argument(
+    #     "-stop", type=str, nargs="+", default=["\n\n", ], help=""
+    # )
 
     parser.set_defaults(hf=None, vllm=None)
 
