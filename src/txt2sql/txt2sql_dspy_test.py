@@ -2,10 +2,12 @@ import argparse
 import os
 import sys
 
+os.environ["DSP_CACHEBOOL"]="False"
 import dspy
 import pandas as pd
 import yaml
 from tqdm import tqdm
+
 
 ####### Add src folder to the system path so it can call utils
 # Get the directory of the current script
