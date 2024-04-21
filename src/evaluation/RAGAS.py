@@ -55,28 +55,7 @@ def set_llms(args):
     # Set the LLM
     if args.hf:  # if HuggingFace token provided
         os.environ["HUGGINGFACEHUB_API_TOKEN"] = args.hf
-        from langchain_community.llms import VLLM, VLLMOpenAI
-        
-        # generator_llm = VLLM(model=args.generator,
-        #                     trust_remote_code=True,  # mandatory for hf models
-        #                     max_new_tokens=128,
-        #                     top_k=10,
-        #                     top_p=0.95,
-        #                     temperature=0.8,
-        #                     dtype="half",
-        #                     enforce_eager=True,
-        #                     )
-        
-        # TODO: I keep running out of memory when setting 2 llms.
-        # critic_llm = VLLM(model=args.critic,
-        #                     trust_remote_code=True,  # mandatory for hf models
-        #                     max_new_tokens=128,
-        #                     top_k=10,
-        #                     top_p=0.95,
-        #                     temperature=0.8,
-        #                     dtype="half",
-        #                     enforce_eager=True,
-        #                     )
+        from langchain_community.llms import VLLMOpenAI
         
         generator_llm = VLLMOpenAI(
             openai_api_key="EMPTY",
