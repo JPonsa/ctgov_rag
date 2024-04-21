@@ -35,12 +35,12 @@ pip install poetry
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 3000 \
+--max-model-len 2000 \
 --gpu-memory-utilization 0.45 &
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 3000 \
+--max-model-len 2200 \
 --gpu-memory-utilization 0.45 &
 
 echo I am going to sleep
