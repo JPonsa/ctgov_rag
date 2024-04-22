@@ -25,26 +25,25 @@ MONGODB_PWD=${MONGODB_PWD//$'\r'}
 LS_KEY=${LANGCHAIN_API_KEY//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
-GENERATOR=TheBloke/meditron-7B-GPTQ
-#CRITIC=TheBloke/Llama-2-13B-GPTQ
-CRITIC=TheBloke/meditron-7B-GPTQ
+#GENERATOR=TheBloke/meditron-7B-GPTQ
+GENERATOR=TheBloke/Llama-2-13B-GPTQ
+CRITIC=TheBloke/Llama-2-13B-GPTQ
+#CRITIC=TheBloke/meditron-7B-GPTQ
 
-
-pip install poetry
 
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 2000 \
 --gpu-memory-utilization 0.45 &
+# --max-model-len 2000 \
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 2200 \
 --gpu-memory-utilization 0.45 &
+# --max-model-len 2200 \
 
 echo I am going to sleep
-sleep 10m # Go to sleep so I vLLM server has time to start.
+sleep 5m # Go to sleep so I vLLM server has time to start.
 # sleep 40m # Time to download
 echo I am awake
 
