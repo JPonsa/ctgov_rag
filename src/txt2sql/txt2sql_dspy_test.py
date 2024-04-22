@@ -337,7 +337,7 @@ def run_sql_eval(
         "gold_std_query",
         "gold_std_output",
         "llm_query",
-        "llm_output"
+        "llm_output",
         "llm_answer",
     ]
     sql_eval_rows = list(sql_queries_templates.keys())
