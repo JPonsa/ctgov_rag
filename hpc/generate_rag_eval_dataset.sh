@@ -3,8 +3,8 @@
 # Max run time in H:M:S
 #$ -l h_rt=2:0:0
 # Memory
-#$ -l mem=100G
-#$ -l gpu=2
+#$ -l mem=50G
+#$ -l gpu=4
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
@@ -34,13 +34,12 @@ CRITIC=TheBloke/Llama-2-13B-GPTQ
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
 --quantization gptq \
---gpu-memory-utilization 0.45 &
-# --max-model-len 2000 \
+--gpu-memory-utilization 0.40 &
+
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
 --quantization gptq \
---gpu-memory-utilization 0.45 &
-# --max-model-len 2200 \
+--gpu-memory-utilization 0.40 &
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
