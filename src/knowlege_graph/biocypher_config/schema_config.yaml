@@ -159,42 +159,42 @@ organ system:
         name: str
         biobert_emb: float[]
 
-study to condition:
+clinicalTrial to condition:
     is_a: association
     represented_as: edge
     input_label: study_has_condition
     source: study
     target: condition
 
-condition to study:
+condition to clinicalTrial:
     is_a: association
     represented_as: edge
     input_label: condition_has_study
     source: condition
     target: study
 
-study to organisation:
+clinicalTrial to organisation:
     is_a: association
     represented_as: edge
     input_label: study_has_orgnisation
     source: study
     target: organisation
 
-organisation to study:
+organisation to clinicalTrial:
     is_a: association
     represented_as: edge
     input_label: conducts
     source: organisation
     target: study
 
-study to intervention association:
+clinicalTrial to intervention association:
     is_a: association
     represented_as: edge
     input_label: study_has_intervention
     source: study
     target: intervention
 
-intervention to study association:
+intervention to clinicalTrial association:
     is_a: association
     represented_as: edge
     input_label: intervention_has_study
@@ -208,77 +208,77 @@ intervention to arm group association:
     source: intervention
     target: arm_group
 
-study to outcome association:
+clinicalTrial to outcome association:
     is_a: association
     represented_as: edge
     input_label: study_has_outcome
     source: study
     target: outcome
 
-study to location association:
+clinicalTrial to location association:
     is_a: association
     represented_as: edge
     input_label: conducted_at
     source: study
     target: location
 
-study to sponsor association:
+clinicalTrial to sponsor association:
     is_a: association
     represented_as: edge
     input_label: study_has_sponsor
     source: study
     target: sponsor
 
-sponsor to study association:
+sponsor to clinicalTrial association:
     is_a: association
     represented_as: edge
     input_label: sponsors
     source: sponsor
     target: study
 
-study to arm group association:
+clinicalTrial to arm group association:
     is_a: association
     represented_as: edge
     input_label: study_has_arm_group
     source: study
     target: arm_group
 
-study to eligibility association:
+clinicalTrial to eligibility association:
     is_a: association
     represented_as: edge
     input_label: study_has_eligibility
     source: study
     target: eligibility
 
-study to biospec association:
+clinicalTrial to biospec association:
     is_a: association
     represented_as: edge
     input_label: study_has_biospec
     source: study
     target: eligibility
 
-study to intervention protocol association:
+clinicalTrial to intervention protocol association:
     is_a: association
     represented_as: edge
     input_label: follows_intervention_protocol
     source: study
     target: intervention_protocol
 
-study to observation protocol association:
+clinicalTrial to observation protocol association:
     is_a: association
     represented_as: edge
     input_label: follows_observation_protocol
     source: study
     target: observation_protocol
 
-study to adverse event protocol association:
+clinicalTrial to adverse event protocol association:
     is_a: association
     represented_as: edge
     input_label: follows_adverse_event_protocol
     source: study
     target: adverse_event_protocol
 
-study to adverse event association:
+clinicalTrial to adverse event association:
     is_a: association
     represented_as: edge
     input_label: study_has_adverse_event
@@ -291,7 +291,7 @@ study to adverse event association:
         notes: str
         stats: str
 
-adverse event to study association:
+adverse event to clinicalTrial association:
     is_a: association
     represented_as: edge
     input_label: adverse_event_has_study
@@ -322,21 +322,21 @@ adverse event to adverse event group association:
         num_affected: int
         num_at_risk: int
 
-study to adverse event group association:
+clinicalTrial to adverse event group association:
     is_a: association
     represented_as: edge
     input_label: study_has_adverse_event_group
     source: study
     target: adverse_event_group
 
-study to adverse event group protocol association:
+clinicalTrial to adverse event group protocol association:
     is_a: association
     represented_as: edge
     input_label: follows_adverse_event_group_protocol
     source: study
     target: adverse_event_group_protocol
 
-study to outcome_measure  association:
+clinicalTrial to outcome_measure  association:
     is_a: association
     represented_as: edge
     input_label: study_has_outcome_measure
