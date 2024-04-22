@@ -378,27 +378,27 @@ class ctGovAdapter:
                     }
                 )
 
-                # study to org edges
-                self._study_to_organisation_edges.append(
-                    (
-                        None,
-                        nct_id,
-                        _check_str_format(name),
-                        "study_has_orgnisation",
-                        {},
-                    )
+            # study to org edges
+            self._study_to_organisation_edges.append(
+                (
+                    None,
+                    nct_id,
+                    _check_str_format(name),
+                    "study_has_orgnisation",
+                    {},
                 )
+            )
 
-                # org to study  edges
-                self._organisation_to_study_edges.append(
-                    (
-                        None,
-                        _check_str_format(name),
-                        nct_id,
-                        "conducts",
-                        {},
-                    )
+            # org to study  edges
+            self._organisation_to_study_edges.append(
+                (
+                    None,
+                    _check_str_format(name),
+                    nct_id,
+                    "conducts",
+                    {},
                 )
+            )
 
         # sponsor
         if ctGovAdapterNodeType.SPONSOR in self.node_types:
@@ -419,27 +419,27 @@ class ctGovAdapter:
                     }
                 )
 
-                # study to sponsor edges
-                self._study_to_sponsor_edges.append(
-                    (
-                        None,
-                        nct_id,
-                        _check_str_format(name),
-                        "study_has_sponsor",
-                        {},
-                    )
+            # study to sponsor edges
+            self._study_to_sponsor_edges.append(
+                (
+                    None,
+                    nct_id,
+                    _check_str_format(name),
+                    "study_has_sponsor",
+                    {},
                 )
+            )
 
-                # sponsor to study edges
-                self._sponsor_to_study_edges.append(
-                    (
-                        None,
-                        _check_str_format(name),
-                        nct_id,
-                        "sponsors",
-                        {},
-                    )
+            # sponsor to study edges
+            self._sponsor_to_study_edges.append(
+                (
+                    None,
+                    _check_str_format(name),
+                    nct_id,
+                    "sponsors",
+                    {},
                 )
+            )
 
         # outcomes
         if ctGovAdapterNodeType.OUTCOME in self.node_types:
@@ -495,10 +495,10 @@ class ctGovAdapter:
                             }
                         )
 
-                        # study to arm group edge
-                        self._study_to_arm_group_edges.append(
-                            (None, nct_id, id, "study_has_arm_group", {})
-                        )
+                    # study to arm group edge
+                    self._study_to_arm_group_edges.append(
+                        (None, nct_id, id, "study_has_arm_group", {})
+                    )
 
         # intervention
         if ctGovAdapterNodeType.INTERVENTION in self.node_types:
@@ -592,27 +592,27 @@ class ctGovAdapter:
                             }
                         )
 
-                        # study to condition edges
-                        self._study_to_condition_edges.append(
-                            (
-                                None,
-                                nct_id,
-                                mesh_id,
-                                "study_has_condition",
-                                {},
-                            )
+                    # study to condition edges
+                    self._study_to_condition_edges.append(
+                        (
+                            None,
+                            nct_id,
+                            mesh_id,
+                            "study_has_condition",
+                            {},
                         )
+                    )
 
-                        # condition to study edges
-                        self._condition_to_study_edges.append(
-                            (
-                                None,
-                                mesh_id,
-                                nct_id,
-                                "condition_has_study",
-                                {},
-                            )
+                    # condition to study edges
+                    self._condition_to_study_edges.append(
+                        (
+                            None,
+                            mesh_id,
+                            nct_id,
+                            "condition_has_study",
+                            {},
                         )
+                    )
 
         # locations
         if ctGovAdapterNodeType.LOCATION in self.node_types:
@@ -712,19 +712,19 @@ class ctGovAdapter:
                             id: {
                                 "retention": retention or "N/A",
                                 "description": description.capitalize() or "N/A",
-                            },
+                            },  
                         }
                     )
 
-                    self._study_to_biospec_edges.append(
-                        (
-                            None,
-                            nct_id,
-                            id,
-                            "study_has_biospec",
-                            {"retention": retention},
-                        )
+                self._study_to_biospec_edges.append(
+                    (
+                        None,
+                        nct_id,
+                        id,
+                        "study_has_biospec",
+                        {"retention": retention},
                     )
+                )
 
         # intervention protocol
         if ctGovAdapterNodeType.INTERVENTION_PROTOCOL in self.node_types:
