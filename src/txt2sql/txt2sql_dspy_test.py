@@ -18,7 +18,8 @@ parent_dir = os.path.dirname(script_dir)
 sys.path.append(parent_dir)
 
 from utils.sql_wrapper import SQLDatabase
-from utils.utils import dspy_tracing
+from utils.utils import dspy_tracing, print_red
+
 
 # AACT Connection parameters
 DATABASE = "aact"
@@ -190,7 +191,6 @@ class CheckSqlError(dspy.Signature):
                                    desc="Revised SQL query that addresses the error",
                                    )
 
-
 class QuestionSqlAnswer(dspy.Signature):
     """Take an input question and the result of a SQL query that could provide useful information regarding the question, produce an answer."""
 
@@ -203,6 +203,12 @@ class QuestionSqlAnswer(dspy.Signature):
 
 
 class Txt2SqlAgent(dspy.Module):
+    
+     # Assumption that any model will have a limited context window. 
+    CHAR_PER_TOKEN = 4
+    MAX_TOKEN_PIECE_INFORMATION = 2_000
+    MAX_CHAR_PIECE_INFORMATION = MAX_TOKEN_PIECE_INFORMATION*CHAR_PER_TOKEN
+    
     def __init__(
         self, sql_db: SQLDatabase, sql_schema: str, common_mistakes: str
     ) -> None:
@@ -226,6 +232,13 @@ class Txt2SqlAgent(dspy.Module):
         # Sometimes the LLM adds the term sql in front of the query
         # to indicate is generating sql code 
         query = query.replace("sql ", "", 1).replace("SQL ", "", 1)
+        
+        if len(query) > self.MAX_CHAR_PIECE_INFORMATION:
+            print_red("Error: Query too long ==============")
+            print(query)
+            print_red("====================================")
+            query = query[:self.MAX_CHAR_PIECE_INFORMATION]
+        
         return query
 
     def forward(self, question: str, n: int = 3, verbose:bool=False) -> str:
@@ -253,13 +266,13 @@ class Txt2SqlAgent(dspy.Module):
                 
                 # If the error message is too long. Trim it, so it doesn't fill
                 # the context window
-                if len(e) > 8_000:
-                    e = "Error: ... "+e[-8_000:]
+                if len(e) > self.MAX_CHAR_PIECE_INFORMATION:
+                    e = "Error: ... "+e[:-self.MAX_TOKEN_PIECE_INFORMATION]
                 
                 if verbose:
-                    print("Error msg ===========================")
+                    print_red("Error msg ===========================")
                     print(e)
-                    print("=====================================")
+                    print_red("=====================================")
                 # Review SQL error
                 response["review_error"] = self.review_error(
                     error=e,
@@ -285,23 +298,26 @@ class Txt2SqlAgent(dspy.Module):
                 if verbose:
                     print(f"Revised SQL query attempt {attempts}: {response['sql_query']}\n")
                 
-
                 attempts += 1
 
         if not sql_output:
             sql_output = "Information not found."
             
-        
         response["sql_output"] = sql_output
         
-        if len(response["sql_output"])> 8_000:
+        if len(response["sql_output"])> self.MAX_CHAR_PIECE_INFORMATION:
+            print_red("Error: SQL output too long =========")
             print(response["sql_output"])
-            response["sql_output"] = response["sql_output"][:8_000]
+            print_red("====================================")
+            response["sql_output"] = response["sql_output"][:self.MAX_CHAR_PIECE_INFORMATION]
 
-        response["final_answer"] = self.question_sql_answer(
-            context=response["sql_output"],
-            question=question,
-            )
+        try:
+            response["final_answer"] = self.question_sql_answer(
+                context=response["sql_output"],
+                question=question,
+                )
+        except Exception as e:
+            response["final_answer"] = str(e)
         return response
 
 
