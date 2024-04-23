@@ -12,20 +12,26 @@ from opentelemetry.sdk import trace as trace_sdk
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from sentence_transformers import SentenceTransformer
 
-######### Tracking
-phoenix.launch_app(host="localhost", port=6006)
-tracer_provider = trace_sdk.TracerProvider()
-tracer_provider.add_span_processor(
-    SimpleSpanProcessor(
-        span_exporter=OTLPSpanExporter(endpoint="http://localhost:6006/v1/traces")
-    )
-)
-trace_api.set_tracer_provider(tracer_provider=tracer_provider)
-DSPyInstrumentor().instrument()
-####################
+
+####### Add src folder to the system path so it can call utils
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the parent directory of the current script
+parent_dir = os.path.dirname(script_dir)
+# Add the parent directory to sys.path
+sys.path.append(parent_dir)
+
+from utils.sql_wrapper import SQLDatabase
+from utils.utils import dspy_tracing, print_red
+
+dspy_tracing()
+
+MODEL="mistralai/Mistral-7B-Instruct-v0.2"
+PORT=8042
+HOST="http://0.0.0.0"
 
 # TODO: Remove credentials
-os.environ["NEO4J_URI"] = "bolt://localhost:7687"
+os.environ["NEO4J_URI"] = "bolt://0.0.0.0:7687"
 os.environ["NEO4J_USERNAME"] = "neo4j"
 os.environ["NEO4J_PASSWORD"] = "password"
 os.environ["NEO4J_DATABASE"] = "ctgov"
@@ -100,7 +106,10 @@ def get_sql_engine():
     HOST = "aact-db.ctti-clinicaltrials.org"
     PORT = 5432
 
-    sql_lm = Ollama(model="sqlcoder", temperature=0.0, request_timeout=100)
+    # sql_lm = Ollama(model="sqlcoder", temperature=0.0, request_timeout=100)
+    
+    from llama_index.llms.openai_like import OpenAILike
+    sql_lm = OpenAILike(model=MODEL, api_base=f"{HOST}:{PORT}/v1/", api_key="fake", temperature=0, max_tokens=1_000)  
     Settings.llm = sql_lm
     Settings.embed_model = "local"
 
@@ -125,12 +134,21 @@ def get_cypher_engine():
     user = os.getenv("NEO4J_USER")
     pwd = os.getenv("NEO4J_PWD")
 
-    cypher_lm = Ollama(
-        model="mistral",
-    )
+    # cypher_lm = Ollama(
+    #     model="mistral",
+    # )
+
+    from langchain_community.llms import VLLMOpenAI
+    
+    cypher_lm = VLLMOpenAI(
+        openai_api_key="EMPTY",
+        openai_api_base=f"{HOST}:{PORT}/v1/",
+        model_name=MODEL,
+        # model_kwargs={"stop": ["."]},
+        )
 
     graph = Neo4jGraph(
-        url="bolt://localhost:7687",
+        url=os.getenv("NEO4J_URI"),
         username=user,
         password=pwd,
         database="ctgov",
@@ -434,14 +452,17 @@ if __name__ == "__main__":
     ]
     react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=3)
 
-    lm = dspy.OllamaLocal(
-        model="mistral",
-        # stop=["[INST]", "[/INST]"],
-        stop=["\n", "\n\n"],
-        max_tokens=500,
-        timeout_s=2_000,
-    )
-    dspy.settings.configure(lm=lm)
+    # lm = dspy.OllamaLocal(
+    #     model="mistral",
+    #     # stop=["[INST]", "[/INST]"],
+    #     stop=["\n", "\n\n"],
+    #     max_tokens=500,
+    #     timeout_s=2_000,
+    # )
+    
+    lm = dspy.HFClientVLLM(model=MODEL, port=PORT, url=HOST, max_tokens=1_000, timeout_s=2_000)
+    
+    dspy.settings.configure(lm=lm, temperature=0.1)
 
     questions = [
         "What are the adverse events associated with drug Acetaminophen?",
