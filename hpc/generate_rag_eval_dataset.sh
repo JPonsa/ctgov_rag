@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N ctGov_eval_RAGAS
+#$ -N RAGAS_llama2
 # Max run time in H:M:S
 #$ -l h_rt=2:0:0
 # Memory
@@ -26,9 +26,11 @@ LS_KEY=${LANGCHAIN_API_KEY//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
 #GENERATOR=TheBloke/meditron-7B-GPTQ
+#CRITIC=TheBloke/meditron-7B-GPTQ
 GENERATOR=TheBloke/Llama-2-13B-GPTQ
 CRITIC=TheBloke/Llama-2-13B-GPTQ
-#CRITIC=TheBloke/meditron-7B-GPTQ
+# GENERATOR=meta-llama/Meta-Llama-3-8B-Instruct
+# CRITIC=meta-llama/Meta-Llama-3-8B-Instruct
 
 
 pip install poetry
@@ -36,10 +38,10 @@ poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --por
 --quantization gptq \
 --gpu-memory-utilization 0.40 &
 
-
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
 --quantization gptq \
 --gpu-memory-utilization 0.40 &
+
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
@@ -47,7 +49,7 @@ sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
 ruse --stdout --time=150 -s \
-poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.meditron.csv \
+poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.llama2_13b.csv \
     -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt \
     -n 100 -size 2000 \
     -hf $HF_TOKEN \
