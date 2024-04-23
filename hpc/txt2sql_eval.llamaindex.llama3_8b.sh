@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #$ -N li_llama3_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=3:00:0
+#$ -l h_rt=5:00:0
 # Memory
-#$ -l mem=32G
+#$ -l mem=1G
 #$ -l gpu=1
 
 
@@ -41,4 +41,4 @@ poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd
 -hf $HF_TOKEN \
 -vllm $MODEL \
 -port $PORT \
--stop '[INST]' '[/INST]'
+-stop '' ''

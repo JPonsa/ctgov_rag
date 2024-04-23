@@ -36,11 +36,15 @@ CRITIC=TheBloke/Llama-2-13B-GPTQ
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
 --quantization gptq \
---gpu-memory-utilization 0.40 &
+--max-model-len 5000 \
+----tensor-parallel-size 4 \
+--gpu-memory-utilization 0.45 &
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
 --quantization gptq \
---gpu-memory-utilization 0.40 &
+--max-model-len 5000 \
+----tensor-parallel-size 4 \
+--gpu-memory-utilization 0.45 &
 
 
 echo I am going to sleep

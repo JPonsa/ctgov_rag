@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #$ -N dspy_mixtral8x7b_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=2:00:0
+#$ -l h_rt=5:00:0
 # Memory
-#$ -l mem=100G
+#$ -l mem=1G
 #$ -l gpu=2
 
 
@@ -32,6 +32,7 @@ pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
 --max-model-len 5000 \
+--tensor-parallel-size 2 \
 --gpu-memory-utilization 0.80 &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
