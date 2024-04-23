@@ -32,6 +32,7 @@ pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
 --max-model-len 4000 \
+--tensor-parallel-size 2 \
 --gpu-memory-utilization 0.80 &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
