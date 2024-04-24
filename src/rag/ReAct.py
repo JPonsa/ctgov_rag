@@ -27,8 +27,8 @@ HOST="http://0.0.0.0"
 
 # TODO: Remove credentials
 # Neo4j credentials
-#os.environ["NEO4J_URI"] = "bolt://127.0.0.1:7687"
-os.environ["NEO4J_URI"] = "bolt://0.0.0.0:7687"
+os.environ["NEO4J_URI"] = "bolt://127.0.0.1:7687"
+#os.environ["NEO4J_URI"] = "bolt://0.0.0.0:7687"
 os.environ["NEO4J_USERNAME"] = "neo4j"
 os.environ["NEO4J_PASSWORD"] = "password"
 os.environ["NEO4J_DATABASE"] = "ctgov"
