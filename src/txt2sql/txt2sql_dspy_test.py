@@ -18,7 +18,7 @@ parent_dir = os.path.dirname(script_dir)
 sys.path.append(parent_dir)
 
 from utils.sql_wrapper import SQLDatabase
-from utils.utils import dspy_tracing, print_red
+from utils.utils import dspy_tracing, print_red, print_green
 
 
 # AACT Connection parameters
@@ -456,6 +456,8 @@ def main(args, verbose: bool = False):
         f"{args.output_dir}{'.'.join(file_tags)}.eval.tsv",
         sep="\t",
     )
+    
+    print_green(f"txt2sql.{'.'.join(file_tags)} completed !")
 
 
 if __name__ == "__main__":

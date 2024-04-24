@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import pandas as pd
 import yaml
@@ -10,6 +11,17 @@ from llama_index.core.query_engine import NLSQLTableQueryEngine
 from requests.exceptions import ReadTimeout, Timeout
 from sqlalchemy import create_engine
 from tqdm import tqdm
+
+####### Add src folder to the system path so it can call utils
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the parent directory of the current script
+parent_dir = os.path.dirname(script_dir)
+# Add the parent directory to sys.path
+sys.path.append(parent_dir)
+
+from utils.utils import print_green
+
 
 AACT_TABLES = [
     "browse_interventions",
@@ -237,7 +249,7 @@ def main(args, verbose: bool = False):
         sep="\t",
     )
 
-    print("Testing LLamaindex txt2sql completed !")
+    print_green(f"txt2sql.{'.'.join(file_tags)} completed !")
 
 if __name__ == "__main__":
 
