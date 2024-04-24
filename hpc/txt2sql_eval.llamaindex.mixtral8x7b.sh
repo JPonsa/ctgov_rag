@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #$ -N li_mixtral_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=5:0:0
+#$ -l h_rt=12:0:0
 # Memory
-#$ -l mem=1G
+#$ -l mem=32G
 #$ -l gpu=2
 
 
