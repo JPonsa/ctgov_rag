@@ -48,9 +48,10 @@ class CtGovStudyQuestioner:
     # Total number of questions
     N = 25
 
-    GENERIC_QUESTIONS_IDX = [1, 2, 3, 4, 5, 8, 9, 10, 11, 24]
-    INTERVENTIONAL_STUDIES_QUESTIONS_IDX = [6, 7, 15, 16, 17, 18]
+    GENERIC_QUESTIONS_IDX = [1, 2, 3, 4, 5, 9, 10, 11, 24]
+    INTERVENTIONAL_STUDIES_QUESTIONS_IDX = [6, 7, 13, 15, 16, 17, 18]
     OBSERVATIONAL_STUDIES_QUESTIONS_IDX = [19, 20, 21, 22]
+    MISSING_QUESTIODS_IDX= [8, 12, 14]
 
     KEY_ENTITIES = {
         "nctId": "protocolSection.identificationModule.nctId",
@@ -175,7 +176,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"Is study {nctId} and interventional or observational study? [INTERVENTIONAL, OBSERVATIONAL]",
+            f"Is study {nctId} and interventional or observational study? Select from [INTERVENTIONAL, OBSERVATIONAL, NA]",
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -217,7 +218,7 @@ class CtGovStudyQuestioner:
 
         # Question
         questions = [
-            f"Is {condition[0]} studied in study {nctId}? [TRUE, FALSE]",
+            f"Is {condition[0]} studied in study {nctId}? Select from [TRUE, FALSE, NA]",
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -254,7 +255,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            "In what phase is study {nctId}? Select one :[NA - Not Applicable, EARLY_PHASE1 - Early Phase 1, PHASE1 - Phase 1, PHASE2 - Phase 2, PHASE3 - Phase 3,  PHASE4 - Phase 4]",
+            "In what phase is study {nctId}? Select from [Early Phase 1, Phase 1, Phase 2, Phase 3, Phase 4, NA]",
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -263,12 +264,12 @@ class CtGovStudyQuestioner:
         # Answer
         phases_key = "protocolSection.designModule.phases"
         phases_dict = {
-            "NA": "NA - Not Applicable",
-            "EARLY_PHASE1": "EARLY_PHASE1 - Early Phase 1",
-            "PHASE1": "PHASE1 - Phase 1",
-            "PHASE2": "PHASE2 - Phase 2",
-            "PHASE3": "PHASE3 - Phase 3",
-            "PHASE4": "PHASE4 - Phase 4",
+            "NA": "NA - NA",
+            "EARLY_PHASE1": "Early Phase 1",
+            "PHASE1": "Phase 1",
+            "PHASE2": "Phase 2",
+            "PHASE3": "Phase 3",
+            "PHASE4": "Phase 4",
         }
         answer = get_recursive(study, phases_key) or "NA"
         answer = [phases_dict[x] for x in answer]
@@ -336,7 +337,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"What is what is the min. and max. age range in study {nctId}?. Example Age Range: [18 - 55]",
+            f"What is what is the min. and max. age range in study {nctId}?. Example: Age Range: [18 - 55]",
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -408,7 +409,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"What is the purpose of study {nctId}?\na) Treatment\nb) Prevention\nc) Diagnostic\nd) Educational/Counseling/Training\ne) Supportive Care\nf) Screening\ng) Health Services Research\nh) Basic Science\ni) Device Feasibility\nj) Other"
+            f"What is the purpose of study {nctId}? Select one from [Treatment, Prevention, Diagnostic, Educational/Counseling/Training, Supportive Care, Screening, Health Services Research, Basic Science, Device Feasibility, Other, NA]"
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -440,7 +441,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"What intervention types are used in study {nctId}? [BEHAVIORAL, BIOLOGICAL, COMBINATION_PRODUCT, DEVICE, DIAGNOSTIC_TEST, DIETARY_SUPPLEMENT, DRUG, GENETIC, PROCEDURE, RADIATION, OTHER]",
+            f"What intervention types are used in study {nctId}? Select one from [BEHAVIORAL, BIOLOGICAL, COMBINATION_PRODUCT, DEVICE, DIAGNOSTIC_TEST, DIETARY_SUPPLEMENT, DRUG, GENETIC, PROCEDURE, RADIATION, OTHER, NA]",
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -458,7 +459,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"Are there any blinding procedures implemented in study {nctId}? If so, describe them.",
+            # f"Are there any blinding procedures implemented in study {nctId}? If so, describe them.",
             f"Is blinding (a.k.a. masking) implemented in study {nctId}? If so, select relevant from [PARTICIPANT, CARE_PROVIDER, INVESTIGATOR, OUTCOMES_ASSESSOR, NA]",
         ]
         question = np.random.choice(questions, 1)
@@ -494,7 +495,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"Does study {nctId} uses a patient registry? [TRUE, FALSE, NA]",
+            f"Does study {nctId} uses a patient registry? Select from [TRUE, FALSE, NA]",
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -733,7 +734,7 @@ if __name__ == "__main__":
 
     client = connect_to_mongoDB(MONGODB_USER, MONGODB_PWD)
     db = client["ctGov"]
-    collection = db["preprocessed"]
+    collection = db["trialgpt"]
     studies = collection.find({})
 
     # Generate dataset
