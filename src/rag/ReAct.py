@@ -3,14 +3,8 @@ import os
 import sys
 
 import dspy
-import phoenix
 from dspy.retrieve.neo4j_rm import Neo4jRM
 from neo4j import GraphDatabase
-from openinference.instrumentation.dspy import DSPyInstrumentor
-from opentelemetry import trace as trace_api
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk import trace as trace_sdk
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from sentence_transformers import SentenceTransformer
 
 
@@ -32,15 +26,18 @@ PORT=8042
 HOST="http://0.0.0.0"
 
 # TODO: Remove credentials
+# Neo4j credentials
+#os.environ["NEO4J_URI"] = "bolt://127.0.0.1:7687"
 os.environ["NEO4J_URI"] = "bolt://0.0.0.0:7687"
 os.environ["NEO4J_USERNAME"] = "neo4j"
 os.environ["NEO4J_PASSWORD"] = "password"
 os.environ["NEO4J_DATABASE"] = "ctgov"
 
+# AACT credentials
 os.environ["AACT_USER"] = "jponsa"
 os.environ["AACT_PWD"] = "aact.ctti-clinicaltrials.org"
 
-
+# Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
 
@@ -81,10 +78,9 @@ def fromToCtTo_query(
     return cmd
 
 
-def get_sql_engine():
+def get_sql_engine(model:str, model_host:str, model_port:int):
     from llama_index.core import Settings, SQLDatabase
     from llama_index.core.query_engine import NLSQLTableQueryEngine
-    from llama_index.llms.ollama import Ollama
     from sqlalchemy import create_engine
 
     TABLES = [
@@ -103,48 +99,41 @@ def get_sql_engine():
         "countries",
     ]
 
-    DATABASE = "aact"
-    HOST = "aact-db.ctti-clinicaltrials.org"
-    PORT = 5432
-
-    # sql_lm = Ollama(model="sqlcoder", temperature=0.0, request_timeout=100)
-    
     from llama_index.llms.openai_like import OpenAILike
-    sql_lm = OpenAILike(model=MODEL, api_base=f"{HOST}:{PORT}/v1/", api_key="fake", temperature=0, max_tokens=1_000)  
+    sql_lm = OpenAILike(model=model, api_base=f"{model_host}:{model_port}/v1/", api_key="fake", temperature=0, max_tokens=1_000)  
     Settings.llm = sql_lm
     Settings.embed_model = "local"
 
     user = os.getenv("AACT_USER")
     pwd = os.getenv("AACT_PWD")
-    uri = f"postgresql+psycopg2://{user}:{pwd}@{HOST}:{PORT}/{DATABASE}"
+    # TODO: Review if this it the right way to hardcode this.
+    AACT_DATABASE = "aact"
+    AACT_HOST = "aact-db.ctti-clinicaltrials.org"
+    AACT_PORT = 5432
+    
+    uri = f"postgresql+psycopg2://{user}:{pwd}@{AACT_HOST}:{AACT_PORT}/{AACT_DATABASE}"
     db_engine = create_engine(uri)
     sql_db = SQLDatabase(db_engine, include_tables=TABLES)
     query_engine = NLSQLTableQueryEngine(sql_database=sql_db)
     return query_engine
 
 
-def get_cypher_engine():
+def get_cypher_engine(model:str, model_host:str, model_port:int):
     from langchain.chains import GraphCypherQAChain
 
     # TODO: Remove unnecessary import
     # from langchain.graphs import Neo4jGraph
     from langchain_community.graphs import Neo4jGraph
-    from langchain_community.llms import Ollama
-
-    # TODO : Remove credentials
+    
     user = os.getenv("NEO4J_USER")
     pwd = os.getenv("NEO4J_PWD")
-
-    # cypher_lm = Ollama(
-    #     model="mistral",
-    # )
 
     from langchain_community.llms import VLLMOpenAI
     
     cypher_lm = VLLMOpenAI(
         openai_api_key="EMPTY",
-        openai_api_base=f"{HOST}:{PORT}/v1/",
-        model_name=MODEL,
+        openai_api_base=f"{model_host}:{model_port}/v1/",
+        model_name=model,
         # model_kwargs={"stop": ["."]},
         )
 
@@ -401,13 +390,13 @@ class MedicalSME(dspy.Module):
     input_variable = "question"
     desc = ""
 
-    def __init__(self):
-        self.SME = dspy.ChainOfThought(BasicQA)
-        self.meditron = dspy.OllamaLocal("meditron", model_type="text")
+    def __init__(self, model:str, host:str, port:int):
+        self.SME = dspy.ChainOfThought(BasicQA)    
+        self.lm = dspy.HFClientVLLM(model=model, port=port, url=host, max_tokens=1_000, timeout_s=2_000)
 
     def __call__(self, question) -> str:
-        with dspy.context(lm=self.meditron):
-            response = self.SME(question).answer
+        with dspy.context(lm=self.lm, temperature=0.7):
+            response = self.lm(question).answer
         return response
 
 
@@ -416,21 +405,31 @@ class AnalyticalQuery(dspy.Module):
     input_variable = "question"
     desc = "Access to a db of clinical trials. Reply question that could be answered with a SQL query. Use when other tools are not suitable."
 
-    def __init__(self):
-        sql_engine = get_sql_engine()
-        cypher_engine = get_cypher_engine()
+    def __init__(self, sql:bool=True, kg:bool=True):
+        sql_engine = get_sql_engine(model=MODEL, model_host=HOST, model_port=PORT)
+        cypher_engine = get_cypher_engine(model=MODEL, model_host=HOST, model_port=PORT)
         response_generator = dspy.Predict(QAwithContext)
+        self.sql = sql
+        self.kg = kg
+        if not (self.sql or self.kg):
+            raise ValueError("Either SQL query or KG query must be enabled by setting it to True.")
 
     def __call__(self, question):
-        try:
-            sql_response = self.sql_engine.query(question)
-        except Exception as e:
-            sql_response = "Sorry, I could not provide an answer."
-
-        try:
-            cypher_response = self.cypher_engine.invoke(question)
-        except Exception as e:
-            cypher_response = "Sorry, I could not provide an answer."
+        
+        sql_response=""
+        cypher_response=""
+        
+        if self.sql:
+            try:
+                sql_response = self.sql_engine.query(question)
+            except Exception as e:
+                sql_response = "Sorry, I could not provide an answer."
+                
+        if self.kg:
+            try:
+                cypher_response = self.cypher_engine.invoke(question)
+            except Exception as e:
+                cypher_response = "Sorry, I could not provide an answer."
 
         response = self.response_generator(
             question=question,
@@ -441,30 +440,55 @@ class AnalyticalQuery(dspy.Module):
         return response
 
 
-if __name__ == "__main__":
-    # Pass signature to ReAct module
-    tools = [
-        InterventionToAdverseEvent(),
-        InterventionToCt(),
-        ConditionToCt(),
-        ConditionToIntervention(),
-        AnalyticalQuery(),
-        ChitChat(),
+def main(questions:list, method:str="all", med_sme:bool=True):
+    
+    KG_tools = [
+    GetClinicalTrial(),
+    ClinicalTrialToEligibility(),
+    InterventionToCt(),
+    InterventionToAdverseEvent(),
+    ConditionToCt(),
+    ConditionToIntervention(),
     ]
-    react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=3)
 
-    # lm = dspy.OllamaLocal(
-    #     model="mistral",
-    #     # stop=["[INST]", "[/INST]"],
-    #     stop=["\n", "\n\n"],
-    #     max_tokens=500,
-    #     timeout_s=2_000,
-    # )
+    tools = [ChitChat()]
+    
+    valid_methods = ["sql-only", "lg-only", "all"]
+    if method not in valid_methods:
+        raise NotImplementedError(f"method={method} not supported. methods must be one of {valid_methods}")
+    
+    if method == "sql-only":
+        tools += [AnalyticalQuery(sql=True, kg=False)]
+    
+    elif method == "kg-only":
+        tools += [AnalyticalQuery(sql=False, kg=True)]
+        tools += KG_tools
+        
+    else:
+        tools += [AnalyticalQuery(sql=True, kg=True)]
+        tools += KG_tools
+        
+    if med_sme:
+        # TODO: Not hardcoded or better set.
+        sme_model = "TheBloke/meditron-7B-GPTQ"
+        sme_host = "http://0.0.0.0"
+        sme_port = 8051
+        tools += [MedicalSME(sme_model, sme_host, sme_port)]
+    
+    react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=3)
     
     lm = dspy.HFClientVLLM(model=MODEL, port=PORT, url=HOST, max_tokens=1_000, timeout_s=2_000)
+    dspy.settings.configure(lm=lm, temperature=0.3)
     
-    dspy.settings.configure(lm=lm, temperature=0.1)
 
+    for question in questions:
+        result = react_module(question=question)
+        print(f"Question: {question}")
+        print(f"Final Predicted Answer (after ReAct process): {result.answer}")
+
+
+if __name__ == "__main__":
+    
     questions = [
         "What are the adverse events associated with drug Acetaminophen?",
         "What intervention is studies in clinical trial NCT00000173?",
@@ -472,7 +496,4 @@ if __name__ == "__main__":
         "Why the sky is blue?",
     ]
 
-    for question in questions:
-        result = react_module(question=question)
-        print(f"Question: {question}")
-        print(f"Final Predicted Answer (after ReAct process): {result.answer}")
+    main(questions, method="all", med_sme=False)
