@@ -32,11 +32,11 @@ load_dotenv(".env")
 class QAwithContext(dspy.Signature):
     """Give a question and a context, produce an answer"""
 
-    question: str = dspy.InputField(prefix="Question")
+    question: str = dspy.InputField(prefix="Question:")
     context: str = dspy.InputField(
         prefix="Context:", desc="May contain useful information to answer the question."
     )
-    answer: str = dspy.OldField(prefix="Answer")
+    answer: str = dspy.OutputField(prefix="Answer:", desc="final response")
 
 
 qa_with_context = dspy.Predict(QAwithContext)
