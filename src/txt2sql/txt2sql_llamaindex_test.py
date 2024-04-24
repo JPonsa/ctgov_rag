@@ -65,7 +65,7 @@ def run_llamaindex_eval(
     triplets: list[list[str]],
     verbose: bool = False,
 ) -> pd.DataFrame:
-    """Takes a SQL query engine and tests a the answering of questions in natural languange
+    """Takes a SQL query engine and tests a the answering of questions in natural language
 
     Parameters
     ----------
