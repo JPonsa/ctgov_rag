@@ -309,8 +309,9 @@ if __name__ == "__main__":
         help="Large Language Model name using Ollama nomenclature. Default: 'mistral'.",
     )
     # TODO: Review, as it is not fully understood
+    # TODO: Find a more appropriate name the "stop" tokens param
     parser.add_argument(
-        "-stop", type=str, nargs="+", default=["INST", "/INST"], help=""
+        "-stop", type=str, nargs="+", default=["[INST]", "[/INST]"], help=""
     )
 
     parser.set_defaults(hf=None, vllm=None)
