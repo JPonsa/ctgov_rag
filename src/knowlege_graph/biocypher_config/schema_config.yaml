@@ -2,6 +2,7 @@ clinical trial:
     represented_as: node
     preferred_id: id
     input_label: study
+    # is_a: missing
     properties:
         brief_title: str
         official_title: str
@@ -17,8 +18,9 @@ clinical trial:
 
 intervention:
     represented_as: node
+    preferred_id: id
     input_label: intervention
-    is_a: clinical intervention
+    # is_a: clinical intervention
     properties:
         name: str
         type: str
@@ -26,22 +28,24 @@ intervention:
         biobert_emb: float[]
 
 organisation:
-    is_a: administrative entity
     represented_as: node
+    preferred_id: id
     input_label: organisation
+    # is_a: administrative entity
     properties:
         name: str
         class: str
 
 sponsor:
-    is_a: administrative entity
     represented_as: node
     input_label: sponsor
+    # is_a: administrative entity
 
 outcome:
-    is_a: clinical entity
     represented_as: node
+    preferred_id: id
     input_label: outcome
+    # is_a: clinical entity
     properties:
         primary: bool
         measure: str
@@ -50,9 +54,10 @@ outcome:
         biobert_emb: float[]
 
 outcome measure:
-    is_a: clinical measurement
     represented_as: node
+    preferred_id: id
     input_label: outcome_measure
+    # is_a: clinical measurement
     properties:
         title: str
         type: str
@@ -60,7 +65,9 @@ outcome measure:
 
 condition:
     represented_as: node
+    preferred_id: id
     input_label: condition
+    # is_a: missing
     synonym_for: disease
     properties:
         name: str
@@ -69,7 +76,9 @@ condition:
 location:
     synonym_for: geographic location
     represented_as: node
+    preferred_id: id
     input_label: location
+    # is_a: missing
     properties:
         facility: str
         country: str
@@ -78,8 +87,9 @@ location:
 
 eligibility:
     represented_as: node
+    preferred_id: id
     input_label: eligibility
-    is_a: study population
+    # is_a: study population
     properties:
         sex: str
         healthy_volunteers: bool
@@ -90,8 +100,9 @@ eligibility:
 
 biospec:
     represented_as: node
+    preferred_id: id
     input_label: biospec
-    is_a: biosample
+    # is_a: biosample
     properties:
         retention: str
         description: str
@@ -99,8 +110,9 @@ biospec:
 
 arm group:
     represented_as: node
+    preferred_id: id
     input_label: arm_group
-    is_a: study population
+    # is_a: study population
     properties:
         label: str
         type: str
@@ -108,8 +120,9 @@ arm group:
 
 intervention protocol:
     represented_as: node
+    preferred_id: id
     input_label: intervention_protocol
-    is_a: publication
+    # is_a: publication
     properties:
         model: str
         description: str
@@ -119,8 +132,9 @@ intervention protocol:
 
 observation protocol:
     represented_as: node
+    preferred_id: id
     input_label: observation_protocol
-    is_a: publication
+    # is_a: publication
     properties:
         model: str
         time_perspective: str
@@ -129,32 +143,36 @@ observation protocol:
 
 adverse event protocol:
     represented_as: node
+    preferred_id: id
     input_label: adverse_event_protocol
-    is_a: publication
+    # is_a: publication
     properties:
         description: str
         timeframe: str
 
 adverse event:
     represented_as: node
+    preferred_id: id
     input_label: adverse_event
-    is_a: adverse_event_of
+    # is_a: adverse_event_of
     properties:
         term: str
         biobert_emb: float[]
 
 adverse event group:
     represented_as: node
+    preferred_id: id
     input_label: adverse_event_group
-    is_a: study population
+    # is_a: study population
     properties:
         title: str
         description: str
 
 organ system:
     represented_as: node
+    preferred_id: id
     input_label: organ_system
-    is_a: named thing
+    # is_a: named thing
     properties:
         name: str
         biobert_emb: float[]
