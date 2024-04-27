@@ -124,10 +124,6 @@ def get_cypher_engine(model:str, model_host:str, model_port:int):
     # TODO: Remove unnecessary import
     # from langchain.graphs import Neo4jGraph
     from langchain_community.graphs import Neo4jGraph
-    
-    user = os.getenv("NEO4J_USER")
-    pwd = os.getenv("NEO4J_PWD")
-
     from langchain_community.llms import VLLMOpenAI
     
     cypher_lm = VLLMOpenAI(
@@ -139,12 +135,12 @@ def get_cypher_engine(model:str, model_host:str, model_port:int):
 
     graph = Neo4jGraph(
         url=os.getenv("NEO4J_URI"),
-        username=user,
-        password=pwd,
+        username=os.getenv("NEO4J_USERNAME"),
+        password=os.getenv("NEO4J_PASSWORD"),
         database="ctgov",
     )
 
-    chain = GraphCypherQAChain.from_llm(cypher_lm, graph=graph, verbose=True)
+    chain = GraphCypherQAChain.from_llm(cypher_lm, graph=graph, verbose=True, validate_cypher=True)
     return chain
 
 
