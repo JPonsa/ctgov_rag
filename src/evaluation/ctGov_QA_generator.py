@@ -320,7 +320,7 @@ class CtGovStudyQuestioner:
         context = get_recursive(study, key1) or get_recursive(study, key2) or "NA"
         # Answer
         # Generate response with LLM
-        answer = qa_with_context(question=question, context=context).answer or "NA"
+        answer = qa_with_context(question=self._output_formatting(question[0]), context=self._output_formatting(context)).answer  or "NA"
         return question, context, answer
 
     # Question 9 - How many patients to be enrolled in clinical trial (a.k.a. study) {nctId}?
@@ -412,7 +412,7 @@ class CtGovStudyQuestioner:
         context = get_recursive(study, key1) or get_recursive(study, key2) or "NA"
         # Answer
 
-        answer = qa_with_context(question=question, context=context).answer or "NA"
+        answer = qa_with_context(question=self._output_formatting(question[0]), context=self._output_formatting(context)).answer or "NA"
         return question, context, answer
 
     # Question 14 - Describe the primary purpose of clinical trial (a.k.a. study) {nctId}
@@ -648,48 +648,51 @@ class CtGovStudyQuestioner:
 
         return question, context, [serious, other]
 
+    def _output_formatting(self, x)->str:
+        """Takes an object formats it to a str"""
+
+        if isinstance(x, int) or isinstance(x, bool):
+            x = str(x)
+
+        if isinstance(x, dict):
+            x = yaml.dump(x)
+
+        if isinstance(x, list):
+            tmp = []
+            for i in x:
+                if isinstance(i, dict):
+                    i = yaml.dump(i)
+                tmp.append(i)
+            x = tmp
+            x = set(x) - set([None])
+            x = ", ".join(set(x))
+            if not isinstance(x, str):
+                raise ValueError(f"{x} not a string")
+
+        formatting_dict = {
+            "\t": "",  # remove tabulation
+            "   ": " ",  # amend triple whitespace
+            "  ": " ",  # amend double whitespace
+            "\n\n\n": "\n",  # remove triple newlines
+            "\n\n": "\n",  # remove double newlines
+            "\n": " | ",  # replace newline character
+            '"': "",  # remove quotation
+            "'": "",  # remove quotation
+        }
+        for k, v in formatting_dict.items():
+            x = x.replace(k, v)
+
+        return x
+
+
     def get_single_question(self, nctId, idx):
         question_func = getattr(self, f"question_{idx}")
         question, context, answer = question_func()
 
-        def output_formatting(x):
 
-            if isinstance(x, int) or isinstance(x, bool):
-                x = str(x)
-
-            if isinstance(x, dict):
-                x = yaml.dump(x)
-
-            if isinstance(x, list):
-                tmp = []
-                for i in x:
-                    if isinstance(i, dict):
-                        i = yaml.dump(i)
-                    tmp.append(i)
-                x = tmp
-                x = set(x) - set([None])
-                x = ", ".join(set(x))
-                if not isinstance(x, str):
-                    raise ValueError(f"{x} not a string")
-
-            formatting_dict = {
-                "\t": "",  # remove tabulation
-                "   ": " ",  # amend triple whitespace
-                "  ": " ",  # amend double whitespace
-                "\n\n\n": "\n",  # remove triple newlines
-                "\n\n": "\n",  # remove double newlines
-                "\n": " | ",  # replace newline character
-                '"': "",  # remove quotation
-                "'": "",  # remove quotation
-            }
-            for k, v in formatting_dict.items():
-                x = x.replace(k, v)
-
-            return x
-
-        question = output_formatting(question[0])
-        context = output_formatting(context)
-        answer = output_formatting(answer)
+        question = self._output_formatting(question[0])
+        context = self._output_formatting(context)
+        answer = self._output_formatting(answer)
 
         formatted_triplet = {
             "idx": f"{nctId}_{idx:03}",
@@ -742,8 +745,10 @@ def main(args):
     # NOTE: Originally I would have pulled the CTs from ct.gov
     # but as as I am working with a subset (based on the trialgpt paper)
     # I had to put them on MongoDB. Moreover, I decided to trim them.
-    MONGODB_USER = os.getenv("MONGODB_USER")
-    MONGODB_PWD = os.getenv("MONGODB_PWD")
+    MONGODB_USER = os.getenv("MONGODB_USER").replace("\r", "").replace("\n", "")
+    MONGODB_PWD = os.getenv("MONGODB_PWD").replace("\r", "").replace("\n", "")
+    #TODO: Remove
+    print(f"MongoDB credentials: {MONGODB_USER} {MONGODB_PWD}")
 
     client = connect_to_mongoDB(MONGODB_USER, MONGODB_PWD)
     db = client["ctGov"]
@@ -801,24 +806,24 @@ if __name__ == "__main__":
         description="Given a collection of clinical trials studies from clinicalTrials.gov, generate question-context-answer triplets."
     )
     parser.add_argument(
-        "--output_dir", type=str, help="output directory", default="./data/"
+        "-output_dir", type=str, help="output directory", default="./data/"
     )
     parser.add_argument(
-        "--output_file",
+        "-output_file",
         type=str,
         help="output filename",
         default="ctGov.questioner.tsv",
     )
     parser.add_argument("--delimiter", type=str, help="delimiter", default="\t")
     parser.add_argument(
-        "--n", metavar="n", type=int, help="number of questions per study", default=5
+        "-n", metavar="n", type=int, help="number of questions per study", default=5
     )
-    parser.add_argument("--l", type=int, help="Total number of questions", default=5)
+    parser.add_argument("-l", type=int, help="Total number of questions", default=5)
 
     parser.add_argument(
         "-vllm",
         type=str,
-        default="TheBloke/meditron-7B-GPTQ",
+        default="mistralai/Mistral-7B-Instruct-v0.2",
         help="Large Language Model name using HF nomenclature. E.g. 'TheBloke/meditron-7B-GPTQ'.",
     )
 
@@ -832,7 +837,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-port",
         type=int,
-        default=8_000,
+        default=8_051,
         help="LLM server port.",
     )
 
