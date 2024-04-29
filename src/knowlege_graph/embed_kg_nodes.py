@@ -8,8 +8,22 @@ import torch
 from sentence_transformers import SentenceTransformer
 from trial2vec import Trial2Vec
 
-from src.embeddings.Trial2Vec_embedding import ct_dict2pd
-from src.utils.utils import get_clinical_trial_study, print_green, print_red, connect_to_mongoDB
+####### Add src folder to the system path so it can call utils
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the parent directory of the current script
+parent_dir = os.path.dirname(script_dir)
+# Add the parent directory to sys.path
+sys.path.append(parent_dir)
+
+
+from embeddings.Trial2Vec_embedding import ct_dict2pd
+from utils.utils import (
+    connect_to_mongoDB,
+    get_clinical_trial_study,
+    print_green,
+    print_red,
+)
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 SEPARATOR = "|"
@@ -55,14 +69,16 @@ def trial2vect_encode_node(input_path: str, output_path: str, args):
 
     df["trial2vec_emb:double[]"] = df["trial2vec_emb:double[]"].astype(object)
 
-    if args.mongoDB: # Pull studies from mongoDB collection
+    if args.mongoDB:  # Pull studies from mongoDB collection
         with connect_to_mongoDB(user=args.user, pwd=args.pwd) as client:
             db = client[args.db]
             collection = db[args.collection]
-            print(f"Downloading studies from mongoDB db:{args.db} collection:{args.collection} ...")
+            print(
+                f"Downloading studies from mongoDB db:{args.db} collection:{args.collection} ..."
+            )
             studies = [doc for doc in collection.find({})]
-            
-    else: # Pull studies from ct.gov API
+
+    else:  # Pull studies from ct.gov API
         print("Downloading studies from ct.gov ...")
         for nctId in df[":ID"].values:
             studies.append(get_clinical_trial_study(nctId))
@@ -83,7 +99,9 @@ def trial2vect_encode_node(input_path: str, output_path: str, args):
 
         df.at[i, "trial2vec_emb:double[]"] = emb_str
 
-    df.to_csv(f"{output_path}{node_name}-part000.csv", sep="\t", header=None, index=False)
+    df.to_csv(
+        f"{output_path}{node_name}-part000.csv", sep="\t", header=None, index=False
+    )
 
 
 def biobert_encode_node(input_path: str, output_path: str, node_name: str, term: str):
@@ -121,7 +139,9 @@ def biobert_encode_node(input_path: str, output_path: str, node_name: str, term:
         bio_emb_str = embedding_formatting(bio_emb)
         df.at[i, "biobert_emb:double[]"] = bio_emb_str
 
-    df.to_csv(f"{output_path}{node_name}-part000.csv", sep="\t", header=None, index=False)
+    df.to_csv(
+        f"{output_path}{node_name}-part000.csv", sep="\t", header=None, index=False
+    )
 
 
 def main(args):
@@ -134,9 +154,11 @@ def main(args):
     shutil.copytree(args.input_path, args.output_path)
 
     trial2vect_encode_node(args.output_path, args.output_path, args)
-    biobert_encode_node(args.output_path, args.output_path, "ClinicalTrial", "brief_title")
+    biobert_encode_node(
+        args.output_path, args.output_path, "ClinicalTrial", "brief_title"
+    )
     biobert_encode_node(args.output_path, args.output_path, "AdverseEvent", "term")
-    biobert_encode_node(args.output_path, args.output_path, "Biospec", "description")
+    # biobert_encode_node(args.output_path, args.output_path, "Biospec", "description")
     biobert_encode_node(args.output_path, args.output_path, "Condition", "name")
     biobert_encode_node(args.output_path, args.output_path, "Intervention", "name")
     biobert_encode_node(args.output_path, args.output_path, "Outcome", "measure")
@@ -163,13 +185,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="embed clinical trials KG")
     parser.add_argument("input_path", type=str, help="Input path.")
     parser.add_argument("output_path", type=str, help="Output path.")
-    parser.add_argument("-mongoDB", dest="mongoDB", action="store_true", help="Set mongoDB flag to True. If True,  get the CT studies from mongoDB otherwise from ct.gov")
+    parser.add_argument(
+        "-mongoDB",
+        dest="mongoDB",
+        action="store_true",
+        help="Set mongoDB flag to True. If True,  get the CT studies from mongoDB otherwise from ct.gov",
+    )
     parser.add_argument("-user", type=str, help="MongoDB user name")
     parser.add_argument("-pwd", type=str, help="MongoDB password")
-    parser.add_argument("-app", type=str,default="cluster0", help="MongoDB cluster")
+    parser.add_argument("-app", type=str, default="cluster0", help="MongoDB cluster")
     parser.add_argument("-db", type=str, default="ctGov", help="MongoDB database name")
     parser.add_argument("-c", "--collection", type=str, help="MongoDB collection name")
     parser.set_defaults(mongoDB=False)
-    
+
     args = parser.parse_args()
     main(args)
