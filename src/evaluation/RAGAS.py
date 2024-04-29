@@ -3,7 +3,6 @@ import os
 import sys
 
 import pandas as pd
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveJsonSplitter
 from ragas.testset.evolutions import multi_context, reasoning, simple
 from ragas.testset.generator import TestsetGenerator
@@ -88,7 +87,15 @@ def main(args, verbose:bool=False):
     docs = create_documents(args)
     
     generator_llm, critic_llm = set_llms(args)
-    embeddings = HuggingFaceEmbeddings(model_name=args.embeddings)
+    
+    if args.embeddings == "GPT4All":
+        from langchain_community.embeddings import GPT4AllEmbeddings
+        embeddings = GPT4AllEmbeddings()
+    
+    else:
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+        embeddings = HuggingFaceEmbeddings(model_name=args.embeddings)
+        
     generator = TestsetGenerator.from_langchain(generator_llm, critic_llm, embeddings)
     
     if verbose:
