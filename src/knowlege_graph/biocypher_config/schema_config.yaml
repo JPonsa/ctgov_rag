@@ -27,19 +27,19 @@ intervention:
         mapped_names: str[]
         biobert_emb: float[]
 
-organisation:
-    represented_as: node
-    preferred_id: id
-    input_label: organisation
-    # is_a: administrative entity
-    properties:
-        name: str
-        class: str
+# organisation:
+#     represented_as: node
+#     preferred_id: id
+#     input_label: organisation
+#     # is_a: administrative entity
+#     properties:
+#         name: str
+#         class: str
 
-sponsor:
-    represented_as: node
-    input_label: sponsor
-    # is_a: administrative entity
+# sponsor:
+#     represented_as: node
+#     input_label: sponsor
+#     # is_a: administrative entity
 
 outcome:
     represented_as: node
@@ -53,15 +53,15 @@ outcome:
         description: str
         biobert_emb: float[]
 
-outcome measure:
-    represented_as: node
-    preferred_id: id
-    input_label: outcome_measure
-    # is_a: clinical measurement
-    properties:
-        title: str
-        type: str
-        description: str
+# outcome measure:
+#     represented_as: node
+#     preferred_id: id
+#     input_label: outcome_measure
+#     # is_a: clinical measurement
+#     properties:
+#         title: str
+#         type: str
+#         description: str
 
 condition:
     represented_as: node
@@ -73,17 +73,17 @@ condition:
         name: str
         biobert_emb: float[]
 
-location:
-    synonym_for: geographic location
-    represented_as: node
-    preferred_id: id
-    input_label: location
-    # is_a: missing
-    properties:
-        facility: str
-        country: str
-        state: str
-        city: str
+# location:
+#     synonym_for: geographic location
+#     represented_as: node
+#     preferred_id: id
+#     input_label: location
+#     # is_a: missing
+#     properties:
+#         facility: str
+#         country: str
+#         state: str
+#         city: str
 
 eligibility:
     represented_as: node
@@ -98,25 +98,25 @@ eligibility:
         standardised_ages: str[]
         eligibility_criteria: str
 
-biospec:
-    represented_as: node
-    preferred_id: id
-    input_label: biospec
-    # is_a: biosample
-    properties:
-        retention: str
-        description: str
-        biobert_emb: float[]
+# biospec:
+#     represented_as: node
+#     preferred_id: id
+#     input_label: biospec
+#     # is_a: biosample
+#     properties:
+#         retention: str
+#         description: str
+#         biobert_emb: float[]
 
-arm group:
-    represented_as: node
-    preferred_id: id
-    input_label: arm_group
-    # is_a: study population
-    properties:
-        label: str
-        type: str
-        description: str
+# arm group:
+#     represented_as: node
+#     preferred_id: id
+#     input_label: arm_group
+#     # is_a: study population
+#     properties:
+#         label: str
+#         type: str
+#         description: str
 
 intervention protocol:
     represented_as: node
@@ -159,14 +159,14 @@ adverse event:
         term: str
         biobert_emb: float[]
 
-adverse event group:
-    represented_as: node
-    preferred_id: id
-    input_label: adverse_event_group
-    # is_a: study population
-    properties:
-        title: str
-        description: str
+# adverse event group:
+#     represented_as: node
+#     preferred_id: id
+#     input_label: adverse_event_group
+#     # is_a: study population
+#     properties:
+#         title: str
+#         description: str
 
 organ system:
     represented_as: node
@@ -219,12 +219,12 @@ intervention to clinicalTrial association:
     source: intervention
     target: study
 
-intervention to arm group association:
-    is_a: association
-    represented_as: edge
-    input_label: intervention_has_arm
-    source: intervention
-    target: arm_group
+# intervention to arm group association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: intervention_has_arm
+#     source: intervention
+#     target: arm_group
 
 clinicalTrial to outcome association:
     is_a: association
@@ -233,33 +233,33 @@ clinicalTrial to outcome association:
     source: study
     target: outcome
 
-clinicalTrial to location association:
-    is_a: association
-    represented_as: edge
-    input_label: conducted_at
-    source: study
-    target: location
+# clinicalTrial to location association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: conducted_at
+#     source: study
+#     target: location
 
-clinicalTrial to sponsor association:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_sponsor
-    source: study
-    target: sponsor
+# clinicalTrial to sponsor association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_sponsor
+#     source: study
+#     target: sponsor
 
-sponsor to clinicalTrial association:
-    is_a: association
-    represented_as: edge
-    input_label: sponsors
-    source: sponsor
-    target: study
+# sponsor to clinicalTrial association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: sponsors
+#     source: sponsor
+#     target: study
 
-clinicalTrial to arm group association:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_arm_group
-    source: study
-    target: arm_group
+# clinicalTrial to arm group association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_arm_group
+#     source: study
+#     target: arm_group
 
 clinicalTrial to eligibility association:
     is_a: association
@@ -268,12 +268,12 @@ clinicalTrial to eligibility association:
     source: study
     target: eligibility
 
-clinicalTrial to biospec association:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_biospec
-    source: study
-    target: eligibility
+# clinicalTrial to biospec association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_biospec
+#     source: study
+#     target: eligibility
 
 clinicalTrial to intervention protocol association:
     is_a: association
@@ -328,35 +328,34 @@ adverse event to organ system association:
     input_label: adverse_event_has_organ_system
     source: adverse_event
     target: organ_system
+# adverse event to adverse event group association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: adverse_event_has_adverse_event_group
+#     source: adverse_event
+#     target: adverse_event_group
+#     properties:
+#         num_events: int
+#         num_affected: int
+#         num_at_risk: int
 
-adverse event to adverse event group association:
-    is_a: association
-    represented_as: edge
-    input_label: adverse_event_has_adverse_event_group
-    source: adverse_event
-    target: adverse_event_group
-    properties:
-        num_events: int
-        num_affected: int
-        num_at_risk: int
+# clinicalTrial to adverse event group association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_adverse_event_group
+#     source: study
+#     target: adverse_event_group
 
-clinicalTrial to adverse event group association:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_adverse_event_group
-    source: study
-    target: adverse_event_group
+# clinicalTrial to adverse event group protocol association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: follows_adverse_event_group_protocol
+#     source: study
+#     target: adverse_event_group_protocol
 
-clinicalTrial to adverse event group protocol association:
-    is_a: association
-    represented_as: edge
-    input_label: follows_adverse_event_group_protocol
-    source: study
-    target: adverse_event_group_protocol
-
-clinicalTrial to outcome_measure  association:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_outcome_measure
-    source: study
-    target: outcome_measure
+# clinicalTrial to outcome_measure  association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_outcome_measure
+#     source: study
+#     target: outcome_measure

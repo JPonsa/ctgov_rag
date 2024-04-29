@@ -63,6 +63,25 @@ MONGODB_PWD = os.getenv("MONGODB_PWD")
 # )
 
 
+# Get trialgpt studies (only TREC 2022 CT)
+subprocess.run(
+    [
+        ".\.venv\Scripts\python.exe",
+        "./src/data/ctgov_to_mongodb.py",
+        "--user",
+        MONGODB_USER,
+        "--pwd",
+        MONGODB_PWD,
+        "--database",
+        "ctGov",
+        "--collection",
+        "trec22",
+        "--studies",
+        "./data/trialgtp.trec22.studies_list.csv",
+    ]
+)
+
+
 # Combine previous collections and remove unwanted fields
 subprocess.run(
     [
@@ -75,7 +94,7 @@ subprocess.run(
         "--database",
         "ctGov",
         "--collections",
-        "trialgpt",
+        "trec22",
         "--metadata",
         "./docs/ctGov.metadata.xlsx",
         "--overwrite",

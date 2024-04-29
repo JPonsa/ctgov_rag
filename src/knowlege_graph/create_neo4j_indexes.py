@@ -234,23 +234,23 @@ if __name__ == "__main__":
             ["measure"],
         )
 
-        # Biospec
-        create_emb_index(
-            driver,
-            DB_NAME,
-            "biospec_biobert_emb",
-            "Biospec",
-            "biobert_emb",
-            768,
-        )
+        # # Biospec
+        # create_emb_index(
+        #     driver,
+        #     DB_NAME,
+        #     "biospec_biobert_emb",
+        #     "Biospec",
+        #     "biobert_emb",
+        #     768,
+        # )
 
-        create_kwd_index(
-            driver,
-            DB_NAME,
-            "biospec_kw",
-            "Biospec",
-            ["description"],
-        )
+        # create_kwd_index(
+        #     driver,
+        #     DB_NAME,
+        #     "biospec_kw",
+        #     "Biospec",
+        #     ["description"],
+        # )
 
         # Adverse Event
         create_emb_index(
