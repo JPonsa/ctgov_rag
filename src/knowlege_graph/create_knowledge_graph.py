@@ -12,7 +12,7 @@ if __name__ == "__main__":
     MONGODB_USER = os.getenv("MONGODB_USER")
     MONGODB_PWD = os.getenv("MONGODB_PWD")
 
-    biocypher_config_dir = "./src/knowlege_graph/biocypher_config/"
+    biocypher_config_dir = "./src/knowledge_graph/biocypher_config/"
     output_dir = "./data/raw/knowledge_graph/"
 
     # Create or clear output dir
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         mongodb_user=MONGODB_USER,
         mongodb_pwd=MONGODB_PWD,
         mongodb_db="ctGov",
-        mongodb_collection="trialgpt",
+        mongodb_collection="trec22",
     )
 
     bc.write_nodes(adapter.get_nodes())

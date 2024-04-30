@@ -712,7 +712,7 @@ class ctGovAdapter:
                             id: {
                                 "retention": retention or "N/A",
                                 "description": description.capitalize() or "N/A",
-                            },  
+                            },
                         }
                     )
 

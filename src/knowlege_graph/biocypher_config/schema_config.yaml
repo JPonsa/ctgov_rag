@@ -2,7 +2,7 @@ clinical trial:
     represented_as: node
     preferred_id: id
     input_label: study
-    # is_a: missing
+    is_a: named thing
     properties:
         brief_title: str
         official_title: str
@@ -20,7 +20,7 @@ intervention:
     represented_as: node
     preferred_id: id
     input_label: intervention
-    # is_a: clinical intervention
+    is_a: clinical intervention
     properties:
         name: str
         type: str
@@ -45,7 +45,7 @@ outcome:
     represented_as: node
     preferred_id: id
     input_label: outcome
-    # is_a: clinical entity
+    is_a: clinical entity
     properties:
         primary: bool
         measure: str
@@ -67,7 +67,7 @@ condition:
     represented_as: node
     preferred_id: id
     input_label: condition
-    # is_a: missing
+    is_a: named thing
     synonym_for: disease
     properties:
         name: str
@@ -89,7 +89,7 @@ eligibility:
     represented_as: node
     preferred_id: id
     input_label: eligibility
-    # is_a: study population
+    is_a: study population
     properties:
         sex: str
         healthy_volunteers: bool
@@ -122,7 +122,7 @@ intervention protocol:
     represented_as: node
     preferred_id: id
     input_label: intervention_protocol
-    # is_a: publication
+    is_a: publication
     properties:
         model: str
         description: str
@@ -134,7 +134,7 @@ observation protocol:
     represented_as: node
     preferred_id: id
     input_label: observation_protocol
-    # is_a: publication
+    is_a: publication
     properties:
         model: str
         time_perspective: str
@@ -145,7 +145,7 @@ adverse event protocol:
     represented_as: node
     preferred_id: id
     input_label: adverse_event_protocol
-    # is_a: publication
+    is_a: publication
     properties:
         description: str
         timeframe: str
@@ -154,7 +154,7 @@ adverse event:
     represented_as: node
     preferred_id: id
     input_label: adverse_event
-    # is_a: adverse_event_of
+    is_a: adverse_event_of
     properties:
         term: str
         biobert_emb: float[]
@@ -172,7 +172,7 @@ organ system:
     represented_as: node
     preferred_id: id
     input_label: organ_system
-    # is_a: named thing
+    is_a: named thing
     properties:
         name: str
         biobert_emb: float[]
@@ -198,12 +198,12 @@ clinicalTrial to organisation:
     source: study
     target: organisation
 
-organisation to clinicalTrial:
-    is_a: association
-    represented_as: edge
-    input_label: conducts
-    source: organisation
-    target: study
+# organisation to clinicalTrial:
+#     is_a: association
+#     represented_as: edge
+#     input_label: conducts
+#     source: organisation
+#     target: study
 
 clinicalTrial to intervention association:
     is_a: association

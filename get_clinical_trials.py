@@ -45,25 +45,6 @@ MONGODB_PWD = os.getenv("MONGODB_PWD")
 
 
 # Get trialgpt studies
-# subprocess.run(
-#     [
-#         ".\.venv\Scripts\python.exe",
-#         "./src/data/ctgov_to_mongodb.py",
-#         "--user",
-#         MONGODB_USER,
-#         "--pwd",
-#         MONGODB_PWD,
-#         "--database",
-#         "ctGov",
-#         "--collection",
-#         "trialgpt",
-#         "--studies",
-#         "./data/trialgtp.studies_list.csv",
-#     ]
-# )
-
-
-# Get trialgpt studies (only TREC 2022 CT)
 subprocess.run(
     [
         ".\.venv\Scripts\python.exe",
@@ -75,9 +56,9 @@ subprocess.run(
         "--database",
         "ctGov",
         "--collection",
-        "trec22",
+        "trialgpt",
         "--studies",
-        "./data/trialgtp.trec22.studies_list.csv",
+        "./data/trialgtp.studies_list.csv",
     ]
 )
 
@@ -94,9 +75,24 @@ subprocess.run(
         "--database",
         "ctGov",
         "--collections",
-        "trec22",
+        "trialgpt",
         "--metadata",
         "./docs/ctGov.metadata.xlsx",
         "--overwrite",
+    ]
+)
+
+subprocess.run(
+    [
+        ".\.venv\Scripts\python.exe",
+        "./src/knowledge_graph/create_knowledge_graph.py",
+    ]
+)
+
+
+subprocess.run(
+    [
+        ".\.venv\Scripts\python.exe",
+        "./src/knowledge_graph/trim_node_label.py",
     ]
 )
