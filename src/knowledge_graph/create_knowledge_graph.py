@@ -33,11 +33,12 @@ if __name__ == "__main__":
         schema_config_path=biocypher_config_dir + "schema_config.yaml",
         output_directory=output_dir,
     )
+
     adapter = ctGovAdapter(
         mongodb_user=MONGODB_USER,
         mongodb_pwd=MONGODB_PWD,
         mongodb_db="ctGov",
-        mongodb_collection="trec22",
+        mongodb_collection="trialgpt",
     )
 
     bc.write_nodes(adapter.get_nodes())
