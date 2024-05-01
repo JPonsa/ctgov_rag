@@ -25,19 +25,21 @@ AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
-MODEL=TheBloke/meditron-7B-GPTQ
-PORT=8000
+#MODEL=TheBloke/meditron-7B-GPTQ
+MODEL=mistralai/Mistral-7B-Instruct-v0.2
+PORT=8051
 
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
---quantization gptq \
 --gpu-memory-utilization 0.95 &
+#--quantization gptq \
 
 echo I am going to sleep
 sleep 1m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 ruse --stdout --time=600 -s \
-poetry run python ./src/evaluation/ctGov_QA_generator.py
+poetry run python ./src/evaluation/ctGov_QA_generator.py -vllm $MODEL -port $PORT -output_file ctGov.questioner.mistral7b.tsv
+
 # -user $AACT_USER -pwd $AACT_PWD \
 # -sql_query_template ./src/txt2sql/sql_queries_template.yaml \
 # -triplets  ./src/txt2sql/txt2_sql_eval_triplets.tsv \
