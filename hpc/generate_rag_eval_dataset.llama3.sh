@@ -36,12 +36,12 @@ CRITIC=meta-llama/Meta-Llama-3-8B-Instruct
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
 --max-model-len 5000 \
-----tensor-parallel-size 4 \
+--tensor-parallel-size 4 \
 --gpu-memory-utilization 0.45 &
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
 --max-model-len 5000 \
-----tensor-parallel-size 4 \
+--tensor-parallel-size 4 \
 --gpu-memory-utilization 0.45 &
 
 
