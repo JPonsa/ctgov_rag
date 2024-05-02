@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N li_mistral_txt2SQL_eval
 # Max run time in H:M:S
-#$ -l h_rt=12:00:0
+#$ -l h_rt=2:00:0
 # Memory
 #$ -l mem=32G
 #$ -l gpu=1

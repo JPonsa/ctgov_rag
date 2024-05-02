@@ -24,4 +24,4 @@ MONGODB_PWD=${MONGODB_PWD//$'\r'}
 pip install poetry
 # poetry config virtualenvs.in-project true
 # poetry install
-ruse --stdout --time=900 -s poetry run python embed_kg_nodes.py ./data/raw/knowledge_graph/ ./data/preprocessed/knowledge_graph/ -mongoDB -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt
+ruse --stdout --time=900 -s poetry run python ./src/knowledge_graph/embed_kg_nodes.py ./data/raw/knowledge_graph/ ./data/preprocessed/knowledge_graph/ -mongoDB -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt

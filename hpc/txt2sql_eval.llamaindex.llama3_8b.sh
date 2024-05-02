@@ -41,4 +41,4 @@ poetry run python ./src/txt2sql/txt2sql_llamaindex_test.py -user $AACT_USER -pwd
 -hf $HF_TOKEN \
 -vllm $MODEL \
 -port $PORT \
--stop '' ''
+-stop '<|start_header_id|>' '<|end_header_id|>'

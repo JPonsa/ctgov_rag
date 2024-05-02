@@ -25,13 +25,15 @@ MODEL="mistralai/Mistral-7B-Instruct-v0.2"
 PORT=8042
 HOST="http://0.0.0.0"
 
+VERBOSE = True
+
 # TODO: Remove credentials
 # Neo4j credentials
 #os.environ["NEO4J_URI"] = "bolt://127.0.0.1:7687"
-os.environ["NEO4J_URI"] = "bolt://0.0.0.0:7687"
-os.environ["NEO4J_USERNAME"] = "ucl_hpc"
-os.environ["NEO4J_PASSWORD"] = "password"
-os.environ["NEO4J_DATABASE"] = "ctgov"
+os.environ["NEO4J_URI"] = 'neo4j+s://e5534dd1.databases.neo4j.io'
+os.environ["NEO4J_USERNAME"] = 'neo4j'
+os.environ["NEO4J_PASSWORD"] = 'Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE'
+os.environ["NEO4J_DATABASE"] = "neo4j"
 
 # AACT credentials
 os.environ["AACT_USER"] = "jponsa"
@@ -137,7 +139,7 @@ def get_cypher_engine(model:str, model_host:str, model_port:int):
         url=os.getenv("NEO4J_URI"),
         username=os.getenv("NEO4J_USERNAME"),
         password=os.getenv("NEO4J_PASSWORD"),
-        database="ctgov",
+        database=os.environ["NEO4J_DATABASE"],
     )
 
     chain = GraphCypherQAChain.from_llm(cypher_lm, graph=graph, verbose=True, validate_cypher=True)
@@ -197,23 +199,33 @@ class GetClinicalTrial(dspy.Module):
         )
 
     def __call__(self, nctid_list: list) -> str:
+        if VERBOSE:
+            print(f"Action: GetClinicalTrial({nctid_list})")
+        
         fields = ["id", "brief_title", "study_type", "keywords", "brief_summary"]
         query = "MATCH (ClinicalTrial:ClinicalTrial) WHERE ClinicalTrial.id IN [{nctid_list}] RETURN {field_list}".format(
             nctid_list=",".join(["'" + x + "'" for x in nctid_list]),
             field_list=", ".join("ClinicalTrial." + f for f in fields),
         )
 
-        response, _, _ = self.driver.execute_query(
+        neo4j_response, _, _ = self.driver.execute_query(
             query, database_=os.getenv("NEO4J_DATABASE")
         )
+        
+        self.driver.close()
+        
         text = {}
-        for r in response:
+        for r in neo4j_response:
             text[r[f"ClinicalTrial.id"]] = {
                 f: r[f"ClinicalTrial.{f}"] for f in fields if f != "id"
             }
 
-        text = json.dumps(text)
-        return text
+        response = json.dumps(text)
+        
+        if VERBOSE:
+            print(response)
+        
+        return response
 
 
 class ClinicalTrialToEligibility(dspy.Module):
@@ -231,6 +243,10 @@ class ClinicalTrialToEligibility(dspy.Module):
         )
 
     def __call__(self, nctid_list: list) -> str:
+        
+        if VERBOSE:
+            print(f"Action: ClinicalTrialToEligibility({nctid_list})")
+        
         fields = [
             "healthy_volunteers",
             "minimum_age",
@@ -246,13 +262,22 @@ class ClinicalTrialToEligibility(dspy.Module):
             field_list=", ".join("e." + f for f in fields),
         )
 
-        response, _, _ = self.driver.execute_query(
+        neo4_response, _, _ = self.driver.execute_query(
             query, database_=os.getenv("NEO4J_DATABASE")
         )
+        
+        self.driver.close()
+        
         text = {}
-        for r in response:
+        for r in neo4_response:
             text[r[f"ct.id"]] = {f: r[f"e.{f}"] for f in fields}
 
+        response = json.dumps(text)
+        
+        if VERBOSE:
+            print(response)
+        
+        return response
 
 class InterventionToCt(dspy.Module):
     name = "InterventionToCt"
@@ -273,10 +298,17 @@ class InterventionToCt(dspy.Module):
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str, k: int = 5) -> str:
-        print(f"InterventionToCt({intervention})")
+        
+        if VERBOSE:
+            print(f"Action: InterventionToCt({intervention})")
+        
         response = self.retriever(intervention, k)
         response = "\n".join([x["long_text"] for x in response])
-        print(response)
+        
+        
+        if VERBOSE:
+            print(response)
+        
         return response
 
 
@@ -299,9 +331,16 @@ class InterventionToAdverseEvent(dspy.Module):
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str, k: int = 5) -> str:
-        print(f"InterventionToAdverseEvent({intervention})")
+        
+        if VERBOSE:
+            print(f"Action: InterventionToAdverseEvent({intervention})")
+    
         response = self.retriever(intervention, k)
         response = "\n".join([x["long_text"] for x in response])
+        
+        if VERBOSE:
+            print(response)
+        
         return response
 
 
@@ -324,10 +363,16 @@ class ConditionToCt(dspy.Module):
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str, k: int = 5) -> str:
-        print(f"InterventionToCt({intervention})")
+        
+        if VERBOSE:
+            print(f"Action: ConditionToCt({intervention})")
+
         response = self.retriever(intervention, k)
         response = "\n".join([x["long_text"] for x in response])
-        print(response)
+        
+        if VERBOSE:
+            print(response)
+        
         return response
 
 
@@ -350,36 +395,17 @@ class ConditionToIntervention(dspy.Module):
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str, k: int = 5) -> str:
-        print(f"ConditionToIntervention({intervention})")
+        
+        if VERBOSE:
+            print(f"Action: ConditionToIntervention({intervention})")
+
         response = self.retriever(intervention, k)
         response = "\n".join([x["long_text"] for x in response])
+        
+        if VERBOSE:
+            print(response)
+        
         return response
-
-
-class ConditionToIntervention(dspy.Module):
-    name = "ConditionToIntervention"
-    input_variable = "condition"
-    desc = "Get the medical Interventions associated to a medical Condition tested in a clinical trial."
-
-    def __init__(self):
-        self.retriever = Neo4jRM(
-            index_name="condition_biobert_emb",
-            text_node_property="name",
-            embedding_provider="huggingface",
-            embedding_model="dmis-lab/biobert-base-cased-v1.1",
-            k=10,
-            retrieval_query=fromToCtTo_query(
-                "Condition", "name", "Intervention", "name"
-            ),
-        )
-        self.retriever.embedder = biobert.encode
-
-    def __call__(self, intervention: str, k: int = 5) -> str:
-        print(f"ConditionToIntervention({intervention})")
-        response = self.retriever(intervention, k)
-        response = "\n".join([x["long_text"] for x in response])
-        return response
-
 
 class MedicalSME(dspy.Module):
     name = "MedicalSME"
@@ -393,6 +419,10 @@ class MedicalSME(dspy.Module):
     def __call__(self, question) -> str:
         with dspy.context(lm=self.lm, temperature=0.7):
             response = self.lm(question).answer
+            
+        if VERBOSE:
+            print(response)
+            
         return response
 
 
@@ -432,6 +462,9 @@ class AnalyticalQuery(dspy.Module):
             sql_response=sql_response,
             cypher_response=cypher_response,
         ).answer
+
+        if VERBOSE:
+            print(response)
 
         return response
 

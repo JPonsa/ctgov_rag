@@ -1,10 +1,10 @@
 #!/bin/bash -l
 #$ -N RAGAS_llama2
 # Max run time in H:M:S
-#$ -l h_rt=2:0:0
+#$ -l h_rt=8:0:0
 # Memory
 #$ -l mem=50G
-#$ -l gpu=4
+#$ -l gpu=2
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
@@ -35,15 +35,15 @@ CRITIC=TheBloke/Llama-2-13B-GPTQ
 
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
+--max-model-len 1250 \
 --quantization gptq \
---max-model-len 5000 \
-----tensor-parallel-size 4 \
+--tensor-parallel-size 2 \
 --gpu-memory-utilization 0.45 &
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
+--max-model-len 1250 \
 --quantization gptq \
---max-model-len 5000 \
-----tensor-parallel-size 4 \
+--tensor-parallel-size 2 \
 --gpu-memory-utilization 0.45 &
 
 
@@ -55,12 +55,13 @@ echo I am awake
 ruse --stdout --time=150 -s \
 poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.llama2_13b.csv \
     -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt \
-    -n 100 -size 2000 \
+    -n 25 -size 2000 \
     -hf $HF_TOKEN \
     -ports 8031 8032 \
     --generator $GENERATOR \
     --critic $CRITIC \
-    --embeddings sentence-transformers/all-mpnet-base-v2 \
-    -test_size 50 -s 0.4 -r 0.4 -mc 0.2
+    --embeddings BAAI/bge-small-en-v1.5 \
+    -test_size 25 -s 0.4 -r 0.4 -mc 0.2
 
 #  --embeddings all-MiniLM-L6-v2 \
+#   --embeddings sentence-transformers/all-mpnet-base-v2 \
