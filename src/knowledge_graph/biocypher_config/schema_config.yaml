@@ -184,17 +184,17 @@ organ system:
 #     source: study
 #     target: condition
 
-condition to clinicalTrial:
+condition to clinicalTrial association:
     is_a: association
     represented_as: edge
     input_label: condition_has_study
     source: condition
     target: study
 
-# clinicalTrial to organisation:
+# clinicalTrial to organisation association:
 #     is_a: association
 #     represented_as: edge
-#     input_label: study_has_orgnisation
+#     input_label: study_has_organisation
 #     source: study
 #     target: organisation
 
