@@ -344,6 +344,9 @@ class ctGovAdapter:
             phases = get_recursive(protocol, "designModule.phases")
             study_type = get_recursive(protocol, "designModule.studyType")
             why_stopped = get_recursive(protocol, "statusModule.whyStopped")
+            n_participants = get_recursive(
+                protocol, "designModule.enrollmentInfo.count"
+            )
 
             if nct_id not in self._studies.keys():
                 self._studies.update(
@@ -355,10 +358,8 @@ class ctGovAdapter:
                             "brief_summary": brief_summary or "N/A",
                             "keywords": keywords or [],
                             "detailed_description": detailed_description or "N/A",
-                            "phases": phases
-                            or [
-                                "N/A",
-                            ],
+                            "phases": phases or ["N/A"],
+                            "n_participants": n_participants or "N/A",
                             "study_type": study_type or "N/A",
                             "why_stopped": why_stopped or "N/A",
                         }
@@ -384,7 +385,7 @@ class ctGovAdapter:
                     None,
                     nct_id,
                     _check_str_format(name),
-                    "study_has_orgnisation",
+                    "study_has_organisation",
                     {},
                 )
             )
