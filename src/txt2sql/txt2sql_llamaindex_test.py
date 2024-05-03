@@ -182,7 +182,9 @@ def main(args, verbose: bool = False):
     if args.vllm:
         from llama_index.llms.openai_like import OpenAILike
         lm = OpenAILike(model=args.vllm, api_base=f"{args.host}:{args.port}/v1/", api_key="fake", temperature=0, max_tokens=1_000,
-                        completion_to_prompt=completion_to_prompt)        
+                        is_chat_model=True,
+                        # completion_to_prompt=completion_to_prompt,
+                        )        
         file_tags.append(args.vllm.split("/")[-1])
 
 
