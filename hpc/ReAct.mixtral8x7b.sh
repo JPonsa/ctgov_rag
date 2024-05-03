@@ -35,7 +35,7 @@ poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port $P
 --max-model-len 5000 \
 --gpu-memory-utilization 0.80 &
 echo I am going to sleep
-sleep 1m # Go to sleep so I vLLM server has time to start.
+sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT
