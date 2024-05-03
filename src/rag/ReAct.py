@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import sys
@@ -5,6 +6,7 @@ import sys
 import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
 from neo4j import GraphDatabase
+from neo4j.exceptions import AuthError, ServiceUnavailable
 from sentence_transformers import SentenceTransformer
 
 
@@ -19,7 +21,7 @@ sys.path.append(parent_dir)
 from utils.sql_wrapper import SQLDatabase
 from utils.utils import dspy_tracing, print_red
 
-dspy_tracing()
+# dspy_tracing()
 
 MODEL="mistralai/Mistral-7B-Instruct-v0.2"
 PORT=8042
@@ -33,7 +35,7 @@ VERBOSE = True
 os.environ["NEO4J_URI"] = 'neo4j+s://e5534dd1.databases.neo4j.io'
 os.environ["NEO4J_USERNAME"] = 'neo4j'
 os.environ["NEO4J_PASSWORD"] = 'Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE'
-os.environ["NEO4J_DATABASE"] = "neo4j"
+os.environ["NEO4J_DATABASE"] = 'neo4j'
 
 # AACT credentials
 os.environ["AACT_USER"] = "jponsa"
@@ -42,6 +44,21 @@ os.environ["AACT_PWD"] = "aact.ctti-clinicaltrials.org"
 # Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
+
+def str_formatting(x:str) ->str:
+    """Remove some special characters that could be confusing the LLM or interfering with the post processing of the text"""
+    
+    if not isinstance(x, str):
+        return x
+    
+    x = x.replace('"',"")
+    x = x.replace("{","")
+    x = x.replace("}","")
+    x = x.replace("[","")
+    x = x.replace("],",";")
+    x = x.replace("]","")
+    
+    return x
 
 def fromToCt_query(from_node: str, from_property: str, ct_properties: list[str]) -> str:
 
@@ -171,7 +188,7 @@ class QAwithContext(dspy.Signature):
 
 
 class ChitChat(dspy.Module):
-    """Provide a question to a generic answer"""
+    """Provide a response to a generic question"""
 
     name = "ChitChat"
     input_variable = "question"
@@ -189,14 +206,18 @@ class GetClinicalTrial(dspy.Module):
 
     name = "GetClinicalTrial"
     input_variable = "nctid_list"
-    desc = "Given a list of clinical trials ids (e.g. ['NCT00000173', 'NCT00000292']) get Clinical Trials summaries."
+    desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get Clinical Trials summaries."
 
     def __init__(self):
 
-        self.driver = GraphDatabase.driver(
-            os.getenv("NEO4J_URI"),
-            auth=(os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD")),
-        )
+        try:
+            self.driver = GraphDatabase.driver(
+                os.getenv("NEO4J_URI"),
+                auth=(os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD")),
+                )
+            self.driver.verify_connectivity()
+        except (ServiceUnavailable, AuthError) as e:
+            raise ConnectionError("Failed to connect to Neo4j database") from e
 
     def __call__(self, nctid_list: list) -> str:
         if VERBOSE:
@@ -204,7 +225,7 @@ class GetClinicalTrial(dspy.Module):
         
         fields = ["id", "brief_title", "study_type", "keywords", "brief_summary"]
         query = "MATCH (ClinicalTrial:ClinicalTrial) WHERE ClinicalTrial.id IN [{nctid_list}] RETURN {field_list}".format(
-            nctid_list=",".join(["'" + x + "'" for x in nctid_list]),
+            nctid_list=",".join(["'" + x + "'" for x in nctid_list.split(",")]),
             field_list=", ".join("ClinicalTrial." + f for f in fields),
         )
 
@@ -212,15 +233,13 @@ class GetClinicalTrial(dspy.Module):
             query, database_=os.getenv("NEO4J_DATABASE")
         )
         
-        self.driver.close()
-        
         text = {}
         for r in neo4j_response:
             text[r[f"ClinicalTrial.id"]] = {
                 f: r[f"ClinicalTrial.{f}"] for f in fields if f != "id"
             }
 
-        response = json.dumps(text)
+        response = str_formatting(json.dumps(text))
         
         if VERBOSE:
             print(response)
@@ -233,14 +252,17 @@ class ClinicalTrialToEligibility(dspy.Module):
 
     name = "ClinicalTrialToEligibility"
     input_variable = "nctid_list"
-    desc = "Given a list of clinical trials ids (e.g. ['NCT00000173', 'NCT00000292']) get the trial eligibility criteria."
+    desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get the trial eligibility criteria."
 
     def __init__(self):
-
-        self.driver = GraphDatabase.driver(
-            os.getenv("NEO4J_URI"),
-            auth=(os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD")),
-        )
+        try:
+            self.driver = GraphDatabase.driver(
+                os.getenv("NEO4J_URI"),
+                auth=(os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD")),
+                )
+            self.driver.verify_connectivity()
+        except (ServiceUnavailable, AuthError) as e:
+            raise ConnectionError("Failed to connect to Neo4j database") from e
 
     def __call__(self, nctid_list: list) -> str:
         
@@ -258,7 +280,7 @@ class ClinicalTrialToEligibility(dspy.Module):
         query = """MATCH (ct:ClinicalTrial)-[:StudyToEligibilityAssociation]->(e:Eligibility)
         WHERE ct.id IN [{nctid_list}] RETURN ct.id, {field_list}
         """.format(
-            nctid_list=",".join(["'" + x + "'" for x in nctid_list]),
+            nctid_list=",".join(["'" + x + "'" for x in nctid_list.split(",")]),
             field_list=", ".join("e." + f for f in fields),
         )
 
@@ -266,13 +288,11 @@ class ClinicalTrialToEligibility(dspy.Module):
             query, database_=os.getenv("NEO4J_DATABASE")
         )
         
-        self.driver.close()
-        
         text = {}
         for r in neo4_response:
             text[r[f"ct.id"]] = {f: r[f"e.{f}"] for f in fields}
 
-        response = json.dumps(text)
+        response = str_formatting(json.dumps(text))
         
         if VERBOSE:
             print(response)
@@ -303,8 +323,7 @@ class InterventionToCt(dspy.Module):
             print(f"Action: InterventionToCt({intervention})")
         
         response = self.retriever(intervention, k)
-        response = "\n".join([x["long_text"] for x in response])
-        
+        response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
             print(response)
@@ -336,7 +355,7 @@ class InterventionToAdverseEvent(dspy.Module):
             print(f"Action: InterventionToAdverseEvent({intervention})")
     
         response = self.retriever(intervention, k)
-        response = "\n".join([x["long_text"] for x in response])
+        response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
             print(response)
@@ -368,7 +387,7 @@ class ConditionToCt(dspy.Module):
             print(f"Action: ConditionToCt({intervention})")
 
         response = self.retriever(intervention, k)
-        response = "\n".join([x["long_text"] for x in response])
+        response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
             print(response)
@@ -400,7 +419,7 @@ class ConditionToIntervention(dspy.Module):
             print(f"Action: ConditionToIntervention({intervention})")
 
         response = self.retriever(intervention, k)
-        response = "\n".join([x["long_text"] for x in response])
+        response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
             print(response)
@@ -469,7 +488,7 @@ class AnalyticalQuery(dspy.Module):
         return response
 
 
-def main(questions:list, method:str="all", med_sme:bool=True):
+def main(args, questions:list, method:str="all", med_sme:bool=True):
     
     KG_tools = [
     GetClinicalTrial(),
@@ -506,17 +525,54 @@ def main(questions:list, method:str="all", med_sme:bool=True):
     
     react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=3)
     
-    lm = dspy.HFClientVLLM(model=MODEL, port=PORT, url=HOST, max_tokens=1_000, timeout_s=2_000)
+    lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000)
     dspy.settings.configure(lm=lm, temperature=0.3)
     
 
     for question in questions:
-        result = react_module(question=question)
+        print("#####################")
         print(f"Question: {question}")
+        result = react_module(question=question)
         print(f"Final Predicted Answer (after ReAct process): {result.answer}")
 
 
 if __name__ == "__main__":
+        
+    parser = argparse.ArgumentParser(description="ct.gov ReAct")
+
+    # Add arguments
+    parser.add_argument(
+        "-output_dir",
+        type=str,
+        default="./results/ReAct/",
+        help="path to directory where to store results.",
+    )
+
+    parser.add_argument(
+        "-vllm",
+        type=str,
+        default="mistralai/Mistral-7B-Instruct-v0.2",
+        help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
+    )
+
+    parser.add_argument(
+        "-host",
+        type=str,
+        default="http://0.0.0.0",
+        help="LLM server host.",
+    )
+
+    parser.add_argument(
+        "-port",
+        type=int,
+        default=8_000,
+        help="LLM server port.",
+    )
+    
+    parser.set_defaults(vllm=None)
+
+    args = parser.parse_args()
+    
     
     questions = [
         "What are the adverse events associated with drug Acetaminophen?",
@@ -524,5 +580,12 @@ if __name__ == "__main__":
         "How many people where individual enrolled in clinical trial NCT00000173?",
         "Why the sky is blue?",
     ]
-
-    main(questions, method="all", med_sme=False)
+    print("######### TESTING #################")
+    test = GetClinicalTrial()
+    response = test("NCT00000173") # Positive test
+    response = test("NCT00000173,NCT00000292") # Positive test
+    response = test("NCT00000173], GetClinicalTrial[NCT00000173") # Negative Test
+    print("###################################")
+    
+   
+    main(args, questions, method="all", med_sme=False)
