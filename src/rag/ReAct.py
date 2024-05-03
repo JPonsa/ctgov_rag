@@ -3,6 +3,8 @@ import json
 import os
 import sys
 
+os.environ["DPS_CACHEBOOL"]='False'
+
 import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
 from neo4j import GraphDatabase
@@ -57,6 +59,9 @@ def str_formatting(x:str) ->str:
     x = x.replace("[","")
     x = x.replace("],",";")
     x = x.replace("]","")
+    
+    if x in ["", " "]:
+        x =  "Tool produced no response."
     
     return x
 
@@ -198,6 +203,9 @@ class ChitChat(dspy.Module):
         self.chatter = dspy.Predict(BasicQA)
 
     def __call__(self, question):
+        if VERBOSE:
+            print(f"Action: ChitChat({question})")
+        
         return self.chatter(question=question).answer
 
 
@@ -326,7 +334,7 @@ class InterventionToCt(dspy.Module):
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
         
         return response
 
@@ -581,11 +589,17 @@ if __name__ == "__main__":
         "Why the sky is blue?",
     ]
     print("######### TESTING #################")
-    test = GetClinicalTrial()
-    response = test("NCT00000173") # Positive test
-    response = test("NCT00000173,NCT00000292") # Positive test
-    response = test("NCT00000173], GetClinicalTrial[NCT00000173") # Negative Test
+    get_clinical_trial = GetClinicalTrial()
+    response = get_clinical_trial("NCT00000173") # Positive test
+    response = get_clinical_trial("NCT00000173,NCT00000292") # Positive test
+    response = get_clinical_trial("NCT00000173], GetClinicalTrial[NCT00000173") # Negative Test
+    
+    intervention_2_ct = InterventionToCt()
+    response = intervention_2_ct(intervention="Acetaminophen")
+    
     print("###################################")
     
    
     main(args, questions, method="all", med_sme=False)
+    
+    print("ReAct - Completed")
