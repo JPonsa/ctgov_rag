@@ -177,26 +177,26 @@ organ system:
         name: str
         biobert_emb: float[]
 
-clinicalTrial to condition:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_condition
-    source: study
-    target: condition
+# clinicalTrial to condition:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_condition
+#     source: study
+#     target: condition
 
-condition to clinicalTrial:
+condition to clinicalTrial association:
     is_a: association
     represented_as: edge
     input_label: condition_has_study
     source: condition
     target: study
 
-clinicalTrial to organisation:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_orgnisation
-    source: study
-    target: organisation
+# clinicalTrial to organisation association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_organisation
+#     source: study
+#     target: organisation
 
 # organisation to clinicalTrial:
 #     is_a: association
@@ -205,12 +205,12 @@ clinicalTrial to organisation:
 #     source: organisation
 #     target: study
 
-clinicalTrial to intervention association:
-    is_a: association
-    represented_as: edge
-    input_label: study_has_intervention
-    source: study
-    target: intervention
+# clinicalTrial to intervention association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: study_has_intervention
+#     source: study
+#     target: intervention
 
 intervention to clinicalTrial association:
     is_a: association
@@ -309,18 +309,18 @@ clinicalTrial to adverse event association:
         notes: str
         stats: str
 
-adverse event to clinicalTrial association:
-    is_a: association
-    represented_as: edge
-    input_label: adverse_event_has_study
-    source: adverse_event
-    target: study
-    properties:
-        serious_event: bool
-        assessment_type: str
-        organ_system: str
-        notes: str
-        stats: str
+# adverse event to clinicalTrial association:
+#     is_a: association
+#     represented_as: edge
+#     input_label: adverse_event_has_study
+#     source: adverse_event
+#     target: study
+#     properties:
+#         serious_event: bool
+#         assessment_type: str
+#         organ_system: str
+#         notes: str
+#         stats: str
 
 adverse event to organ system association:
     is_a: association
