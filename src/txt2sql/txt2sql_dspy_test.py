@@ -434,7 +434,7 @@ def main(args, verbose: bool = False):
         os.environ["HUGGING_FACE_TOKEN"] = args.hf
     
     if args.vllm:
-        lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000)
+        lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, stop=['\n\n', '<|eot_id|>'], model_type='chat')
         file_tags.append(args.vllm.split("/")[-1])
         
     elif args.ollama:
