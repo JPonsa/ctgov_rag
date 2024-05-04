@@ -119,7 +119,7 @@ def main(args, verbose:bool=False):
             reasoning: args.reasoning,
             multi_context: args.multi_context,
         },
-        raise_exceptions=False,
+        raise_exceptions=True,
         is_async=True # as per https://github.com/explodinggradients/ragas/issues/709
     )
     eval_ds.to_pandas().to_csv(args.output)
