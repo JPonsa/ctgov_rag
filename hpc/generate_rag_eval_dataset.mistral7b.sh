@@ -4,7 +4,7 @@
 #$ -l h_rt=8:0:0
 # Memory
 #$ -l mem=50G
-#$ -l gpu=2
+#$ -l gpu=1
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
@@ -44,7 +44,7 @@ poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mistral7b.csv \
     -hf $HF_TOKEN \
     -ports $PORT $PORT \
     --generator $MODEL \
-    --critic $MOLDEL \
+    --critic $MODEL \
     --embeddings BAAI/bge-small-en-v1.5 \
     -test_size 25 -s 0.4 -r 0.4 -mc 0.2
 

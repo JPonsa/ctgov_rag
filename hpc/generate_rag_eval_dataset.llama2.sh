@@ -4,7 +4,7 @@
 #$ -l h_rt=8:0:0
 # Memory
 #$ -l mem=50G
-#$ -l gpu=2
+#$ -l gpu=1
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
@@ -37,14 +37,14 @@ pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $GENERATOR --port 8031 --dtype half --enforce-eager \
 --max-model-len 1250 \
 --quantization gptq \
---tensor-parallel-size 2 \
---gpu-memory-utilization 0.45 &
+--gpu-memory-utilization 0.8 &
+# --tensor-parallel-size 2 \
 
-poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
---max-model-len 1250 \
---quantization gptq \
---tensor-parallel-size 2 \
---gpu-memory-utilization 0.45 &
+# poetry run python -m vllm.entrypoints.openai.api_server --model $CRITIC --port 8032 --dtype half --enforce-eager \
+# --max-model-len 1250 \
+# --quantization gptq \
+# --tensor-parallel-size 2 \
+# --gpu-memory-utilization 0.45 &
 
 
 echo I am going to sleep
@@ -57,9 +57,9 @@ poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.llama2_13b.csv \
     -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt \
     -n 25 -size 2000 \
     -hf $HF_TOKEN \
-    -ports 8031 8032 \
+    -ports 8032 8032 \
     --generator $GENERATOR \
-    --critic $CRITIC \
+    --critic $GENERATOR \
     --embeddings BAAI/bge-small-en-v1.5 \
     -test_size 25 -s 0.4 -r 0.4 -mc 0.2
 
