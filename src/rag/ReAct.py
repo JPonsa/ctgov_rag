@@ -71,7 +71,7 @@ def fromToCt_query(from_node: str, from_property: str, ct_properties: list[str])
 
     query = """
     WITH node, score
-    OPTIONAL MATCH (node)-[:{from_node}ToStudyAssociation]->(ct:ClinicalTrial)
+    OPTIONAL MATCH (node)-[:{from_node}ToClinicalTrialAssociation]->(ct:ClinicalTrial)
     WITH node, ct, max(score) AS score // deduplicate parents
     RETURN "{from_node}: "+node.{from_property}+". ClinicalTrial: {ct_properties_str} AS text, score, {{}} AS metadata
     """
@@ -89,7 +89,7 @@ def fromToCtTo_query(
 
     query = """
     WITH node, score
-    OPTIONAL MATCH path = (node)-[:{from_node}ToStudyAssociation]->(ct:ClinicalTrial)-[:StudyTo{to_node}Association]->(target:{to_node})
+    OPTIONAL MATCH path = (node)-[:{from_node}ToClinicalTrialAssociation]->(ct:ClinicalTrial)-[:StudyTo{to_node}Association]->(target:{to_node})
     WITH node.{from_property} AS from_node_txt, COLLECT(DISTINCT target.{to_property}) AS to_node_list, max(score) AS score // deduplicate parents
     RETURN "{from_node}: "+from_node_txt+". {to_node}: "+apoc.text.join(to_node_list, ', ') AS text, score, {{}} AS metadata
     """
@@ -312,25 +312,26 @@ class InterventionToCt(dspy.Module):
     input_variable = "intervention"
     desc = "Get the Clinical Trials associated to a medical Intervention."
 
-    def __init__(self):
+    def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
             index_name="intervention_biobert_emb",
             text_node_property="name",
             embedding_provider="huggingface",
             embedding_model="dmis-lab/biobert-base-cased-v1.1",
-            k=10,
+            k=k,
             retrieval_query=fromToCt_query(
                 "Intervention", "name", ["id", "study_type", "brief_title"]
             ),
         )
+        self.k = k,
         self.retriever.embedder = biobert.encode
 
-    def __call__(self, intervention: str, k: int = 5) -> str:
+    def __call__(self, intervention: str) -> str:
         
         if VERBOSE:
             print(f"Action: InterventionToCt({intervention})")
         
-        response = self.retriever(intervention, k)
+        response = self.retriever(intervention, self.k) or "Tool produced no response."
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
@@ -344,25 +345,26 @@ class InterventionToAdverseEvent(dspy.Module):
     input_variable = "intervention"
     desc = "Get the Adverse Events associated to a medical Intervention tested in a clinical trial."
 
-    def __init__(self):
+    def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
             index_name="intervention_biobert_emb",
             text_node_property="name",
             embedding_provider="huggingface",
             embedding_model="dmis-lab/biobert-base-cased-v1.1",
-            k=10,
+            k=k,
             retrieval_query=fromToCtTo_query(
                 "Intervention", "name", "AdverseEvent", "term"
             ),
         )
+        self.k = k,
         self.retriever.embedder = biobert.encode
 
-    def __call__(self, intervention: str, k: int = 5) -> str:
+    def __call__(self, intervention: str) -> str:
         
         if VERBOSE:
             print(f"Action: InterventionToAdverseEvent({intervention})")
     
-        response = self.retriever(intervention, k)
+        response = self.retriever(intervention, self.k) or "Tool produced no response."
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
@@ -376,25 +378,26 @@ class ConditionToCt(dspy.Module):
     input_variable = "condition"
     desc = "Get the Clinical Trials associated to a medical condition."
 
-    def __init__(self):
+    def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
             index_name="condition_biobert_emb",
             text_node_property="name",
             embedding_provider="huggingface",
             embedding_model="dmis-lab/biobert-base-cased-v1.1",
-            k=10,
+            k=k,
             retrieval_query=fromToCt_query(
                 "Condition", "name", ["id", "study_type", "brief_title"]
             ),
         )
+        self.k = k,
         self.retriever.embedder = biobert.encode
 
-    def __call__(self, intervention: str, k: int = 5) -> str:
+    def __call__(self, intervention: str) -> str:
         
         if VERBOSE:
             print(f"Action: ConditionToCt({intervention})")
 
-        response = self.retriever(intervention, k)
+        response = self.retriever(intervention, self.k) or "Tool produced no response."
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
@@ -408,25 +411,26 @@ class ConditionToIntervention(dspy.Module):
     input_variable = "condition"
     desc = "Get the medical Interventions associated to a medical Condition tested in a clinical trial."
 
-    def __init__(self):
+    def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
             index_name="condition_biobert_emb",
             text_node_property="name",
             embedding_provider="huggingface",
             embedding_model="dmis-lab/biobert-base-cased-v1.1",
-            k=10,
+            k=k,
             retrieval_query=fromToCtTo_query(
                 "Condition", "name", "Intervention", "name"
             ),
         )
+        self.k = k,
         self.retriever.embedder = biobert.encode
 
-    def __call__(self, intervention: str, k: int = 5) -> str:
+    def __call__(self, intervention: str) -> str:
         
         if VERBOSE:
             print(f"Action: ConditionToIntervention({intervention})")
 
-        response = self.retriever(intervention, k)
+        response = self.retriever(intervention, self.k) or "No "
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
@@ -441,7 +445,7 @@ class MedicalSME(dspy.Module):
 
     def __init__(self, model:str, host:str, port:int):
         self.SME = dspy.ChainOfThought(BasicQA)    
-        self.lm = dspy.HFClientVLLM(model=model, port=port, url=host, max_tokens=1_000, timeout_s=2_000)
+        self.lm = dspy.HFClientVLLM(model=model, port=port, url=host, max_tokens=1_000, timeout_s=2_000, stop=['\n\n', '<|eot_id|>'], model_type='chat')
 
     def __call__(self, question) -> str:
         with dspy.context(lm=self.lm, temperature=0.7):
@@ -497,14 +501,14 @@ class AnalyticalQuery(dspy.Module):
 
 
 def main(args, questions:list, method:str="all", med_sme:bool=True):
-    
+    k=10
     KG_tools = [
     GetClinicalTrial(),
-    ClinicalTrialToEligibility(),
-    InterventionToCt(),
-    InterventionToAdverseEvent(),
-    ConditionToCt(),
-    ConditionToIntervention(),
+    ClinicalTrialToEligibility(k=k),
+    InterventionToCt(k=k),
+    InterventionToAdverseEvent(k=k),
+    ConditionToCt(k=k),
+    ConditionToIntervention(k=k),
     ]
 
     tools = [ChitChat()]
@@ -533,7 +537,7 @@ def main(args, questions:list, method:str="all", med_sme:bool=True):
     
     react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=3)
     
-    lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000)
+    lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, stop=['\n\n', '<|eot_id|>'], model_type='chat')
     dspy.settings.configure(lm=lm, temperature=0.3)
     
 
