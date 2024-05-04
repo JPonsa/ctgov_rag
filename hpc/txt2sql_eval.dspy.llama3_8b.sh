@@ -26,7 +26,7 @@ AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
 MODEL=meta-llama/Meta-Llama-3-8B-Instruct
-PORT=8003
+PORT=8005
 
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.95 &
