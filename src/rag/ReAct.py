@@ -218,15 +218,10 @@ class GetClinicalTrial(dspy.Module):
     desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get Clinical Trials summaries."
 
     def __init__(self):
-
-        try:
-            self.driver = GraphDatabase.driver(
-                os.getenv("NEO4J_URI"),
-                auth=(os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD")),
-                )
-            self.driver.verify_connectivity()
-        except (ServiceUnavailable, AuthError) as e:
-            raise ConnectionError("Failed to connect to Neo4j database") from e
+        self.uri = os.getenv("NEO4J_URI")
+        self.user = os.getenv("NEO4J_USERNAME")
+        self.pwd = os.getenv("NEO4J_PASSWORD")
+        self.db = os.getenv("NEO4J_DATABASE")
 
     def __call__(self, nctid_list: list) -> str:
         if VERBOSE:
@@ -237,10 +232,9 @@ class GetClinicalTrial(dspy.Module):
             nctid_list=",".join(["'" + x + "'" for x in nctid_list.split(",")]),
             field_list=", ".join("ClinicalTrial." + f for f in fields),
         )
-
-        neo4j_response, _, _ = self.driver.execute_query(
-            query, database_=os.getenv("NEO4J_DATABASE")
-        )
+        
+        with GraphDatabase.driver(self.uri, auth=(self.user, self.pwd)) as driver:
+            neo4j_response, _, _ = driver.execute_query(query, database_=self.db)
         
         text = {}
         for r in neo4j_response:
@@ -251,7 +245,7 @@ class GetClinicalTrial(dspy.Module):
         response = str_formatting(json.dumps(text))
         
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
         
         return response
 
@@ -264,14 +258,10 @@ class ClinicalTrialToEligibility(dspy.Module):
     desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get the trial eligibility criteria."
 
     def __init__(self):
-        try:
-            self.driver = GraphDatabase.driver(
-                os.getenv("NEO4J_URI"),
-                auth=(os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD")),
-                )
-            self.driver.verify_connectivity()
-        except (ServiceUnavailable, AuthError) as e:
-            raise ConnectionError("Failed to connect to Neo4j database") from e
+        self.uri = os.getenv("NEO4J_URI")
+        self.user = os.getenv("NEO4J_USERNAME")
+        self.pwd = os.getenv("NEO4J_PASSWORD")
+        self.db = os.getenv("NEO4J_DATABASE")
 
     def __call__(self, nctid_list: list) -> str:
         
@@ -293,18 +283,17 @@ class ClinicalTrialToEligibility(dspy.Module):
             field_list=", ".join("e." + f for f in fields),
         )
 
-        neo4_response, _, _ = self.driver.execute_query(
-            query, database_=os.getenv("NEO4J_DATABASE")
-        )
+        with GraphDatabase.driver(self.uri, auth=(self.user, self.pwd)) as driver:
+            neo4j_response, _, _ = driver.execute_query(query, database_=self.db)
         
         text = {}
-        for r in neo4_response:
+        for r in neo4j_response:
             text[r[f"ct.id"]] = {f: r[f"e.{f}"] for f in fields}
 
         response = str_formatting(json.dumps(text))
         
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
         
         return response
 
@@ -435,7 +424,7 @@ class ConditionToIntervention(dspy.Module):
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
         
         return response
 
@@ -453,7 +442,7 @@ class MedicalSME(dspy.Module):
             response = self.lm(question).answer
             
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
             
         return response
 
@@ -496,13 +485,13 @@ class AnalyticalQuery(dspy.Module):
         ).answer
 
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
 
         return response
 
 
 def main(args, questions:list, method:str="all", med_sme:bool=True):
-    k=10
+    k=5
     KG_tools = [
     GetClinicalTrial(),
     ClinicalTrialToEligibility(),
@@ -593,18 +582,16 @@ if __name__ == "__main__":
         "How many people where individual enrolled in clinical trial NCT00000173?",
         "Why the sky is blue?",
     ]
-    print("######### TESTING #################")
-    get_clinical_trial = GetClinicalTrial()
-    response = get_clinical_trial("NCT00000173") # Positive test
-    response = get_clinical_trial("NCT00000173,NCT00000292") # Positive test
-    response = get_clinical_trial("NCT00000173], GetClinicalTrial[NCT00000173") # Negative Test
+    # print("######### TESTING #################")
+    # get_clinical_trial = GetClinicalTrial()
+    # response = get_clinical_trial("NCT00000173") # Positive test
+    # response = get_clinical_trial("NCT00000173,NCT00000292") # Positive test
+    # response = get_clinical_trial("NCT00000173], GetClinicalTrial[NCT00000173") # Negative Test
     
-    intervention_2_ct = InterventionToCt()
-    response = intervention_2_ct(intervention="Acetaminophen")
-    
-    print("###################################")
+    # intervention_2_ct = InterventionToCt()
+    # response = intervention_2_ct(intervention="Acetaminophen")
+    # print("###################################")
     
    
     main(args, questions, method="all", med_sme=False)
-    
     print("ReAct - Completed")
