@@ -3,7 +3,8 @@ import json
 import os
 import sys
 
-os.environ["DPS_CACHEBOOL"]='False'
+os.environ ['CUDA_LAUNCH_BLOCKING'] ='1' # For vLLM error reporting
+os.environ["DPS_CACHEBOOL"]='False' # DSPY no cache
 
 import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
@@ -89,7 +90,7 @@ def fromToCtTo_query(
 
     query = """
     WITH node, score
-    OPTIONAL MATCH path = (node)-[:{from_node}ToClinicalTrialAssociation]->(ct:ClinicalTrial)-[:StudyTo{to_node}Association]->(target:{to_node})
+    OPTIONAL MATCH path = (node)-[:{from_node}ToClinicalTrialAssociation]->(ct:ClinicalTrial)-[:ClinicalTrialTo{to_node}Association]->(target:{to_node})
     WITH node.{from_property} AS from_node_txt, COLLECT(DISTINCT target.{to_property}) AS to_node_list, max(score) AS score // deduplicate parents
     RETURN "{from_node}: "+from_node_txt+". {to_node}: "+apoc.text.join(to_node_list, ', ') AS text, score, {{}} AS metadata
     """
@@ -285,7 +286,7 @@ class ClinicalTrialToEligibility(dspy.Module):
             "eligibility_criteria",
         ]
 
-        query = """MATCH (ct:ClinicalTrial)-[:StudyToEligibilityAssociation]->(e:Eligibility)
+        query = """MATCH (ct:ClinicalTrial)-[:ClinicalTrialToEligibilityAssociation]->(e:Eligibility)
         WHERE ct.id IN [{nctid_list}] RETURN ct.id, {field_list}
         """.format(
             nctid_list=",".join(["'" + x + "'" for x in nctid_list.split(",")]),
@@ -323,7 +324,7 @@ class InterventionToCt(dspy.Module):
                 "Intervention", "name", ["id", "study_type", "brief_title"]
             ),
         )
-        self.k = k,
+        self.k = k
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str) -> str:
@@ -356,7 +357,7 @@ class InterventionToAdverseEvent(dspy.Module):
                 "Intervention", "name", "AdverseEvent", "term"
             ),
         )
-        self.k = k,
+        self.k = k
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str) -> str:
@@ -389,7 +390,7 @@ class ConditionToCt(dspy.Module):
                 "Condition", "name", ["id", "study_type", "brief_title"]
             ),
         )
-        self.k = k,
+        self.k = k
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str) -> str:
@@ -422,7 +423,7 @@ class ConditionToIntervention(dspy.Module):
                 "Condition", "name", "Intervention", "name"
             ),
         )
-        self.k = k,
+        self.k = k
         self.retriever.embedder = biobert.encode
 
     def __call__(self, intervention: str) -> str:
@@ -430,7 +431,7 @@ class ConditionToIntervention(dspy.Module):
         if VERBOSE:
             print(f"Action: ConditionToIntervention({intervention})")
 
-        response = self.retriever(intervention, self.k) or "No "
+        response = self.retriever(intervention, self.k) or "Tool produced no response."
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
@@ -504,7 +505,7 @@ def main(args, questions:list, method:str="all", med_sme:bool=True):
     k=10
     KG_tools = [
     GetClinicalTrial(),
-    ClinicalTrialToEligibility(k=k),
+    ClinicalTrialToEligibility(),
     InterventionToCt(k=k),
     InterventionToAdverseEvent(k=k),
     ConditionToCt(k=k),
