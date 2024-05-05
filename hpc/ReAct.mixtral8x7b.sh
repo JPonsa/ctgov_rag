@@ -25,12 +25,14 @@ AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
-MODEL=mistralai/Mistral-7B-Instruct-v0.2
 MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
-PORT=8042
+PORT=8043
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port $PORT --dtype half --enforce-eager \
+echo #---- Enviromental config
+poetry run python collect_env.py
+echo #------------------------
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
 --max-model-len 5000 \
 --gpu-memory-utilization 0.80 &

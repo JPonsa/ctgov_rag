@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ReAct_mistral
 # Max run time in H:M:S
-#$ -l h_rt=0:10:0
+#$ -l h_rt=0:30:0
 # Memory
 #$ -l mem=48G
 #$ -l gpu=1
@@ -29,7 +29,12 @@ MODEL=mistralai/Mistral-7B-Instruct-v0.2
 PORT=8042
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.95 &
+echo #---- Enviromental config
+poetry run python collect_env.py
+echo #------------------------
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
+--max-model-len 5000 \
+--gpu-memory-utilization 0.80 &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
