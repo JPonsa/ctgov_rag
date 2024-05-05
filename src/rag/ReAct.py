@@ -10,6 +10,7 @@ import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
 from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
+import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 
@@ -489,7 +490,6 @@ class AnalyticalQuery(dspy.Module):
 
         return response
 
-
 def main(args, questions:list, method:str="all", med_sme:bool=True):
     k=5
     KG_tools = [
@@ -503,22 +503,27 @@ def main(args, questions:list, method:str="all", med_sme:bool=True):
 
     tools = [ChitChat()]
     
-    valid_methods = ["sql-only", "lg-only", "all"]
+    
+    #---- Define the tools to be used
+    valid_methods = ["sql_only", "kg_only","cypher_only", "all"]
     if method not in valid_methods:
         raise NotImplementedError(f"method={method} not supported. methods must be one of {valid_methods}")
     
-    if method == "sql-only":
+    if method == "sql_only":
         tools += [AnalyticalQuery(sql=True, kg=False)]
     
-    elif method == "kg-only":
+    elif method == "kg_only":
         tools += [AnalyticalQuery(sql=False, kg=True)]
         tools += KG_tools
-        
+    
+    elif method == "cypher_only":
+        tools += [AnalyticalQuery(sql=False, kg=True)]
+    
     else:
         tools += [AnalyticalQuery(sql=True, kg=True)]
         tools += KG_tools
         
-    if med_sme:
+    if args.med_sme:
         # TODO: Not hardcoded or better set.
         sme_model = "TheBloke/meditron-7B-GPTQ"
         sme_host = "http://0.0.0.0"
@@ -527,29 +532,30 @@ def main(args, questions:list, method:str="all", med_sme:bool=True):
     
     react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=3)
     
+    
+    #---- Load the LLM
     lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, stop=['\n\n', '<|eot_id|>'], model_type='chat')
     dspy.settings.configure(lm=lm, temperature=0.3)
     
-
-    for question in questions:
+    #---- Get questioner
+    questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=0)
+    
+    #---- Answer questioner
+    for idx, row in questioner.iterrows():
+        question = row.question
         print("#####################")
         print(f"Question: {question}")
         result = react_module(question=question)
+        questioner.loc[idx, "ReAct_answer"] = result.answer
         print(f"Final Predicted Answer (after ReAct process): {result.answer}")
-
+        
+    #---- Save response
+    questioner.to_csv(args.output_tsv, sep="t", index=None)
 
 if __name__ == "__main__":
         
     parser = argparse.ArgumentParser(description="ct.gov ReAct")
-
-    # Add arguments
-    parser.add_argument(
-        "-output_dir",
-        type=str,
-        default="./results/ReAct/",
-        help="path to directory where to store results.",
-    )
-
+    
     parser.add_argument(
         "-vllm",
         type=str,
@@ -571,27 +577,43 @@ if __name__ == "__main__":
         help="LLM server port.",
     )
     
-    parser.set_defaults(vllm=None)
+        # Add arguments
+    parser.add_argument(
+        "-i",
+        "--input_tsv",
+        type=str,
+        default="./data/ctGov.questioner.mistral7b.tsv",
+        help="path to questioner file. It assumes that the file is tab-separated. that the file contains 1st column as index and a `question` column.",
+    )
+
+    # Add arguments
+    parser.add_argument(
+        "-o",
+        "--output_tsv",
+        type=str,
+        default="./results/ReAct/ctGov.questioner.mistral7b.tsv",
+        help="full path to the output tsv file. The file will contain the same information as the input file plus an additional `ReAct_answer` column.",
+    )
+    
+        # Add arguments
+    parser.add_argument(
+        "-m",
+        "--method",
+        type=str,
+        default="all",
+        help="""inference methods`sql_only`, `kg_only`, `cypher_oly`, `all`.
+        `sql_only` user txt-2-SQL llamaindex tool directly to AACT. 
+        `kg_only` uses a set of pre-defined tools for Vector Search and txt-2-Cypher on a Neo4j KG.
+        `cypher_only` uses txt-2-Cypher LnagChian tool on a Neo4j KG.
+        `all` user all tools available.
+        Default `all`."""
+    )
+    parser.add_argument("-s","--med_sme", action='store_true', help="Flag indicating the access to a Med SME LLM like Meditron. Default: False")
+    
+    
+    parser.set_defaults(vllm=None, med_sme=False)
 
     args = parser.parse_args()
-    
-    
-    questions = [
-        "What are the adverse events associated with drug Acetaminophen?",
-        "What intervention is studies in clinical trial NCT00000173?",
-        "How many people where individual enrolled in clinical trial NCT00000173?",
-        "Why the sky is blue?",
-    ]
-    # print("######### TESTING #################")
-    # get_clinical_trial = GetClinicalTrial()
-    # response = get_clinical_trial("NCT00000173") # Positive test
-    # response = get_clinical_trial("NCT00000173,NCT00000292") # Positive test
-    # response = get_clinical_trial("NCT00000173], GetClinicalTrial[NCT00000173") # Negative Test
-    
-    # intervention_2_ct = InterventionToCt()
-    # response = intervention_2_ct(intervention="Acetaminophen")
-    # print("###################################")
-    
    
-    main(args, questions, method="all", med_sme=False)
+    main(args)
     print("ReAct - Completed")
