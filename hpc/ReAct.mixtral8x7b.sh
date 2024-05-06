@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ReAct_mixtral
 # Max run time in H:M:S
-#$ -l h_rt=0:30:0
+#$ -l h_rt=1:00:0
 # Memory
 #$ -l mem=48G
 #$ -l gpu=1
