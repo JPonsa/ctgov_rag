@@ -490,7 +490,7 @@ class AnalyticalQuery(dspy.Module):
 
         return response
 
-def main(args, questions:list, method:str="all", med_sme:bool=True):
+def main(args):
     k=5
     KG_tools = [
     GetClinicalTrial(),
@@ -506,17 +506,17 @@ def main(args, questions:list, method:str="all", med_sme:bool=True):
     
     #---- Define the tools to be used
     valid_methods = ["sql_only", "kg_only","cypher_only", "all"]
-    if method not in valid_methods:
-        raise NotImplementedError(f"method={method} not supported. methods must be one of {valid_methods}")
+    if args.method not in valid_methods:
+        raise NotImplementedError(f"method={args.method} not supported. methods must be one of {valid_methods}")
     
-    if method == "sql_only":
+    if args.method == "sql_only":
         tools += [AnalyticalQuery(sql=True, kg=False)]
     
-    elif method == "kg_only":
+    elif args.method == "kg_only":
         tools += [AnalyticalQuery(sql=False, kg=True)]
         tools += KG_tools
     
-    elif method == "cypher_only":
+    elif args.method == "cypher_only":
         tools += [AnalyticalQuery(sql=False, kg=True)]
     
     else:
