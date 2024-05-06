@@ -3,8 +3,8 @@
 # Max run time in H:M:S
 #$ -l h_rt=12:0:0
 # Memory
-#$ -l mem=32G
-#$ -l gpu=2
+#$ -l mem=48G
+#$ -l gpu=1
 
 
 # workig directory. Use #S -cwd to use current working dir
@@ -31,9 +31,9 @@ PORT=8011
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 4000 \
---tensor-parallel-size 1 \
---gpu-memory-utilization 0.80 &
+--max-model-len 5000 \
+--gpu-memory-utilization 0.90 &
+# --tensor-parallel-size 2 \
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
