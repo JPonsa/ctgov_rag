@@ -5,7 +5,7 @@
 # Memory
 #$ -l mem=48G
 #$ -l gpu=1
-
+#$ -ac allow=EFL
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
@@ -26,6 +26,7 @@ AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
 MODEL=mistralai/Mistral-7B-Instruct-v0.2
+MODEL_NAME=mistral7b
 PORT=8042
 
 export VLLM_TRACE_FUNCTION=1
@@ -43,23 +44,28 @@ echo I am awake
 ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
 -i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.mixtral7x8b.all.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
 -m all
 
+ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
 -i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.mixtral7x8b.sql_only.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
 -m sql_only
 
+ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
 -i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.mixtral7x8b.kg_only.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
 -m kg_only
 
+ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
 -i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.mixtral7x8b.cypher_only.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
 -m cypher_only
+
+echo ReAct $MODEL_NAME competed!
 
 # -user $AACT_USER -pwd $AACT_PWD \
 # -sql_query_template ./src/txt2sql/sql_queries_template.yaml \

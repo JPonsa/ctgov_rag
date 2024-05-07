@@ -5,6 +5,7 @@
 # Memory
 #$ -l mem=50G
 #$ -l gpu=4
+#$ -ac allow=EFL
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/

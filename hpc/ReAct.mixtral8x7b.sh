@@ -1,11 +1,11 @@
 #!/bin/bash -l
 #$ -N ReAct_mixtral
 # Max run time in H:M:S
-#$ -l h_rt=1:00:0
+#$ -l h_rt=2:00:0
 # Memory
 #$ -l mem=48G
-#$ -l gpu=1
-
+#$ -l gpu=2
+#$ -ac allow=EFL
 
 # workig directory. Use #S -cwd to use current working dir
 #$ -wd /home/rmhijpo/Scratch/ctgov_rag/
@@ -26,6 +26,7 @@ AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
 MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
+MODEL_NAME=mixtral8x7b
 PORT=8043
 
 pip install poetry
@@ -34,13 +35,36 @@ poetry run python collect_env.py
 echo #------------------------
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 5000 \
+--max-model-len 4000 \
 --gpu-memory-utilization 0.80 &
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
+-m all
+
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
+-m sql_only
+
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
+-m kg_only
+
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
+-m cypher_only
+
+echo ReAct $MODEL_NAME competed!
 
 # -user $AACT_USER -pwd $AACT_PWD \
 # -sql_query_template ./src/txt2sql/sql_queries_template.yaml \
