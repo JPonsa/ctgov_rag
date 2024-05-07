@@ -4,7 +4,7 @@ import os
 import sys
 
 os.environ ['CUDA_LAUNCH_BLOCKING'] ='1' # For vLLM error reporting
-os.environ["DPS_CACHEBOOL"]='False' # DSPY no cache
+os.environ["DPS_CACHEBOOL"]='False' # dspy no cache
 
 import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
@@ -534,7 +534,10 @@ def main(args):
     
     
     #---- Load the LLM
-    lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, stop=['\n\n', '<|eot_id|>'], model_type='chat')
+    lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
+                           stop=['\n\n', '<|eot_id|>'], 
+                        #    model_type='chat',
+                           )
     dspy.settings.configure(lm=lm, temperature=0.3)
     
     #---- Get questioner
@@ -550,7 +553,7 @@ def main(args):
         print(f"Final Predicted Answer (after ReAct process): {result.answer}")
         
     #---- Save response
-    questioner.to_csv(args.output_tsv, sep="t", index=None)
+    questioner.to_csv(args.output_tsv, sep="\t", index=None)
 
 if __name__ == "__main__":
         
