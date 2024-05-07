@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-os.environ["DSP_CACHEBOOL"]="False"
+os.environ["DSP_CACHEBOOL"]="False" # dspy no cache
 import dspy
 import pandas as pd
 import yaml
