@@ -558,7 +558,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"What type of observational model is used in {nctId}? [Cohort, Case-Control, Case-Only, Case-CrossOver, Ecologic, Family-based, Defined Population, Natural History, Other, NA]"
+            f"What type of observational model is used in {nctId}? Select from [Cohort, Case-Control, Case-Only, Case-CrossOver, Ecologic, Family-based, Defined Population, Natural History, Other, NA]"
         ]
         question = np.random.choice(questions, 1)
         # Context
@@ -577,7 +577,7 @@ class CtGovStudyQuestioner:
         nctId = self.nctId
         # Question
         questions = [
-            f"What is the design time frame in clinical trial (a.k.a. study) {nctId}? [Retrospective, Prospective, Cross-Sectional, Other, NA]"
+            f"What is the design time frame in clinical trial (a.k.a. study) {nctId}? Select from [Retrospective, Prospective, Cross-Sectional, Other, NA]"
         ]
         question = np.random.choice(questions, 1)
         # Context
