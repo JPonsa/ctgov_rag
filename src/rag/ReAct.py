@@ -472,9 +472,9 @@ class AnalyticalQuery(dspy.Module):
     desc = "Access to a db of clinical trials. Reply question that could be answered with a SQL query. Use when other tools are not suitable."
 
     def __init__(self, sql:bool=True, kg:bool=True):
-        sql_engine = get_sql_engine(model=args.vllm, model_host=args.host, model_port=args.port)
-        cypher_engine = get_cypher_engine(model=args.vllm, model_host=args.host, model_port=args.port)
-        response_generator = dspy.Predict(QAwithContext)
+        self.sql_engine = get_sql_engine(model=args.vllm, model_host=args.host, model_port=args.port)
+        self.cypher_engine = get_cypher_engine(model=args.vllm, model_host=args.host, model_port=args.port)
+        self.response_generator = dspy.Predict(QAwithContext)
         self.sql = sql
         self.kg = kg
         if not (self.sql or self.kg):
@@ -510,8 +510,8 @@ class AnalyticalQuery(dspy.Module):
                 
         response = self.response_generator(
             question=question,
-            sql_response=sql_response,
-            cypher_response=cypher_response,
+            sql_response=str_formatting(sql_response, max_token=1_000),
+            cypher_response=str_formatting(cypher_response, max_token=1_000),
         ).answer
 
         if VERBOSE:
