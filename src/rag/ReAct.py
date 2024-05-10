@@ -477,6 +477,9 @@ class AnalyticalQuery(dspy.Module):
 
     def __call__(self, question):
         
+        if VERBOSE:
+            print(f"Action: AnalyticalQuery({question})")
+                    
         sql_response=""
         cypher_response=""
         
@@ -491,7 +494,15 @@ class AnalyticalQuery(dspy.Module):
                 cypher_response = self.cypher_engine.invoke(question)
             except Exception as e:
                 cypher_response = "Sorry, I could not provide an answer."
+                
+                
+        if VERBOSE:
+            if self.sql:
+                print(f"SQL Response: {sql_response}")
 
+            if self.kg:
+                print(f"Cypher Response: {sql_response}")
+                
         response = self.response_generator(
             question=question,
             sql_response=sql_response,
