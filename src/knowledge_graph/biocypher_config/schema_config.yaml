@@ -12,6 +12,7 @@ clinical trial:
         keywords: str[]
         phases: str
         study_type: str
+        n_participants: int
         why_stopped: str
         trial2vec_emb: float[]
         biobert_emb: float[]
@@ -49,7 +50,7 @@ outcome:
     properties:
         primary: bool
         measure: str
-        timeframe: str
+        time_frame: str
         description: str
         biobert_emb: float[]
 

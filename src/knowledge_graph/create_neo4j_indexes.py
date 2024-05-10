@@ -145,12 +145,18 @@ if __name__ == "__main__":
     # NEO4J_PWD = "password"
 
     NEO4J_USER = "neo4j"
-    NEO4J_PWD = "password"
-    URI = "bolt://localhost:7687"
-    AUTH = (NEO4J_USER, NEO4J_PWD)
-    DB_NAME = "ctgov"
+    # NEO4J_PWD = "password"
+    # URI = "bolt://localhost:7687"
 
-    with GraphDatabase.driver(URI, auth=AUTH) as driver:
+    NEO4J_URI = "neo4j+s://e5534dd1.databases.neo4j.io"
+    NEO4J_USERNAME = "neo4j"
+    NEO4J_PASSWORD = "Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE"
+
+    AUTH = (NEO4J_USERNAME, NEO4J_PASSWORD)
+    # DB_NAME = "ctgov"
+    DB_NAME = "neo4j"
+
+    with GraphDatabase.driver(NEO4J_URI, auth=AUTH) as driver:
         driver.verify_connectivity()
 
         # Clinical Trials
