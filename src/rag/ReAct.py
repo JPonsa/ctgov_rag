@@ -27,10 +27,6 @@ from utils.utils import dspy_tracing, print_red
 
 # dspy_tracing()
 
-MODEL="mistralai/Mistral-7B-Instruct-v0.2"
-PORT=8042
-HOST="http://0.0.0.0"
-
 VERBOSE = True
 
 # TODO: Remove credentials
@@ -49,10 +45,22 @@ os.environ["AACT_PWD"] = "aact.ctti-clinicaltrials.org"
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
 
+# TODO: Review if this is the best way. Could if be an alternative in which
+# chunks are summarised and aggregated into one single contexts? 
+
+def check_context_length(x:str, max_token:int=2_500)->str:
+    CHR_PER_TOKEN = 4
+    max_characters = max_token*CHR_PER_TOKEN
+    if len(x) > max_characters:
+        return x[:max_characters]+" ..."
+    else:
+        return x
+
 def str_formatting(x:str) ->str:
     """Remove some special characters that could be confusing the LLM or interfering with the post processing of the text"""
     
     if not isinstance(x, str):
+        print("NOT A STRING!!!!!")
         return x
     
     x = x.replace('"',"")
@@ -61,6 +69,11 @@ def str_formatting(x:str) ->str:
     x = x.replace("[","")
     x = x.replace("],",";")
     x = x.replace("]","")
+    
+    x = check_context_length(x)
+    
+    #TODO: Assess whether it is required to limite the str lenght 
+    # to fix token / character lenght.
     
     if x in ["", " "]:
         x =  "Tool produced no response."
@@ -454,8 +467,8 @@ class AnalyticalQuery(dspy.Module):
     desc = "Access to a db of clinical trials. Reply question that could be answered with a SQL query. Use when other tools are not suitable."
 
     def __init__(self, sql:bool=True, kg:bool=True):
-        sql_engine = get_sql_engine(model=MODEL, model_host=HOST, model_port=PORT)
-        cypher_engine = get_cypher_engine(model=MODEL, model_host=HOST, model_port=PORT)
+        sql_engine = get_sql_engine(model=args.vllm, model_host=args.host, model_port=args.port)
+        cypher_engine = get_cypher_engine(model=args.vllm, model_host=args.host, model_port=args.port)
         response_generator = dspy.Predict(QAwithContext)
         self.sql = sql
         self.kg = kg
