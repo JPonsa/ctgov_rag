@@ -518,7 +518,7 @@ def main(args):
     
     
     #---- Define the tools to be used
-    valid_methods = ["sql_only", "kg_only","cypher_only", "all"]
+    valid_methods = ["sql_only", "kg_only","cypher_only", "llm_only", "all"]
     if args.method not in valid_methods:
         raise NotImplementedError(f"method={args.method} not supported. methods must be one of {valid_methods}")
     
@@ -532,6 +532,8 @@ def main(args):
     elif args.method == "cypher_only":
         tools += [AnalyticalQuery(sql=False, kg=True)]
     
+    elif args.method == "llm_only":
+        pass
     else:
         tools += [AnalyticalQuery(sql=True, kg=True)]
         tools += KG_tools

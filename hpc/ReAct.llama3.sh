@@ -58,6 +58,14 @@ poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
 -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
 -m cypher_only
 
+
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.llm_only.tsv \
+-m llm_only
+
+
 echo ReAct $MODEL_NAME competed!
 
 # -user $AACT_USER -pwd $AACT_PWD \
