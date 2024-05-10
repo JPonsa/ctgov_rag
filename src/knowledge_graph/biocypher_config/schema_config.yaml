@@ -50,7 +50,7 @@ outcome:
     properties:
         primary: bool
         measure: str
-        timeframe: str
+        time_frame: str
         description: str
         biobert_emb: float[]
 

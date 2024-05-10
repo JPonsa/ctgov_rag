@@ -347,6 +347,8 @@ class ctGovAdapter:
             n_participants = get_recursive(
                 protocol, "designModule.enrollmentInfo.count"
             )
+            if n_participants:
+                n_participants = f"{n_participants:,}"
 
             if nct_id not in self._studies.keys():
                 self._studies.update(
