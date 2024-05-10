@@ -5,6 +5,8 @@
 # Memory
 #$ -l mem=32G
 #$ -l gpu=1
+#$ -ac allow=EFL
+
 
 
 # workig directory. Use #S -cwd to use current working dir
