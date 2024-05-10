@@ -25,8 +25,8 @@ nest_asyncio.apply()
 
 def str_format(x:str)->str:
     x =  (x.replace('"', '')
-          .replace("\n"," ")
           .replace("\\n"," ")
+          .replace("\n"," ")
           .replace("  ", " ")
           .replace("{","")
           .replace("}", "")
