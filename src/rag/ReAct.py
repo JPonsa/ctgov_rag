@@ -52,6 +52,7 @@ def check_context_length(x:str, max_token:int=2_500)->str:
     CHR_PER_TOKEN = 4
     max_characters = max_token*CHR_PER_TOKEN
     if len(x) > max_characters:
+        print(f"Context too large {x[:max_characters]} ...")
         return x[:max_characters]+" ..."
     else:
         return x
@@ -449,7 +450,11 @@ class MedicalSME(dspy.Module):
 
     def __init__(self, model:str, host:str, port:int):
         self.SME = dspy.ChainOfThought(BasicQA)    
-        self.lm = dspy.HFClientVLLM(model=model, port=port, url=host, max_tokens=1_000, timeout_s=2_000, stop=['\n\n', '<|eot_id|>'], model_type='chat')
+        self.lm = dspy.HFClientVLLM(model=model, port=port, url=host, max_tokens=1_000, timeout_s=2_000, 
+                                    stop=['\n\n', '<|eot_id|>'],
+                                    # model_type='chat',
+                                    )
+        
 
     def __call__(self, question) -> str:
         with dspy.context(lm=self.lm, temperature=0.7):
