@@ -57,7 +57,7 @@ def check_context_length(x:str, max_token:int=2_500)->str:
     else:
         return x
 
-def str_formatting(x:str) ->str:
+def str_formatting(x:str, max_token:int=2_500) ->str:
     """Remove some special characters that could be confusing the LLM or interfering with the post processing of the text"""
     
     if not isinstance(x, str):
@@ -71,7 +71,7 @@ def str_formatting(x:str) ->str:
     x = x.replace("],",";")
     x = x.replace("]","")
     
-    x = check_context_length(x)
+    x = check_context_length(x, max_token)
     
     #TODO: Assess whether it is required to limite the str lenght 
     # to fix token / character lenght.
@@ -305,7 +305,7 @@ class ClinicalTrialToEligibility(dspy.Module):
         for r in neo4j_response:
             text[r[f"ct.id"]] = {f: r[f"e.{f}"] for f in fields}
 
-        response = str_formatting(json.dumps(text))
+        response = str_formatting(json.dumps(text), max_token=1_500)
         
         if VERBOSE:
             print(f"Function Response: {response}")
