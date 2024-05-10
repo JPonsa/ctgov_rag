@@ -55,8 +55,8 @@ if __name__ == "__main__":
     neo4j_command = (
         neo4j_command.replace("bin/neo4j-admin", "bin\\neo4j-admin")
         .replace("--quote='\"'", "")
-        .replace("import --database=", "database import full")
-        .replace("--delimiter=", "--overwrite-destination --delimiter=")
+        .replace("import --database", "database import full")
+        .replace("--force=true", "--overwrite-destination")
     )
 
     with open(output_dir + "neo4j-admin-import-call-windows.sh", "w") as f:
