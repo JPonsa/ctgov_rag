@@ -23,6 +23,19 @@ import nest_asyncio
 nest_asyncio.apply()
 
 
+def str_format(x:str)->str:
+    x =  (x.replace('"', '')
+          .replace("\n"," ")
+          .replace("\\n"," ")
+          .replace("  ", " ")
+          .replace("{","")
+          .replace("}", "")
+          .replace("[","")
+          .replace("],",";")
+          .replace("]","")
+          )
+    return x
+
 def create_documents(args):
 
     studies = []
@@ -30,6 +43,9 @@ def create_documents(args):
     with connect_to_mongoDB(args.user, args.pwd) as client:
         db = client[args.db]
         collection = db[args.collection]
+        
+        #Remove Locations from the document
+        collection.update_many({}, {"$unset": {"protocolSection.contactsLocationsModule": 1}})
 
         print(
             f"Pulling first {args.n} CT studies from MongoDB db:{args.db} collection:{args.collection}"
@@ -46,6 +62,7 @@ def create_documents(args):
     # this it needed for the RAGAS lib.
     for d in docs:
         d.metadata["filename"] = d.page_content[2:13]
+        d.page_content = str_format(d.page_content)
         
     return docs
 
@@ -119,7 +136,7 @@ def main(args, verbose:bool=False):
             reasoning: args.reasoning,
             multi_context: args.multi_context,
         },
-        raise_exceptions=False,
+        raise_exceptions=True,
         is_async=True # as per https://github.com/explodinggradients/ragas/issues/709
     )
     eval_ds.to_pandas().to_csv(args.output)

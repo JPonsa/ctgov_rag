@@ -1,10 +1,10 @@
 #!/bin/bash -l
-#$ -N ReAct_mistral
+#$ -N ReAct_mixtral
 # Max run time in H:M:S
-#$ -l h_rt=0:30:0
+#$ -l h_rt=2:00:0
 # Memory
 #$ -l mem=48G
-#$ -l gpu=1
+#$ -l gpu=2
 #$ -ac allow=EFL
 
 # workig directory. Use #S -cwd to use current working dir
@@ -25,19 +25,19 @@ AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
-MODEL=mistralai/Mistral-7B-Instruct-v0.2
-MODEL_NAME=mistral7b
-PORT=8042
-
-export VLLM_TRACE_FUNCTION=1
+MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
+MODEL_NAME=mixtral8x7b
+PORT=8043
 
 pip install poetry
 echo #---- Enviromental config
 poetry run python collect_env.py
 echo #------------------------
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
---gpu-memory-utilization 0.90 &
-# --max-model-len 7500 \
+--quantization gptq \
+--max-model-len 5000 \
+--gpu-memory-utilization 0.80 &
+
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
