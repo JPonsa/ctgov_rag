@@ -46,8 +46,9 @@ poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mistral7b.csv \
     -ports $PORT $PORT \
     --generator $MODEL \
     --critic $MODEL \
-    --embeddings BAAI/bge-small-en-v1.5 \
+    --embeddings all-MiniLM-L6-v2 \
     -test_size 25 -s 0.4 -r 0.4 -mc 0.2
 
 #  --embeddings all-MiniLM-L6-v2 \
-#   --embeddings sentence-transformers/all-mpnet-base-v2 \
+#  --embeddings BAAI/bge-small-en-v1.5 \
+#  --embeddings sentence-transformers/all-mpnet-base-v2 \
