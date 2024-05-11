@@ -177,7 +177,7 @@ def get_cypher_engine(model:str, model_host:str, model_port:int):
         url=os.getenv("NEO4J_URI"),
         username=os.getenv("NEO4J_USERNAME"),
         password=os.getenv("NEO4J_PASSWORD"),
-        database=os.environ["NEO4J_DATABASE"],
+        database=os.getenv("NEO4J_DATABASE"),
     )
 
     chain = GraphCypherQAChain.from_llm(cypher_lm, graph=graph, verbose=True, validate_cypher=True)
@@ -496,7 +496,7 @@ class AnalyticalQuery(dspy.Module):
                 
         if self.kg:
             try:
-                cypher_response = self.cypher_engine.invoke(question)
+                cypher_response = self.cypher_engine.invoke(question)["result"]
             except Exception as e:
                 cypher_response = "Sorry, I could not provide an answer."
                 
@@ -506,7 +506,7 @@ class AnalyticalQuery(dspy.Module):
                 print(f"SQL Response: {sql_response}")
 
             if self.kg:
-                print(f"Cypher Response: {sql_response}")
+                print(f"Cypher Response: {cypher_response}")
                 
         response = self.response_generator(
             question=question,
