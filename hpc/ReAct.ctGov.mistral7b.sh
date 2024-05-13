@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N ReAct_mistral
+#$ -N ReAct_ctGov_mistral
 # Max run time in H:M:S
 #$ -l h_rt=0:30:0
 # Memory

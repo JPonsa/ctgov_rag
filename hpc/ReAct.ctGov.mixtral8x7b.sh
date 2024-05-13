@@ -1,10 +1,10 @@
 #!/bin/bash -l
-#$ -N ReAct_llama3
+#$ -N ReAct_ctGov_mixtral
 # Max run time in H:M:S
 #$ -l h_rt=12:00:0
 # Memory
 #$ -l mem=48G
-#$ -l gpu=1
+#$ -l gpu=2
 #$ -ac allow=EFL
 
 # workig directory. Use #S -cwd to use current working dir
@@ -25,12 +25,19 @@ AACT_USER=${AACT_USER//$'\r'}
 AACT_PWD=${AACT_PWD//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
-MODEL=meta-llama/Meta-Llama-3-8B-Instruct
-MODEL_NAME=llama3_8b
-PORT=8045
+MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
+MODEL_NAME=mixtral8x7b
+PORT=8043
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.80 &
+echo #---- Enviromental config
+poetry run python collect_env.py
+echo #------------------------
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
+--quantization gptq \
+--max-model-len 5000 \
+--gpu-memory-utilization 0.80 &
+
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
