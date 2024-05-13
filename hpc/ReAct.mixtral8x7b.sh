@@ -41,35 +41,41 @@ poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-r
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
--m all
 
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
--m sql_only
+# echo $MODEL-all
+# ruse --stdout --time=600 -s \
+# poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+# -i ./data/ctGov.questioner.mistral7b.tsv \
+# -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
+# -m all
 
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
--m kg_only
+# echo $MODEL-sql_only
+# ruse --stdout --time=600 -s \
+# poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+# -i ./data/ctGov.questioner.mistral7b.tsv \
+# -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
+# -m sql_only
 
+# echo $MODEL-kg_only
+# ruse --stdout --time=600 -s \
+# poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+# -i ./data/ctGov.questioner.mistral7b.tsv \
+# -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
+# -m kg_only
+
+echo $MODEL-cypher_only
 ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
 -i ./data/ctGov.questioner.mistral7b.tsv \
 -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
 -m cypher_only
 
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.llm_only.tsv \
--m llm_only
+# echo $MODEL-llm_only
+# ruse --stdout --time=600 -s \
+# poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+# -i ./data/ctGov.questioner.mistral7b.tsv \
+# -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.llm_only.tsv \
+# -m llm_only
 
 echo ReAct $MODEL_NAME competed!
 
