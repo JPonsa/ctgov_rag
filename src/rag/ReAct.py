@@ -471,7 +471,7 @@ class AnalyticalQuery(dspy.Module):
     input_variable = "question"
     desc = "Access to a db of clinical trials. Reply question that could be answered with a SQL query. Use when other tools are not suitable."
 
-    def __init__(self, sql:bool=True, kg:bool=True):
+    def __init__(self, args, sql:bool=True, kg:bool=True):
         self.sql_engine = get_sql_engine(model=args.vllm, model_host=args.host, model_port=args.port)
         self.cypher_engine = get_cypher_engine(model=args.vllm, model_host=args.host, model_port=args.port)
         self.response_generator = dspy.Predict(QAwithContext)
@@ -543,23 +543,23 @@ def main(args):
         raise NotImplementedError(f"method={args.method} not supported. methods must be one of {valid_methods}")
     
     if args.method == "sql_only":
-        tools += [AnalyticalQuery(sql=True, kg=False)]
+        tools += [AnalyticalQuery(args, sql=True, kg=False)]
     
     elif args.method == "kg_only":
-        tools += [AnalyticalQuery(sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, sql=False, kg=True)]
         tools += KG_tools
     
     elif args.method == "cypher_only":
-        tools += [AnalyticalQuery(sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, sql=False, kg=True)]
     
     elif args.method == "llm_only":
         pass
     
     elif args.method == "analytical_only":
-        tools += [AnalyticalQuery(sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, sql=True, kg=True)]
         
     else:
-        tools += [AnalyticalQuery(sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, sql=True, kg=True)]
         tools += KG_tools
         
     if args.med_sme:

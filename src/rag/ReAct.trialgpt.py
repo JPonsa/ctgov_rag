@@ -173,7 +173,7 @@ from  ReAct import (
 
 class PatientEligibility(dspy.Signature):
     "Given a patient description, produce a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
-    patient_note:str = dspy.InputFied(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
+    patient_note:str = dspy.InputField(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
     ct_ids:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
 
 def main(args):
@@ -196,23 +196,23 @@ def main(args):
         raise NotImplementedError(f"method={args.method} not supported. methods must be one of {valid_methods}")
     
     if args.method == "sql_only":
-        tools += [AnalyticalQuery(sql=True, kg=False)]
+        tools += [AnalyticalQuery(args, sql=True, kg=False)]
     
     elif args.method == "kg_only":
-        tools += [AnalyticalQuery(sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, sql=False, kg=True)]
         tools += KG_tools
     
     elif args.method == "cypher_only":
-        tools += [AnalyticalQuery(sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, sql=False, kg=True)]
     
     elif args.method == "llm_only":
         pass
     
     elif args.method == "analytical_only":
-        tools += [AnalyticalQuery(sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, sql=True, kg=True)]
         
     else:
-        tools += [AnalyticalQuery(sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, sql=True, kg=True)]
         tools += KG_tools
         
     if args.med_sme:
