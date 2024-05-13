@@ -180,7 +180,7 @@ def get_cypher_engine(model:str, model_host:str, model_port:int):
         database=os.getenv("NEO4J_DATABASE"),
     )
 
-    chain = GraphCypherQAChain.from_llm(cypher_lm, graph=graph, verbose=True, validate_cypher=True)
+    chain = GraphCypherQAChain.from_llm(cypher_lm, graph=graph, verbose=False, validate_cypher=True)
     return chain
 
 
@@ -196,7 +196,7 @@ class QAwithContext(dspy.Signature):
 
     question: str = dspy.InputField(prefix="Question:", desc="question to be answered.")
     sql_response: str = dspy.InputField(
-        prefix="SQL response",
+        prefix="SQL response:",
         desc="contains information that could be relevant to the question.",
     )
     cypher_response: str = dspy.InputField(
@@ -496,9 +496,13 @@ class AnalyticalQuery(dspy.Module):
                 
         if self.kg:
             try:
+                # BUG: Cypher query making the entire processes to fail. Unknown cause. Taking too long or failing to produce an answer and proceed.
+                raise NotImplementedError("Cypher query making the entire processes to fail. Unknown cause. Taking too long or failing to produce an answer and proceed.")
                 cypher_response = self.cypher_engine.invoke(question)["result"]
-            except Exception as e:
+            except Exception as e:     
+                # print(f"Cypher query error: {e}")
                 cypher_response = "Sorry, I could not provide an answer."
+                cypher_response = "Not implemented."
                 
                 
         if VERBOSE:
