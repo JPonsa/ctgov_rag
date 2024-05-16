@@ -208,6 +208,34 @@ class QAwithContext(dspy.Signature):
     )
 
 
+class Txt2Cypher(dspy.Signature):
+    """"Take an input question and a Knowledge Graph db schema, produce a syntactically correct cypher query to run.
+    Pay attention to the relationships between nodes and their directionality"""
+    question:str = dspy.InputField(prefix="Question:")
+    graph_schema:str = dspy.InputField(prefix="Knowledge Graph schema:")
+    cypher_query:str = dspy.OutputField(prefix="Cypher query:")
+    
+    
+def cypher_engine(question:str)->str:
+    """Takes a question and returns the result of a Cypher query"""
+    
+    graph = Neo4jGraph(
+    url=os.getenv("NEO4J_URI"),
+    username=os.getenv("NEO4J_USERNAME"),
+    password=os.getenv("NEO4J_PASSWORD"),
+    database=os.getenv("NEO4J_DATABASE"),
+    )
+    
+    response = "Sorry. I could not find this information"
+    cypher_query_eng = dspy.Predict(Txt2Cypher)
+    cypher_query = cypher_query_eng(question=question, graph_schema=graph.schema).cypher_query
+    
+    if cypher_query:
+        response = graph.query(cypher_query)
+    
+    return response
+    
+
 class ChitChat(dspy.Module):
     """Provide a response to a generic question"""
 
@@ -497,12 +525,13 @@ class AnalyticalQuery(dspy.Module):
         if self.kg:
             try:
                 # BUG: Cypher query making the entire processes to fail. Unknown cause. Taking too long or failing to produce an answer and proceed.
-                raise NotImplementedError("Cypher query making the entire processes to fail. Unknown cause. Taking too long or failing to produce an answer and proceed.")
-                cypher_response = self.cypher_engine.invoke(question)["result"]
+                # raise NotImplementedError("Cypher query making the entire processes to fail. Unknown cause. Taking too long or failing to produce an answer and proceed.")
+                cypher_response = cypher_engine(question)
+                # cypher_response = self.cypher_engine.invoke(question)["result"]
             except Exception as e:     
                 # print(f"Cypher query error: {e}")
                 cypher_response = "Sorry, I could not provide an answer."
-                cypher_response = "Not implemented."
+                # cypher_response = "Not implemented."
                 
                 
         if VERBOSE:

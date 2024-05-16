@@ -159,6 +159,7 @@ def get_sql_engine(model:str, model_host:str, model_port:int):
 
 from  ReAct import (
     get_cypher_engine, 
+    cypher_engine,
     get_sql_engine, 
     ChitChat, 
     GetClinicalTrial, 
