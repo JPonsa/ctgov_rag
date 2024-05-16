@@ -35,19 +35,19 @@ echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
-echo $MODEL-all
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
--i ./data/trialgpt.questioner.tsv \
--o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.all.tsv \
--m all
+# echo $MODEL-all
+# ruse --stdout --time=600 -s \
+# poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+# -i ./data/trialgpt.questioner.tsv \
+# -o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.all.tsv \
+# -m all
 
-echo $MODEL-sql_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
--i ./data/trialgpt.questioner.tsv \
--o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.sql_only.tsv \
--m sql_only
+# echo $MODEL-sql_only
+# ruse --stdout --time=600 -s \
+# poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+# -i ./data/trialgpt.questioner.tsv \
+# -o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.sql_only.tsv \
+# -m sql_only
 
 echo $MODEL-kg_only
 ruse --stdout --time=600 -s \
@@ -56,12 +56,12 @@ poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
 -o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.kg_only.tsv \
 -m kg_only
 
-# echo $MODEL-cypher_only
-# ruse --stdout --time=600 -s \
-# poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
-# -i ./data/trialgpt.questioner.tsv \
-# -o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.cypher_only.tsv \
-# -m cypher_only
+echo $MODEL-cypher_only
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+-i ./data/trialgpt.questioner.tsv \
+-o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.cypher_only.tsv \
+-m cypher_only
 
 echo $MODEL-llm_only
 ruse --stdout --time=600 -s \
