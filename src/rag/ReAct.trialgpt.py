@@ -8,10 +8,28 @@ os.environ["DPS_CACHEBOOL"]='False' # dspy no cache
 
 import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
+from dspy.teleprompt import BootstrapFewShotWithRandomSearch
+from dspy.evaluate import Evaluate
 from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
 import pandas as pd
 from sentence_transformers import SentenceTransformer
+
+from  ReAct import (
+    str_formatting,
+    get_cypher_engine, 
+    cypher_engine,
+    get_sql_engine,
+    ChitChat, 
+    GetClinicalTrial, 
+    ClinicalTrialToEligibility, 
+    InterventionToCt, 
+    InterventionToAdverseEvent, 
+    ConditionToCt, 
+    ConditionToIntervention, 
+    AnalyticalQuery,
+    MedicalSME
+    )
 
 
 ####### Add src folder to the system path so it can call utils
@@ -45,133 +63,34 @@ os.environ["AACT_PWD"] = "aact.ctti-clinicaltrials.org"
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
 
-# TODO: Review if this is the best way. Could if be an alternative in which
-# chunks are summarised and aggregated into one single contexts? 
 
-def check_context_length(x:str, max_token:int=2_500)->str:
-    CHR_PER_TOKEN = 4
-    max_characters = max_token*CHR_PER_TOKEN
-    if len(x) > max_characters:
-        print(f"Context too large {x[:max_characters]} ...")
-        return x[:max_characters]+" ..."
-    else:
-        return x
-
-def str_formatting(x:str, max_token:int=2_500) ->str:
-    """Remove some special characters that could be confusing the LLM or interfering with the post processing of the text"""
+def list_parser(x:str) -> list:
+    """Takes a comma separeted list as string and returns a list of words"""
     
-    if not isinstance(x, str):
-        print("NOT A STRING!!!!!")
-        return x
+    if not x.isinstance(str):
+        return []
     
-    x = x.replace('"',"")
-    x = x.replace("{","")
-    x = x.replace("}","")
-    x = x.replace("[","")
-    x = x.replace("],",";")
-    x = x.replace("]","")
+    return x.replace("[", "").replace("]","").replace("'", "").replace('"',"").replace(" ", "").split(",")
+
+
+def precision(example:dspy.Example, prediction:dspy.Prediction, trace=None)->float:
+    """Computes the precision based on 2 comma-separated lists (as str)"""
     
-    x = check_context_length(x, max_token)
+    # Transform to list of words
+    example = list_parser(example.ct_ids)
+    prediction = list_parser(prediction.ct_ids)
     
-    #TODO: Assess whether it is required to limite the str lenght 
-    # to fix token / character lenght.
+    # list -> set
+    example = set(example)
+    prediction = set(prediction)
     
-    if x in ["", " "]:
-        x =  "Tool produced no response."
+    # compute prediction precision. Proportion of words in prediction appear in the example list
+    score = len(prediction.intersection(example))/len(prediction)
     
-    return x
-
-def fromToCt_query(from_node: str, from_property: str, ct_properties: list[str]) -> str:
-
-    ct_properties_str = ", ".join([f'{p} = "+ct.{p}+" ' for p in ct_properties]) + '"'
-
-    query = """
-    WITH node, score
-    OPTIONAL MATCH (node)-[:{from_node}ToClinicalTrialAssociation]->(ct:ClinicalTrial)
-    WITH node, ct, max(score) AS score // deduplicate parents
-    RETURN "{from_node}: "+node.{from_property}+". ClinicalTrial: {ct_properties_str} AS text, score, {{}} AS metadata
-    """
-    cmd = query.format(
-        from_node=from_node,
-        from_property=from_property,
-        ct_properties_str=ct_properties_str,
-    )
-    return cmd
-
-
-def fromToCtTo_query(
-    from_node: str, from_property: str, to_node: str, to_property: str
-) -> str:
-
-    query = """
-    WITH node, score
-    OPTIONAL MATCH path = (node)-[:{from_node}ToClinicalTrialAssociation]->(ct:ClinicalTrial)-[:ClinicalTrialTo{to_node}Association]->(target:{to_node})
-    WITH node.{from_property} AS from_node_txt, COLLECT(DISTINCT target.{to_property}) AS to_node_list, max(score) AS score // deduplicate parents
-    RETURN "{from_node}: "+from_node_txt+". {to_node}: "+apoc.text.join(to_node_list, ', ') AS text, score, {{}} AS metadata
-    """
-    cmd = query.format(
-        from_node=from_node,
-        from_property=from_property,
-        to_node=to_node,
-        to_property=to_property,
-    )
-    return cmd
-
-
-def get_sql_engine(model:str, model_host:str, model_port:int):
-    from llama_index.core import Settings, SQLDatabase
-    from llama_index.core.query_engine import NLSQLTableQueryEngine
-    from sqlalchemy import create_engine
-
-    TABLES = [
-        "browse_interventions",
-        "sponsors",
-        "detailed_descriptions",
-        "facilities",
-        "studies",
-        "outcomes",
-        "browse_conditions",
-        "keywords",
-        "eligibilities",
-        "reported_events",
-        "brief_summaries",
-        "designs",
-        "countries",
-    ]
-
-    from llama_index.llms.openai_like import OpenAILike
-    sql_lm = OpenAILike(model=model, api_base=f"{model_host}:{model_port}/v1/", api_key="fake", temperature=0, max_tokens=1_000)  
-    Settings.llm = sql_lm
-    Settings.embed_model = "local"
-
-    user = os.getenv("AACT_USER")
-    pwd = os.getenv("AACT_PWD")
-    # TODO: Review if this it the right way to hardcode this.
-    AACT_DATABASE = "aact"
-    AACT_HOST = "aact-db.ctti-clinicaltrials.org"
-    AACT_PORT = 5432
+    print(f"Precision : {score}")
     
-    uri = f"postgresql+psycopg2://{user}:{pwd}@{AACT_HOST}:{AACT_PORT}/{AACT_DATABASE}"
-    db_engine = create_engine(uri)
-    sql_db = SQLDatabase(db_engine, include_tables=TABLES)
-    query_engine = NLSQLTableQueryEngine(sql_database=sql_db)
-    return query_engine
-
-from  ReAct import (
-    get_cypher_engine, 
-    cypher_engine,
-    get_sql_engine, 
-    ChitChat, 
-    GetClinicalTrial, 
-    ClinicalTrialToEligibility, 
-    InterventionToCt, 
-    InterventionToAdverseEvent, 
-    ConditionToCt, 
-    ConditionToIntervention, 
-    AnalyticalQuery,
-    MedicalSME
-    )
-
+    return score
+    
 class PatientEligibility(dspy.Signature):
     "Given a patient description, produce a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
     patient_note:str = dspy.InputField(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
@@ -189,7 +108,6 @@ def main(args):
     ]
 
     tools = [ChitChat()]
-    
     
     #---- Define the tools to be used
     valid_methods = ["sql_only", "kg_only","cypher_only", "llm_only", "analytical_only", "all"]
@@ -223,8 +141,17 @@ def main(args):
         sme_port = 8051
         tools += [MedicalSME(sme_model, sme_host, sme_port)]
     
-    react_module = dspy.ReAct(PatientEligibility, tools=tools, max_iters=3)
     
+    class ReActPipeline(dspy.Module):
+        def __init__(self):
+            super().__init__()
+            self.signature = PatientEligibility
+            self.predictor = dspy.ReAct(self.signature, tools=tools, max_iters=3)
+    
+        def forward(self, patient_note):
+            return self.predictor(patient_note=patient_note) 
+    
+    # react_module = dspy.ReAct(PatientEligibility, tools=tools, max_iters=3)
     
     #---- Load the LLM
     lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
@@ -236,13 +163,40 @@ def main(args):
     #---- Get questioner
     questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=0)
     
-    #---- Answer questioner
-    for idx, row in questioner.iterrows():
+    training, evaluation = questioner.iloc[:50, :], questioner.iloc[50:,:]
+    
+    # Create input and output examples
+    trainset = []
+    for i, row in training.iterrows():
+        trainset.append(dspy.Example(patient_note=row["patient_note"], ct_ids=row["2"]).with_inputs("patient_note"))
+
+
+    devset = []
+    for i, row in evaluation.iterrows():
+        devset.append(dspy.Example(patient_note=row["patient_note"], ct_ids=row["2"]).with_inputs("patient_note"))
+        
+        
+    #---- Evaluation
+    evaluate_program = Evaluate(devset=devset, metric=precision, num_threads=2, display_progress=True, display_table=5)
+    print("---- Evaluation starting ReAct pipeline ----")
+    evaluate_program(ReActPipeline())
+    
+    #---- Training
+    config = dict(max_bootstrapped_demos=3, max_labeled_demos=3, num_candidate_programs=10, num_threads=4)
+    teleprompter = BootstrapFewShotWithRandomSearch(metric=precision, **config)
+    optimized_program = teleprompter.compile(ReActPipeline(), trainset=trainset, valset=devset)
+    optimized_program.save(f"./models/trialGPT.React{args.method}.json")
+    
+    print("---- Evaluation optimised ReAct pipeline ----")
+    evaluate_program(optimized_program)
+    
+    for idx, row in evaluation.iterrows():
         patient_note = row.patient_note
         print("#####################")
         print(f"Question: {patient_note}")
-        result = react_module(patient_note=patient_note)
-        questioner.loc[idx, "ReAct_answer"] = result.ct_ids
+        # result = react_module(patient_note=patient_note)
+        result = optimized_program(patient_note=patient_note)
+        evaluation.loc[idx, "ReAct_answer"] = result.ct_ids
         print(f"Final Predicted Answer (after ReAct process): {result.ct_ids}")
         
     #---- Save response
