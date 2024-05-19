@@ -219,6 +219,8 @@ class Txt2Cypher(dspy.Signature):
 def cypher_engine(question:str)->str:
     """Takes a question and returns the result of a Cypher query"""
     
+    from langchain_community.graphs import Neo4jGraph
+    
     graph = Neo4jGraph(
     url=os.getenv("NEO4J_URI"),
     username=os.getenv("NEO4J_USERNAME"),
@@ -231,6 +233,8 @@ def cypher_engine(question:str)->str:
     cypher_query = cypher_query_eng(question=question, graph_schema=graph.schema).cypher_query
     
     if cypher_query:
+        print(f"Cypher query: {cypher_query}")
+        
         response = graph.query(cypher_query)
     
     return response
@@ -529,7 +533,7 @@ class AnalyticalQuery(dspy.Module):
                 cypher_response = cypher_engine(question)
                 # cypher_response = self.cypher_engine.invoke(question)["result"]
             except Exception as e:     
-                # print(f"Cypher query error: {e}")
+                print(f"Cypher query error: {e}")
                 cypher_response = "Sorry, I could not provide an answer."
                 # cypher_response = "Not implemented."
                 
