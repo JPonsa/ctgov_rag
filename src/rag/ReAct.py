@@ -209,7 +209,7 @@ class QAwithContext(dspy.Signature):
 
 
 class Txt2Cypher(dspy.Signature):
-    """"Take an input question and a Knowledge Graph db schema, produce a syntactically correct cypher query to run.
+    """"Takes an input question and a Knowledge Graph db schema to produce a syntactically correct cypher query to run.
     Pay attention to the relationships between nodes and their directionality"""
     question:str = dspy.InputField(prefix="Question:")
     graph_schema:str = dspy.InputField(prefix="Knowledge Graph schema:")
@@ -230,12 +230,15 @@ def cypher_engine(question:str)->str:
     
     response = "Sorry. I could not find this information"
     cypher_query_eng = dspy.Predict(Txt2Cypher)
-    cypher_query = cypher_query_eng(question=question, graph_schema=graph.schema).cypher_query
+    #BUG:LLM is adding a double-quotation at the end and sometimes at the begging.
+    cypher_query = cypher_query_eng(question=question, graph_schema=graph.schema).cypher_query.strip('"').strip("---")
     
     if cypher_query:
         print(f"Cypher query: {cypher_query}")
         
         response = graph.query(cypher_query)
+        if isinstance(response, list):
+            response = "|".join(response)
     
     return response
     
@@ -261,8 +264,9 @@ class GetClinicalTrial(dspy.Module):
     """Retrieve Summary of a Clinical Trial"""
 
     name = "GetClinicalTrial"
-    input_variable = "nctid_list"
-    desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get Clinical Trials summaries."
+    input_variable = "clinical_trial_ids_list"
+    desc = "Takes a comma separated list of clinical trials ids and gets Clinical Trials summaries."
+    # desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get Clinical Trials summaries."
 
     def __init__(self):
         self.uri = os.getenv("NEO4J_URI")
@@ -270,13 +274,13 @@ class GetClinicalTrial(dspy.Module):
         self.pwd = os.getenv("NEO4J_PASSWORD")
         self.db = os.getenv("NEO4J_DATABASE")
 
-    def __call__(self, nctid_list: list) -> str:
+    def __call__(self, clinical_trial_ids_list: list) -> str:
         if VERBOSE:
-            print(f"Action: GetClinicalTrial({nctid_list})")
+            print(f"Action: GetClinicalTrial({clinical_trial_ids_list})")
         
         fields = ["id", "brief_title", "study_type", "keywords", "brief_summary"]
-        query = "MATCH (ClinicalTrial:ClinicalTrial) WHERE ClinicalTrial.id IN [{nctid_list}] RETURN {field_list}".format(
-            nctid_list=",".join(["'" + x + "'" for x in nctid_list.split(",")]),
+        query = "MATCH (ClinicalTrial:ClinicalTrial) WHERE ClinicalTrial.id IN [{clinical_trial_ids_list}] RETURN {field_list}".format(
+            clinical_trial_ids_list=",".join(["'" + x + "'" for x in clinical_trial_ids_list.split(",")]),
             field_list=", ".join("ClinicalTrial." + f for f in fields),
         )
         
@@ -301,8 +305,9 @@ class ClinicalTrialToEligibility(dspy.Module):
     """Retrieve a Clinical Trial eligibility criteria"""
 
     name = "ClinicalTrialToEligibility"
-    input_variable = "nctid_list"
-    desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get the trial eligibility criteria."
+    input_variable = "clinical_trial_ids_list"
+    desc = "Takes a comma separated list of clinical trials ids and gets the trial eligibility criteria."
+    # desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get the trial eligibility criteria."
 
     def __init__(self):
         self.uri = os.getenv("NEO4J_URI")
@@ -310,10 +315,10 @@ class ClinicalTrialToEligibility(dspy.Module):
         self.pwd = os.getenv("NEO4J_PASSWORD")
         self.db = os.getenv("NEO4J_DATABASE")
 
-    def __call__(self, nctid_list: list) -> str:
+    def __call__(self, clinical_trial_ids_list: list) -> str:
         
         if VERBOSE:
-            print(f"Action: ClinicalTrialToEligibility({nctid_list})")
+            print(f"Action: ClinicalTrialToEligibility({clinical_trial_ids_list})")
         
         fields = [
             "healthy_volunteers",
@@ -324,9 +329,9 @@ class ClinicalTrialToEligibility(dspy.Module):
         ]
 
         query = """MATCH (ct:ClinicalTrial)-[:ClinicalTrialToEligibilityAssociation]->(e:Eligibility)
-        WHERE ct.id IN [{nctid_list}] RETURN ct.id, {field_list}
+        WHERE ct.id IN [{clinical_trial_ids_list}] RETURN ct.id, {field_list}
         """.format(
-            nctid_list=",".join(["'" + x + "'" for x in nctid_list.split(",")]),
+            clinical_trial_ids_list=",".join(["'" + x + "'" for x in clinical_trial_ids_list.split(",")]),
             field_list=", ".join("e." + f for f in fields),
         )
 
@@ -608,12 +613,13 @@ def main(args):
     #---- Load the LLM
     lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
                            stop=['\n\n', '<|eot_id|>'], 
-                        #    model_type='chat',
+                           model_type='chat',
                            )
     dspy.settings.configure(lm=lm, temperature=0.3)
     
     #---- Get questioner
     questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=0)
+    questioner["ReAct_answer"]= "" # Set output field
     
     #---- Answer questioner
     for idx, row in questioner.iterrows():

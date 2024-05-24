@@ -65,9 +65,9 @@ biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
 
 def list_parser(x:str) -> list:
-    """Takes a comma separeted list as string and returns a list of words"""
+    """Takes a comma-separated list as a string and returns a list of words"""
     
-    if not x.isinstance(str):
+    if not isinstance(x, str):
         return []
     
     return x.replace("[", "").replace("]","").replace("'", "").replace('"',"").replace(" ", "").split(",")
@@ -77,8 +77,8 @@ def precision(example:dspy.Example, prediction:dspy.Prediction, trace=None)->flo
     """Computes the precision based on 2 comma-separated lists (as str)"""
     
     # Transform to list of words
-    example = list_parser(example.ct_ids)
-    prediction = list_parser(prediction.ct_ids)
+    example = list_parser(example.clinical_trial_ids_list)
+    prediction = list_parser(prediction.clinical_trial_ids_list)
     
     # list -> set
     example = set(example)
@@ -94,7 +94,7 @@ def precision(example:dspy.Example, prediction:dspy.Prediction, trace=None)->flo
 class PatientEligibility(dspy.Signature):
     "Given a patient description, produce a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
     patient_note:str = dspy.InputField(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
-    ct_ids:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
+    clinical_trial_ids_list:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma-separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
 
 def main(args):
     k=5
@@ -107,7 +107,8 @@ def main(args):
     ConditionToIntervention(k=k),
     ]
 
-    tools = [ChitChat()]
+    # tools = [ChitChat()]
+    tools= []
     
     #---- Define the tools to be used
     valid_methods = ["sql_only", "kg_only","cypher_only", "llm_only", "analytical_only", "all"]
@@ -125,6 +126,7 @@ def main(args):
         tools += [AnalyticalQuery(args, sql=False, kg=True)]
     
     elif args.method == "llm_only":
+        tools = [ChitChat()]
         pass
     
     elif args.method == "analytical_only":
@@ -163,17 +165,18 @@ def main(args):
     #---- Get questioner
     questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=0)
     
-    training, evaluation = questioner.iloc[:50, :], questioner.iloc[50:,:]
+    # Train / Test split
+    training, evaluation = questioner.iloc[:100, :].copy(), questioner.iloc[100:,:].copy()
     
     # Create input and output examples
     trainset = []
     for i, row in training.iterrows():
-        trainset.append(dspy.Example(patient_note=row["patient_note"], ct_ids=row["2"]).with_inputs("patient_note"))
+        trainset.append(dspy.Example(patient_note=row["patient_note"], clinical_trial_ids_list=row["2"]).with_inputs("patient_note"))
 
 
     devset = []
     for i, row in evaluation.iterrows():
-        devset.append(dspy.Example(patient_note=row["patient_note"], ct_ids=row["2"]).with_inputs("patient_note"))
+        devset.append(dspy.Example(patient_note=row["patient_note"], clinical_trial_ids_list=row["2"]).with_inputs("patient_note"))
         
         
     #---- Evaluation
@@ -182,13 +185,17 @@ def main(args):
     evaluate_program(ReActPipeline())
     
     #---- Training
-    config = dict(max_bootstrapped_demos=3, max_labeled_demos=3, num_candidate_programs=10, num_threads=4)
-    teleprompter = BootstrapFewShotWithRandomSearch(metric=precision, **config)
-    optimized_program = teleprompter.compile(ReActPipeline(), trainset=trainset, valset=devset)
-    optimized_program.save(f"./models/trialGPT.React{args.method}.json")
+    # config = dict(max_bootstrapped_demos=3, max_labeled_demos=3, num_candidate_programs=10, num_threads=4)
+    # teleprompter = BootstrapFewShotWithRandomSearch(metric=precision, **config)
+    # optimized_program = teleprompter.compile(ReActPipeline(), trainset=trainset, valset=devset)
+    # optimized_program.save(f"./models/trialGPT.React{args.method}.json")
     
-    print("---- Evaluation optimised ReAct pipeline ----")
-    evaluate_program(optimized_program)
+    # print("---- Evaluation optimised ReAct pipeline ----")
+    # evaluate_program(optimized_program)
+    
+    optimized_program = ReActPipeline()
+    
+    evaluation["ReAct_answer"]= "" # Set output field
     
     for idx, row in evaluation.iterrows():
         patient_note = row.patient_note
@@ -196,11 +203,11 @@ def main(args):
         print(f"Question: {patient_note}")
         # result = react_module(patient_note=patient_note)
         result = optimized_program(patient_note=patient_note)
-        evaluation.loc[idx, "ReAct_answer"] = result.ct_ids
-        print(f"Final Predicted Answer (after ReAct process): {result.ct_ids}")
+        evaluation.loc[idx, "ReAct_answer"] = result.clinical_trial_ids_list
+        print(f"Final Predicted Answer (after ReAct process): {result.clinical_trial_ids_list}")
         
     #---- Save response
-    questioner.to_csv(args.output_tsv, sep="\t", index=None)
+    evaluation.to_csv(args.output_tsv, sep="\t", index=None)
 
 if __name__ == "__main__":
         
