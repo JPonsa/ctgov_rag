@@ -38,46 +38,40 @@ echo #------------------------
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
 --gpu-memory-utilization 0.90 &
 # --max-model-len 7500 \
-echo I am going to sleep
-sleep 5m # Go to sleep so I vLLM server has time to start.
-echo I am awake
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
--m all
 
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
--m sql_only
-
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
--m kg_only
-
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
--m cypher_only
-
+echo $MODEL_NAME-llm_only
 ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
 -i ./data/ctGov.questioner.mistral7b.tsv \
 -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.llm_only.tsv \
 -m llm_only
 
-echo ReAct $MODEL_NAME competed!
+echo $MODEL_NAME-sql_only
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
+-m sql_only
 
-# -user $AACT_USER -pwd $AACT_PWD \
-# -sql_query_template ./src/txt2sql/sql_queries_template.yaml \
-# -triplets  ./src/txt2sql/txt2_sql_eval_triplets.tsv \
-# -output_dir ./results/txt2sql/ \
-# -hf $HF_TOKEN \
-# -vllm $MODEL \
-# -port $PORT
-# -stop '[INST]' '[/INST]'
+echo $MODEL_NAME-cypher_only
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
+-m cypher_only
+
+echo $MODEL_NAME-kg_only
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
+-m kg_only
+
+echo $MODEL_NAME-all
+ruse --stdout --time=600 -s \
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+-i ./data/ctGov.questioner.mistral7b.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
+-m all
+
+echo ReAct $MODEL_NAME competed!
