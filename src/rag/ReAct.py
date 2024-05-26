@@ -140,7 +140,10 @@ def get_sql_engine(model:str, model_host:str, model_port:int):
     ]
 
     from llama_index.llms.openai_like import OpenAILike
-    sql_lm = OpenAILike(model=model, api_base=f"{model_host}:{model_port}/v1/", api_key="fake", temperature=0, max_tokens=1_000)  
+    sql_lm = OpenAILike(model=model, api_base=f"{model_host}:{model_port}/v1/", api_key="fake", 
+                        temperature=0, max_tokens=1_000, 
+                        is_chat_model=True,
+                        )  
     Settings.llm = sql_lm
     Settings.embed_model = "local"
 
@@ -613,7 +616,7 @@ def main(args):
     #---- Load the LLM
     lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
                            stop=['\n\n', '<|eot_id|>'], 
-                           model_type='chat',
+                        #    model_type='chat',
                            )
     dspy.settings.configure(lm=lm, temperature=0.3)
     
