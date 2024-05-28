@@ -10,6 +10,7 @@ import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
 from dspy.teleprompt import BootstrapFewShotWithRandomSearch
 from dspy.evaluate import Evaluate
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
 import pandas as pd
@@ -31,6 +32,7 @@ from  ReAct import (
     MedicalSME
     )
 
+load_dotenv('./.env')
 
 ####### Add src folder to the system path so it can call utils
 # Get the directory of the current script
@@ -46,18 +48,6 @@ from utils.utils import dspy_tracing, print_red
 # dspy_tracing()
 
 VERBOSE = True
-
-# TODO: Remove credentials
-# Neo4j credentials
-#os.environ["NEO4J_URI"] = "bolt://127.0.0.1:7687"
-os.environ["NEO4J_URI"] = 'neo4j+s://e5534dd1.databases.neo4j.io'
-os.environ["NEO4J_USERNAME"] = 'neo4j'
-os.environ["NEO4J_PASSWORD"] = 'Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE'
-os.environ["NEO4J_DATABASE"] = 'neo4j'
-
-# AACT credentials
-os.environ["AACT_USER"] = "jponsa"
-os.environ["AACT_PWD"] = "aact.ctti-clinicaltrials.org"
 
 # Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
@@ -211,7 +201,7 @@ def main(args):
 
 if __name__ == "__main__":
         
-    parser = argparse.ArgumentParser(description="ct.gov ReAct")
+    parser = argparse.ArgumentParser(description="TrailGPT ReAct")
     
     parser.add_argument(
         "-vllm",

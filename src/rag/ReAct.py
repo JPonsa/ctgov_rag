@@ -8,11 +8,13 @@ os.environ["DPS_CACHEBOOL"]='False' # dspy no cache
 
 import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 
+load_dotenv('./.env')
 
 ####### Add src folder to the system path so it can call utils
 # Get the directory of the current script
@@ -30,16 +32,7 @@ from utils.utils import dspy_tracing, print_red
 VERBOSE = True
 
 # TODO: Remove credentials
-# Neo4j credentials
-#os.environ["NEO4J_URI"] = "bolt://127.0.0.1:7687"
-os.environ["NEO4J_URI"] = 'neo4j+s://e5534dd1.databases.neo4j.io'
-os.environ["NEO4J_USERNAME"] = 'neo4j'
-os.environ["NEO4J_PASSWORD"] = 'Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE'
-os.environ["NEO4J_DATABASE"] = 'neo4j'
 
-# AACT credentials
-os.environ["AACT_USER"] = "jponsa"
-os.environ["AACT_PWD"] = "aact.ctti-clinicaltrials.org"
 
 # Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
