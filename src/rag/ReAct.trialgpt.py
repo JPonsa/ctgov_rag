@@ -13,6 +13,7 @@ from dspy.evaluate import Evaluate
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
+import numpy as np
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 
@@ -85,6 +86,13 @@ class PatientEligibility(dspy.Signature):
     "Given a patient description, produce a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
     patient_note:str = dspy.InputField(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
     clinical_trial_ids_list:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma-separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
+    
+    
+class PatientEligibilityWithHint(dspy.Signature):
+    "Given a patient description, produce a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
+    patient_note:str = dspy.InputField(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
+    hint:str = dspy.InputField(prefix="Candidate Trials ids:", desc="a comma-separated list of clinical trials with possible elegible clinical trials")
+    clinical_trial_ids_list:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma-separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
 
 def main(args):
     k=5
@@ -132,12 +140,14 @@ def main(args):
         sme_host = "http://0.0.0.0"
         sme_port = 8051
         tools += [MedicalSME(sme_model, sme_host, sme_port)]
-    
-    
+        
     class ReActPipeline(dspy.Module):
-        def __init__(self):
+        def __init__(self, hint:bool=False):
             super().__init__()
-            self.signature = PatientEligibility
+            if hint:
+                self.signature = PatientEligibilityWithHint
+            else:
+                self.signature = PatientEligibility
             self.predictor = dspy.ReAct(self.signature, tools=tools, max_iters=3)
     
         def forward(self, patient_note):
@@ -185,14 +195,30 @@ def main(args):
     
     optimized_program = ReActPipeline()
     
+    if args.hint:
+        evaluation["hint"] = "" # Set output field
+    
     evaluation["ReAct_answer"]= "" # Set output field
+    
+    
     
     for idx, row in evaluation.iterrows():
         patient_note = row.patient_note
         print("#####################")
         print(f"Question: {patient_note}")
         # result = react_module(patient_note=patient_note)
-        result = optimized_program(patient_note=patient_note)
+        if args.hint:
+            hint = []
+            hint.append(np.random.choice(row["2"].split(","), 2, replace=False))
+            hint.append(np.random.choice(row["1"].split(","), np.random.randint(0, 2),size=1, replace=False))
+            hint.append(np.random.choice(row["0"].split(","), np.random.randint(2, 5),size=1, replace=False))
+            hint = ",".join(np.random.shuffle(hint))
+            
+            evaluation.loc[idx, "hint"] = hint
+            result = optimized_program(patient_note=patient_note, hint=hint)
+            
+        else:
+            result = optimized_program(patient_note=patient_note)
         evaluation.loc[idx, "ReAct_answer"] = result.clinical_trial_ids_list
         print(f"Final Predicted Answer (after ReAct process): {result.clinical_trial_ids_list}")
         
@@ -256,9 +282,9 @@ if __name__ == "__main__":
         Default `all`."""
     )
     parser.add_argument("-s","--med_sme", action='store_true', help="Flag indicating the access to a Med SME LLM like Meditron. Default: False")
+    parser.add_argument("-hi","--hint", action='store_true', help="Flag indicating whether a list po possible CTs hint in the ReAct pipeline. Default: False")
     
-    
-    parser.set_defaults(vllm=None, med_sme=False)
+    parser.set_defaults(vllm=None, med_sme=False, hint=False, method="all")
 
     args = parser.parse_args()
    
