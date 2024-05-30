@@ -1,7 +1,10 @@
 import argparse
 import os
 
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
+
+load_dotenv("./.env")
 
 
 def delete_index(driver, db: str, idx_name: str) -> None:
@@ -141,20 +144,12 @@ if __name__ == "__main__":
         description="Create Neo4j Node Vector Indexes and Node Keywords indexes"
     )
 
-    # NEO4J_USER = "tester"
-    # NEO4J_PWD = "password"
-
-    NEO4J_USER = "neo4j"
-    # NEO4J_PWD = "password"
-    # URI = "bolt://localhost:7687"
-
-    NEO4J_URI = "neo4j+s://e5534dd1.databases.neo4j.io"
-    NEO4J_USERNAME = "neo4j"
-    NEO4J_PASSWORD = "Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE"
+    NEO4J_URI = os.getenv("NEO4J_URI")
+    NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+    NEO4J_DATABASE = os.getenv("NEO4J_DATABASE")
 
     AUTH = (NEO4J_USERNAME, NEO4J_PASSWORD)
-    # DB_NAME = "ctgov"
-    DB_NAME = "neo4j"
 
     with GraphDatabase.driver(NEO4J_URI, auth=AUTH) as driver:
         driver.verify_connectivity()
@@ -162,7 +157,7 @@ if __name__ == "__main__":
         # Clinical Trials
         create_emb_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "ct_trial2vec_emb",
             "ClinicalTrial",
             "trial2vec_emb",
@@ -171,7 +166,7 @@ if __name__ == "__main__":
 
         create_emb_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "ct_biobert_emb",
             "ClinicalTrials",
             "biobert_emb",
@@ -180,7 +175,7 @@ if __name__ == "__main__":
 
         create_kwd_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "ct_kw",
             "ClinicalTrials",
             ["keywords"],
@@ -189,7 +184,7 @@ if __name__ == "__main__":
         # Condition
         create_emb_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "condition_biobert_emb",
             "Condition",
             "biobert_emb",
@@ -198,7 +193,7 @@ if __name__ == "__main__":
 
         create_kwd_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "condition_kw",
             "Condition",
             ["name"],
@@ -207,7 +202,7 @@ if __name__ == "__main__":
         # Intervention
         create_emb_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "intervention_biobert_emb",
             "Intervention",
             "biobert_emb",
@@ -216,7 +211,7 @@ if __name__ == "__main__":
 
         create_kwd_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "intervention_kw",
             "Intervention",
             ["name"],
@@ -225,7 +220,7 @@ if __name__ == "__main__":
         # Outcome
         create_emb_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "outcome_biobert_emb",
             "Outcome",
             "biobert_emb",
@@ -234,7 +229,7 @@ if __name__ == "__main__":
 
         create_kwd_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "outcome_kw",
             "Outcome",
             ["measure"],
@@ -243,7 +238,7 @@ if __name__ == "__main__":
         # # Biospec
         # create_emb_index(
         #     driver,
-        #     DB_NAME,
+        #     NEO4J_DATABASE,
         #     "biospec_biobert_emb",
         #     "Biospec",
         #     "biobert_emb",
@@ -252,7 +247,7 @@ if __name__ == "__main__":
 
         # create_kwd_index(
         #     driver,
-        #     DB_NAME,
+        #     NEO4J_DATABASE,
         #     "biospec_kw",
         #     "Biospec",
         #     ["description"],
@@ -261,7 +256,7 @@ if __name__ == "__main__":
         # Adverse Event
         create_emb_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "ae_biobert_emb",
             "AdverseEvent",
             "biobert_emb",
@@ -269,7 +264,7 @@ if __name__ == "__main__":
         )
         create_kwd_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "ae_kw",
             "AdverseEvent",
             ["term"],
@@ -278,7 +273,7 @@ if __name__ == "__main__":
         # OrganSystem
         create_emb_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "og_biobert_emb",
             "OrganSystem",
             "biobert_emb",
@@ -287,8 +282,10 @@ if __name__ == "__main__":
 
         create_kwd_index(
             driver,
-            DB_NAME,
+            NEO4J_DATABASE,
             "og_kw",
             "OrganSystem",
             ["name"],
         )
+
+print("Index Creation  - Done")
