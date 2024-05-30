@@ -33,5 +33,5 @@ The proposed querying framework aims to enable researchers to streamline analysi
 
 ## References:
 [1] Jin, Qiao, et al. "Matching patients to clinical trials with large language models." ArXiv (2023).\
-[2] Lobentanzer, Sebastian, et al. "Democratizing knowledge representation with BioCypher." Nature Biotechnology 41.8 (2023): 1056-1059.
+[2] Lobentanzer, Sebastian, et al. "Democratizing knowledge representation with BioCypher." Nature Biotechnology 41.8 (2023): 1056-1059.\
 [3] Chen, Zeming, et al. "Meditron-70b: Scaling medical pretraining for large language models." arXiv preprint arXiv:2311.16079 (2023).
