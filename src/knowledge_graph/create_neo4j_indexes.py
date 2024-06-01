@@ -168,7 +168,7 @@ if __name__ == "__main__":
             driver,
             NEO4J_DATABASE,
             "ct_biobert_emb",
-            "ClinicalTrials",
+            "ClinicalTrial",
             "biobert_emb",
             768,
         )
@@ -177,7 +177,7 @@ if __name__ == "__main__":
             driver,
             NEO4J_DATABASE,
             "ct_kw",
-            "ClinicalTrials",
+            "ClinicalTrial",
             ["keywords"],
         )
 
