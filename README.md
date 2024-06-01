@@ -5,7 +5,7 @@ Clinical Trials (CTs) constitute a cornerstone of medical research, providing cr
 
 This project combines a Knowledge Graph (KG) with a Large Language Model (LLM) in a Retrieval Augmented Generation (RAG) system to overcome the challenges in analyzing and interpreting Clinical Trials (CTs) data.
 
-![RAG System](./figures/solution_architecture_diagram_v2.png)
+![RAG System](./figures/solution_architecture_diagram_v3.png)
 
 Figure: The Retrieval Augmented Generation (RAG) system for ClinicalTrials.gov
 
