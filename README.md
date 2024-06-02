@@ -20,12 +20,12 @@ The proposed querying framework aims to enable researchers to streamline analysi
 - text-2-SQL system for AACT.
 - ctGov Knowledge Graph with BioBert Embedding as Node properties
 - ReAct approached using specialised tools:
-  - Semantic Search for Conditions and Interventions and retrieve the associated CTs, Adverse Events or other information.
+  - Vector Search for Conditions and Interventions and retrieve the associated CTs, Adverse Events or other information.
   - Ask questions to Meditron7b (a medical LLM)
   - Analytical tool:
     - Generate and run SQL queries against AACT.
     - Generate and run Cypher queries against KG.  
-- Retrieval Augmented Generation using llama3 or mixtral8x7b
+- Retrieval Augmented Generation using llama3 or mixtral8x7b (any HF model supported by vLLM)
 
 ## Evaluation / Use Cases:
 - Respond to specific questions regarding a single clinical trial protocol or condition or intervention.
