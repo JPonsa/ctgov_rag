@@ -39,35 +39,35 @@ echo I am awake
 # ruse --stdout --time=600 -s \
 # poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
 # -i ./data/triagpt.simple_questioner.tsv \
-# -o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.all.tsv \
+# -o ./results/ReAct/trialgpt.simple_questioner.ReAct_v2.$MODEL_NAME.all.tsv \
 # -m all
 
 # echo $MODEL-sql_only
 # ruse --stdout --time=600 -s \
 # poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
 # -i ./data/triagpt.simple_questioner.tsv \
-# -o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.sql_only.tsv \
+# -o ./results/ReAct/trialgpt.simple_questioner.ReAct_v2.$MODEL_NAME.sql_only.tsv \
 # -m sql_only
 
 echo $MODEL-kg_only
 ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
 -i ./data/triagpt.simple_questioner.tsv \
--o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.kg_only.tsv \
+-o ./results/ReAct/trialgpt.simple_questioner.ReAct_v2.$MODEL_NAME.kg_only.tsv \
 -m kg_only
 
 echo $MODEL-cypher_only
 ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
 -i ./data/triagpt.simple_questioner.tsv \
--o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.cypher_only.tsv \
+-o ./results/ReAct/trialgpt.simple_questioner.ReAct_v2.$MODEL_NAME.cypher_only.tsv \
 -m cypher_only
 
 echo $MODEL-llm_only
 ruse --stdout --time=600 -s \
 poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
 -i ./data/triagpt.simple_questioner.tsv \
--o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.llm_only.tsv \
+-o ./results/ReAct/trialgpt.simple_questioner.ReAct_v2.$MODEL_NAME.llm_only.tsv \
 -m llm_only
 
 echo ReAct $MODEL_NAME competed!

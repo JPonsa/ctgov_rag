@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N ReAct_trialgpt_hint_llama3
+#$ -N ReAct_trialgpt_hint_mixtral
 # Max run time in H:M:S
 #$ -l h_rt=12:00:0
 # Memory
