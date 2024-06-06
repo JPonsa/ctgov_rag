@@ -188,7 +188,7 @@ class BasicQA(dspy.Signature):
 
 
 class QAwithContext(dspy.Signature):
-    """Given a question and context provide an answer."""
+    """Given a question and context return an answer."""
 
     question: str = dspy.InputField(prefix="Question:", desc="question to be answered.")
     sql_response: str = dspy.InputField(
@@ -275,9 +275,9 @@ class GetClinicalTrial(dspy.Module):
             print(f"Action: GetClinicalTrial({clinical_trial_ids_list})")
         
         fields = ["id", "brief_title", "study_type", "keywords", "brief_summary"]
-        query = "MATCH (ClinicalTrial:ClinicalTrial) WHERE ClinicalTrial.id IN [{clinical_trial_ids_list}] RETURN {field_list}".format(
-            clinical_trial_ids_list=",".join(["'" + x + "'" for x in clinical_trial_ids_list.split(",")]),
-            field_list=", ".join("ClinicalTrial." + f for f in fields),
+        query = "MATCH (ct:ClinicalTrial) WHERE ct.id IN [{clinical_trial_ids_list}] RETURN {field_list}".format(
+            clinical_trial_ids_list=",".join(["'" + x.strip(" ") + "'" for x in clinical_trial_ids_list.split(",")]),
+            field_list=", ".join("ct." + f for f in fields),
         )
         
         with GraphDatabase.driver(self.uri, auth=(self.user, self.pwd)) as driver:
@@ -327,7 +327,7 @@ class ClinicalTrialToEligibility(dspy.Module):
         query = """MATCH (ct:ClinicalTrial)-[:ClinicalTrialToEligibilityAssociation]->(e:Eligibility)
         WHERE ct.id IN [{clinical_trial_ids_list}] RETURN ct.id, {field_list}
         """.format(
-            clinical_trial_ids_list=",".join(["'" + x + "'" for x in clinical_trial_ids_list.split(",")]),
+            clinical_trial_ids_list=",".join(["'" + x.strip(" ") + "'" for x in clinical_trial_ids_list.split(",")]),
             field_list=", ".join("e." + f for f in fields),
         )
 
@@ -348,7 +348,7 @@ class ClinicalTrialToEligibility(dspy.Module):
 class InterventionToCt(dspy.Module):
     name = "InterventionToCt"
     input_variable = "intervention"
-    desc = "Get the Clinical Trials associated to a medical Intervention."
+    desc = "Retrieve the Clinical Trials associated to a medical Intervention."
 
     def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
@@ -381,7 +381,7 @@ class InterventionToCt(dspy.Module):
 class InterventionToAdverseEvent(dspy.Module):
     name = "InterventionToAdverseEvent"
     input_variable = "intervention"
-    desc = "Get the Adverse Events associated to a medical Intervention tested in a clinical trial."
+    desc = "Retrieve the Adverse Events associated to a medical Intervention tested in a Clinical Trial."
 
     def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
@@ -414,7 +414,7 @@ class InterventionToAdverseEvent(dspy.Module):
 class ConditionToCt(dspy.Module):
     name = "ConditionToCt"
     input_variable = "condition"
-    desc = "Get the Clinical Trials associated to a medical condition."
+    desc = "Retrieve the Clinical Trials associated to a medical Condition."
 
     def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
@@ -430,12 +430,12 @@ class ConditionToCt(dspy.Module):
         self.k = k
         self.retriever.embedder = biobert.encode
 
-    def __call__(self, intervention: str) -> str:
+    def __call__(self, condition: str) -> str:
         
         if VERBOSE:
-            print(f"Action: ConditionToCt({intervention})")
+            print(f"Action: ConditionToCt({condition})")
 
-        response = self.retriever(intervention, self.k) or "Tool produced no response."
+        response = self.retriever(condition, self.k) or "Tool produced no response."
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
@@ -447,7 +447,7 @@ class ConditionToCt(dspy.Module):
 class ConditionToIntervention(dspy.Module):
     name = "ConditionToIntervention"
     input_variable = "condition"
-    desc = "Get the medical Interventions associated to a medical Condition tested in a clinical trial."
+    desc = "Retrieve the medical Interventions associated to a medical Condition tested in a Clinical Trial."
 
     def __init__(self, k:int=5):
         self.retriever = Neo4jRM(
@@ -463,12 +463,12 @@ class ConditionToIntervention(dspy.Module):
         self.k = k
         self.retriever.embedder = biobert.encode
 
-    def __call__(self, intervention: str) -> str:
+    def __call__(self, condition: str) -> str:
         
         if VERBOSE:
-            print(f"Action: ConditionToIntervention({intervention})")
+            print(f"Action: ConditionToIntervention({condition})")
 
-        response = self.retriever(intervention, self.k) or "Tool produced no response."
+        response = self.retriever(condition, self.k) or "Tool produced no response."
         response = str_formatting("\n".join([x["long_text"] for x in response]))
         
         if VERBOSE:
@@ -502,7 +502,7 @@ class MedicalSME(dspy.Module):
 class AnalyticalQuery(dspy.Module):
     name = "AnalyticalQuery"
     input_variable = "question"
-    desc = "Access to a db of clinical trials. Reply question that could be answered with a SQL query. Use when other tools are not suitable."
+    desc = "Access to a db of Clinical Trials. Reply question that could be answered with a SQL query. Use when other tools are not suitable."
 
     def __init__(self, args, sql:bool=True, kg:bool=True):
         self.sql_engine = get_sql_engine(model=args.vllm, model_host=args.host, model_port=args.port)
@@ -603,7 +603,7 @@ def main(args):
         sme_port = 8051
         tools += [MedicalSME(sme_model, sme_host, sme_port)]
     
-    react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=3)
+    react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=10)
     
     
     #---- Load the LLM
