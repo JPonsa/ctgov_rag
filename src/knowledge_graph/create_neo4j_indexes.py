@@ -158,6 +158,10 @@ if __name__ == "__main__":
 
     with GraphDatabase.driver(NEO4J_URI, auth=AUTH) as driver:
         driver.verify_connectivity()
+        
+        # Index CT node based on id
+        cmd = "CREATE INDEX FOR (n:ClinicalTrial) ON (n.id)"
+        driver.execute_query(cmd, database_=DB_NAME)
 
         # Clinical Trials
         create_emb_index(
@@ -168,7 +172,7 @@ if __name__ == "__main__":
             "trial2vec_emb",
             128,
         )
-
+        
         create_emb_index(
             driver,
             DB_NAME,
