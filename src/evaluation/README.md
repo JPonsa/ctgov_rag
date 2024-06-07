@@ -1,0 +1,1 @@
+Evaluation process adapted from https://github.com/abachaa/MEDIQA-CORR-2024/tree/main
