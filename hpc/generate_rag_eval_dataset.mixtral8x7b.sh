@@ -59,7 +59,7 @@ sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
 ruse --stdout --time=150 -s \
-poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mixtral8x7b.csv \
+poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mixtral8x7b.tsv \
     -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt \
     -n 500 -size 2000 \
     -hf $HF_TOKEN \
