@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N RAGAS_mixtral8x7b
 # Max run time in H:M:S
-#$ -l h_rt=2:00:0
+#$ -l h_rt=12:00:0
 # Memory
 #$ -l mem=50G
 #$ -l gpu=2
@@ -61,13 +61,13 @@ echo I am awake
 ruse --stdout --time=150 -s \
 poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mixtral8x7b.csv \
     -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt \
-    -n 25 -size 2000 \
+    -n 500 -size 2000 \
     -hf $HF_TOKEN \
     -ports 8031 8032 \
     --generator $MODEL \
     --critic $MODEL \
     --embeddings all-MiniLM-L6-v2 \
-    -test_size 50 -s 0.4 -r 0.4 -mc 0.2
+    -test_size 250 -s 0.8 -r 0.2 -mc 0.0
 
 #  --embeddings all-MiniLM-L6-v2 \
 #  --embeddings BAAI/bge-small-en-v1.5 \
