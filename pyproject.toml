@@ -43,6 +43,8 @@ bert-score = "^0.3.13"
 spacy = "^3.7.5"
 en-core-web-trf = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.3/en_core_web_trf-3.7.3.tar.gz"}
 en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz"}
+rouge = "^1.0.1"
+bleurt = {git = "https://github.com/google-research/bleurt.git"}
 
 
 [tool.poetry.group.dev.dependencies]
