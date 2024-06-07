@@ -71,22 +71,35 @@ def set_llms(args):
     # Set the LLM
     if args.hf:  # if HuggingFace token provided
         os.environ["HUGGINGFACEHUB_API_TOKEN"] = args.hf
-        from langchain_community.llms import VLLMOpenAI
+        # from langchain_community.llms import VLLMOpenAI
         
-        generator_llm = VLLMOpenAI(
-            openai_api_key="EMPTY",
-            openai_api_base=f"{args.host}:{args.ports[0]}/v1/",
-            model_name=args.generator,
-            model_kwargs={"stop": ["."]},
-            )
+        # generator_llm = VLLMOpenAI(
+        #     openai_api_key="EMPTY",
+        #     openai_api_base=f"{args.host}:{args.ports[0]}/v1/",
+        #     model_name=args.generator,
+        #     model_kwargs={"stop": ["."]},
+        #     )
         
-        critic_llm = VLLMOpenAI(
-            openai_api_key="EMPTY",
-            openai_api_base=f"{args.host}:{args.ports[1]}/v1/",
-            model_name=args.critic,
-            model_kwargs={"stop": ["."]},
-            )
+        # critic_llm = VLLMOpenAI(
+        #     openai_api_key="EMPTY",
+        #     openai_api_base=f"{args.host}:{args.ports[1]}/v1/",
+        #     model_name=args.critic,
+        #     model_kwargs={"stop": ["."]},
+        #     )
         
+        
+        from langchain_openai import ChatOpenAI
+        
+        generator_llm = ChatOpenAI(model=args.generator,
+                                   openai_api_key="EMPTY",
+                                   openai_api_base=f"{args.host}:{args.ports[0]}/v1/",
+                                   )
+        
+        critic_llm = ChatOpenAI(model=args.critic,
+                                openai_api_key="EMPTY",
+                                openai_api_base=f"{args.host}:{args.ports[1]}/v1/",
+                                )
+                
     else:  # Else assumes that use Ollama
         from langchain_community.llms import Ollama
 
@@ -139,7 +152,9 @@ def main(args, verbose:bool=False):
         raise_exceptions=True,
         is_async=True # as per https://github.com/explodinggradients/ragas/issues/709
     )
-    eval_ds.to_pandas().to_csv(args.output)
+    eval_ds = eval_ds.to_pandas()
+    eval_ds["question"] = eval_ds["question"].apply(str_format)
+    eval_ds.to_csv(args.output, sep="\t", index=False)
 
 
 if __name__ == "__main__":
