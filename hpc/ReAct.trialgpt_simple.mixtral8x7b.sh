@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ReAct_trialgpt_simple_mixtral
 # Max run time in H:M:S
-#$ -l h_rt=12:00:0
+#$ -l h_rt=0:20:0
 # Memory
 #$ -l mem=48G
 #$ -l gpu=1
@@ -30,10 +30,14 @@ MODEL_NAME=mixtral8x7b
 PORT=8053
 
 pip install poetry
+echo #---- Enviromental config
+poetry run python collect_env.py
+echo #------------------------
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
 --max-model-len 5000 \
 --gpu-memory-utilization 0.80 &
+
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
