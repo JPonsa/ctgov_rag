@@ -21,13 +21,16 @@ module load tensorflow/2.0.0/gpu-py37
 set -o allexport
 source .env set
 
+MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
+MODEL_NAME=mixtral8x7b
+
 pip install poetry
 
-echo E$MODEL_NAME-llm_only
+echo Eval-ctGov.questioner-$MODEL_NAME-all - start
 ruse --stdout --time=600 -s \
 poetry run python ./src/evaluation/ctGov_questioner_eval.py \
 -i ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
 -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.eval.tsv \
 -y answer -yhat ReAct_answer
 
-echo E$MODEL_NAME-ll
+echo Eval-ctGov.questioner-$MODEL_NAME-all - completed

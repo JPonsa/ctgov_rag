@@ -6,8 +6,7 @@ import bleurt.score as bleurtscore
 
 
 def main(args):
-        
-        
+                
         print(f"Loading data from {args.input_tsv} for evaluation")
         
         # read in the data
@@ -18,7 +17,7 @@ def main(args):
         # Rouge score
         print("Calculating Rouge scores")
         rogue = Rouge()
-        rouge_score = rouge(references, predictions)
+        rouge_score = rogue(references, predictions)
         
         df["rouge1f_score"] = [score["rouge-1"]["f"] for score in rouge_score]
         df["rouge2f_score"] = [score["rouge-2"]["f"] for score in rouge_score]
