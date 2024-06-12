@@ -3,6 +3,9 @@ import json
 import os
 import sys
 
+from dotenv import load_dotenv
+load_dotenv('./.env')
+
 os.environ ['CUDA_LAUNCH_BLOCKING'] ='1' # For vLLM error reporting
 os.environ["DPS_CACHEBOOL"]='False' # dspy no cache
 
@@ -10,11 +13,11 @@ import dspy
 from dspy.retrieve.neo4j_rm import Neo4jRM
 from dspy.teleprompt import BootstrapFewShotWithRandomSearch
 from dspy.evaluate import Evaluate
-from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
 import numpy as np
 import pandas as pd
+import random
 from sentence_transformers import SentenceTransformer
 
 from  ReAct import (
@@ -33,8 +36,6 @@ from  ReAct import (
     MedicalSME
     )
 
-load_dotenv('./.env')
-
 ####### Add src folder to the system path so it can call utils
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -50,9 +51,14 @@ from utils.utils import dspy_tracing, print_red
 
 VERBOSE = True
 
+# TODO: Remove credentials
+os.environ["NEO4J_URI"] = 'neo4j+s://e5534dd1.databases.neo4j.io'
+os.environ["NEO4J_USERNAME"] = 'neo4j'
+os.environ["NEO4J_PASSWORD"] = 'Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE'
+os.environ["NEO4J_DATABASE"] = 'neo4j'
+
 # Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
-
 
 
 def list_parser(x:str) -> list:
@@ -83,15 +89,15 @@ def precision(example:dspy.Example, prediction:dspy.Prediction, trace=None)->flo
     return score
     
 class PatientEligibility(dspy.Signature):
-    "Given a patient description, produce a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
+    "Given a patient description, return a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
     patient_note:str = dspy.InputField(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
     clinical_trial_ids_list:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma-separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
     
     
 class PatientEligibilityWithHint(dspy.Signature):
-    "Given a patient description, produce a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
+    "Given a patient description, return a list of 5 or less clinical trials ids where tha patient would be eligible for enrolment."
     patient_note:str = dspy.InputField(prefix="Patient Note:", desc="description of the patient medical characteristics and conditions")
-    hint:str = dspy.InputField(prefix="Candidate Trials ids:", desc="a comma-separated list of clinical trials with possible elegible clinical trials")
+    hint:str = dspy.InputField(prefix="Candidate Trials ids:", desc="a comma-separated list of clinical trials with possible eligible clinical trials. Not all of them may be eligible.")
     clinical_trial_ids_list:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma-separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
 
 def main(args):
@@ -148,10 +154,13 @@ def main(args):
                 self.signature = PatientEligibilityWithHint
             else:
                 self.signature = PatientEligibility
-            self.predictor = dspy.ReAct(self.signature, tools=tools, max_iters=3)
+            self.predictor = dspy.ReAct(self.signature, tools=tools, max_iters=10)
     
-        def forward(self, patient_note):
-            return self.predictor(patient_note=patient_note) 
+        def forward(self, patient_note, hint:str=None):
+            if hint:
+                return self.predictor(patient_note=patient_note, hint=hint) 
+            else:
+                return self.predictor(patient_note=patient_note) 
     
     # react_module = dspy.ReAct(PatientEligibility, tools=tools, max_iters=3)
     
@@ -163,10 +172,13 @@ def main(args):
     dspy.settings.configure(lm=lm, temperature=0.3)
     
     #---- Get questioner
-    questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=0)
+    questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=None)
+    
+    train_split = 0.8
+    train_idx = int(len(questioner)*train_split)
     
     # Train / Test split
-    training, evaluation = questioner.iloc[:100, :].copy(), questioner.iloc[100:,:].copy()
+    training, evaluation = questioner.iloc[:train_idx, :].copy(), questioner.iloc[train_idx:,:].copy()
     
     # Create input and output examples
     trainset = []
@@ -177,30 +189,30 @@ def main(args):
     devset = []
     for i, row in evaluation.iterrows():
         devset.append(dspy.Example(patient_note=row["patient_note"], clinical_trial_ids_list=row["2"]).with_inputs("patient_note"))
-        
+    
+    if questioner.shape[0] < 100:
+        evaluation = questioner
         
     #---- Evaluation
-    evaluate_program = Evaluate(devset=devset, metric=precision, num_threads=2, display_progress=True, display_table=5)
-    print("---- Evaluation starting ReAct pipeline ----")
-    evaluate_program(ReActPipeline())
+    # evaluate_program = Evaluate(devset=devset, metric=precision, num_threads=2, display_progress=True, display_table=5)
+    # print("---- Evaluation starting ReAct pipeline ----")
+    # evaluate_program(ReActPipeline(hint=args.hint))
     
     #---- Training
     # config = dict(max_bootstrapped_demos=3, max_labeled_demos=3, num_candidate_programs=10, num_threads=4)
     # teleprompter = BootstrapFewShotWithRandomSearch(metric=precision, **config)
-    # optimized_program = teleprompter.compile(ReActPipeline(), trainset=trainset, valset=devset)
+    # optimized_program = teleprompter.compile(ReActPipeline(hint=args.hint), trainset=trainset, valset=devset)
     # optimized_program.save(f"./models/trialGPT.React{args.method}.json")
     
     # print("---- Evaluation optimised ReAct pipeline ----")
     # evaluate_program(optimized_program)
     
-    optimized_program = ReActPipeline()
+    optimized_program = ReActPipeline(hint=args.hint)
     
     if args.hint:
         evaluation["hint"] = "" # Set output field
     
     evaluation["ReAct_answer"]= "" # Set output field
-    
-    
     
     for idx, row in evaluation.iterrows():
         patient_note = row.patient_note
@@ -209,20 +221,32 @@ def main(args):
         # result = react_module(patient_note=patient_note)
         if args.hint:
             hint = []
-            hint.append(np.random.choice(row["2"].split(","), 2, replace=False))
-            hint.append(np.random.choice(row["1"].split(","), np.random.randint(0, 2),size=1, replace=False))
-            hint.append(np.random.choice(row["0"].split(","), np.random.randint(2, 5),size=1, replace=False))
-            hint = ",".join(np.random.shuffle(hint))
+            # add eligible clinical trials
+            eligible = row["2"].split(",")
+            hint += list(np.random.choice(eligible, size=np.random.randint(2, len(eligible)), replace=False))
+            # add excluded clinical trials
+            excluded = row["1"].split(",")
+            hint += list(np.random.choice(excluded, size=np.random.randint(0, len(excluded)), replace=False))
+            # add non-relevant clinical trials
+            unrelated = row["0"].split(",")
+            hint += list(np.random.choice(unrelated, size=np.random.randint(2, len(unrelated)), replace=False))
+            
+            if len(hint) > 0:
+                hint = ",".join(random.sample(hint, len(hint)))
+            else:
+                hint = ""
             
             evaluation.loc[idx, "hint"] = hint
             result = optimized_program(patient_note=patient_note, hint=hint)
             
         else:
             result = optimized_program(patient_note=patient_note)
-        evaluation.loc[idx, "ReAct_answer"] = result.clinical_trial_ids_list
-        print(f"Final Predicted Answer (after ReAct process): {result.clinical_trial_ids_list}")
+            
+        evaluation.loc[idx, "ReAct_answer"] = str(result.clinical_trial_ids_list)
+        print(f'Final Predicted Answer (after ReAct process): {evaluation.loc[idx, "ReAct_answer"]}')
         
     #---- Save response
+    print(f"Saving results to {args.output_tsv}")
     evaluation.to_csv(args.output_tsv, sep="\t", index=None)
 
 if __name__ == "__main__":
@@ -287,6 +311,6 @@ if __name__ == "__main__":
     parser.set_defaults(vllm=None, med_sme=False, hint=False, method="all")
 
     args = parser.parse_args()
-   
+    
     main(args)
     print("ReAct - Completed")
