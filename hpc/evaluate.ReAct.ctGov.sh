@@ -1,10 +1,10 @@
 #!/bin/bash -l
 #$ -N Eval_ReAct_ctGov
 # Max run time in H:M:S
-#$ -l h_rt=0:20:0
+#$ -l h_rt=0:30:0
 # Memory
-#$ -l mem=10G
-#$ -l gpu=1
+#$ -l mem=32G
+#$ -l gpu=2
 #$ -ac allow=EFL
 
 # workig directory. Use #S -cwd to use current working dir
