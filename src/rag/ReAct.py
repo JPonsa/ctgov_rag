@@ -14,6 +14,8 @@ from neo4j.exceptions import AuthError, ServiceUnavailable
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 
+import spacy
+
 load_dotenv('./.env')
 
 ####### Add src folder to the system path so it can call utils
@@ -31,9 +33,6 @@ from utils.utils import dspy_tracing, print_red
 
 VERBOSE = True
 
-# TODO: Remove credentials
-
-
 # Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
@@ -50,7 +49,7 @@ def check_context_length(x:str, max_token:int=2_500)->str:
     else:
         return x
 
-def str_formatting(x:str, max_token:int=2_500) ->str:
+def str_formatting(x:str, max_token:int=2_500, rm_stop:bool=False) ->str:
     """Remove some special characters that could be confusing the LLM or interfering with the post processing of the text"""
     
     if not isinstance(x, str):
@@ -64,10 +63,14 @@ def str_formatting(x:str, max_token:int=2_500) ->str:
     x = x.replace("],",";")
     x = x.replace("]","")
     
-    x = check_context_length(x, max_token)
+    if rm_stop:
+        # trim the text removing stop tokens
+        nlp = spacy.load("en_core_web_sm")
+        x = nlp(x)
+        x = [token.text for token in x if not token.is_stop]
+        x = " ".join(x)
     
-    #TODO: Assess whether it is required to limite the str lenght 
-    # to fix token / character lenght.
+    # x = check_context_length(x, max_token)
     
     if x in ["", " "]:
         x =  "Tool produced no response."
@@ -614,7 +617,7 @@ def main(args):
     dspy.settings.configure(lm=lm, temperature=0.3)
     
     #---- Get questioner
-    questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=0)
+    questioner = pd.read_csv(args.input_tsv, sep="\t", index_col=None)
     questioner["ReAct_answer"]= "" # Set output field
     
     #---- Answer questioner
