@@ -5,7 +5,7 @@ Clinical Trials (CTs) constitute a cornerstone of medical research, providing cr
 
 This project combines a Knowledge Graph (KG) with a Large Language Model (LLM) in a Retrieval Augmented Generation (RAG) system to overcome the challenges in analyzing and interpreting Clinical Trials (CTs) data.
 
-![RAG System](./figures/solution_architecture_diagram.png)
+![RAG System](./figures/solution_architecture_diagram_v3.png)
 
 Figure: The Retrieval Augmented Generation (RAG) system for ClinicalTrials.gov
 
@@ -13,14 +13,19 @@ The proposed querying framework aims to enable researchers to streamline analysi
 
 ## Aims:
 1.	Create a tool that enables medical researchers to analyse large and complex datasets of clinical trial protocols using natural language. 
-2.	Evaluate the feasibility of utilizing Large Language Models (LLMs) for analysing and querying clinical trial protocols and results  from clinicalTrials.gov
+2.	Evaluate the feasibility of utilizing Large Language Models (LLMs) for analysing and querying clinical trial protocols and results from clinicalTrials.gov
 3.	Assess the effectiveness of Knowledge Graph – Retrieve Augmented Generation (KG-RAG)  on clinical trial studies to enhance LLMs querying and analysing capabilities.
 
 ## Features:
 - text-2-SQL system for AACT.
-- ctGov Knowledge Graph.
-- Retrieval Augmented Generation using Meditron-7B
-
+- ctGov Knowledge Graph with BioBert Embedding as Node properties
+- ReAct approached using specialised tools:
+  - Vector Search for Conditions and Interventions and retrieve the associated CTs, Adverse Events or other information.
+  - Ask questions to Meditron7b (a medical LLM)
+  - Analytical tool:
+    - Generate and run SQL queries against AACT.
+    - Generate and run Cypher queries against KG.  
+- Retrieval Augmented Generation using llama3 or mixtral8x7b (any HF model supported by vLLM)
 
 ## Evaluation / Use Cases:
 - Respond to specific questions regarding a single clinical trial protocol or condition or intervention.
@@ -28,4 +33,5 @@ The proposed querying framework aims to enable researchers to streamline analysi
 
 ## References:
 [1] Jin, Qiao, et al. "Matching patients to clinical trials with large language models." ArXiv (2023).\
-[2] Lobentanzer, Sebastian, et al. "Democratizing knowledge representation with BioCypher." Nature Biotechnology 41.8 (2023): 1056-1059.
+[2] Lobentanzer, Sebastian, et al. "Democratizing knowledge representation with BioCypher." Nature Biotechnology 41.8 (2023): 1056-1059.\
+[3] Chen, Zeming, et al. "Meditron-70b: Scaling medical pretraining for large language models." arXiv preprint arXiv:2311.16079 (2023).
