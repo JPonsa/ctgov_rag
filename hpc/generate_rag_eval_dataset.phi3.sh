@@ -1,7 +1,7 @@
 #!/bin/bash -l
-#$ -N RAGAS_llama3
+#$ -N RAGAS_phi3
 # Max run time in H:M:S
-#$ -l h_rt=2:0:0
+#$ -l h_rt=10:0:0
 # Memory
 #$ -l mem=50G
 #$ -l gpu=2
@@ -26,12 +26,8 @@ MONGODB_PWD=${MONGODB_PWD//$'\r'}
 LS_KEY=${LANGCHAIN_API_KEY//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
-#GENERATOR=TheBloke/meditron-7B-GPTQ
-#CRITIC=TheBloke/meditron-7B-GPTQ
-# GENERATOR=TheBloke/Llama-2-13B-GPTQ
-# CRITIC=TheBloke/Llama-2-13B-GPTQ
-
-MODEL=meta-llama/Meta-Llama-3-8B-Instruct
+MODEL=microsoft/Phi-3-mini-128k-instruct
+MODEL_NAME=phi3_m_128k
 
 
 pip install poetry
@@ -40,12 +36,16 @@ poetry run python collect_env.py
 echo #------------------------
 
 export CUDA_VISIBLE_DEVICES=0
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port 8033 --dtype half --enforce-eager --gpu-memory-utilization 0.80 &
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port 8033 --dtype half --enforce-eager \
+--max-model-len 25000 \
+--gpu-memory-utilization 0.90 &
 
 sleep 5m 
 
 export CUDA_VISIBLE_DEVICES=1
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port 8034 --dtype half --enforce-eager --gpu-memory-utilization 0.80 &
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port 8034 --dtype half --enforce-eager \
+--max-model-len 25000 \
+--gpu-memory-utilization 0.90 &
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
@@ -53,7 +53,7 @@ sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
 ruse --stdout --time=150 -s \
-poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.llama3_8.csv \
+poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.$MODEL_NAME.csv \
     -user $MONGODB_USER -pwd $MONGODB_PWD -db ctGov -c trialgpt \
     -n 500 -size 2000 \
     -hf $HF_TOKEN \

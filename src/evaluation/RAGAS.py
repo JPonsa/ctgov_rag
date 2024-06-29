@@ -147,7 +147,7 @@ def main(args, verbose:bool=False):
         distributions={
             simple: args.simple,
             reasoning: args.reasoning,
-            multi_context: args.multi_context,
+            # multi_context: args.multi_context, # Not use multi_context 
         },
         raise_exceptions=True,
         is_async=True # as per https://github.com/explodinggradients/ragas/issues/709
