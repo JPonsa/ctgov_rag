@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N RAGAS_phi3
 # Max run time in H:M:S
-#$ -l h_rt=10:0:0
+#$ -l h_rt=12:0:0
 # Memory
 #$ -l mem=50G
 #$ -l gpu=2
@@ -26,8 +26,11 @@ MONGODB_PWD=${MONGODB_PWD//$'\r'}
 LS_KEY=${LANGCHAIN_API_KEY//$'\r'}
 HF_TOKEN=${HF_TOKEN//$'\r'}
 
-MODEL=microsoft/Phi-3-mini-128k-instruct
-MODEL_NAME=phi3_m_128k
+# MODEL=microsoft/Phi-3-mini-128k-instruct
+# MODEL_NAME=phi3_m_128k
+
+MODEL=microsoft/Phi-3-mini-4k-instruct
+MODEL_NAME=phi3_m_4k
 
 
 pip install poetry
@@ -37,19 +40,17 @@ echo #------------------------
 
 export CUDA_VISIBLE_DEVICES=0
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port 8033 --dtype half --enforce-eager \
---max-model-len 25000 \
---gpu-memory-utilization 0.90 &
+--gpu-memory-utilization 0.80 &
 
 sleep 5m 
 
 export CUDA_VISIBLE_DEVICES=1
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port 8034 --dtype half --enforce-eager \
---max-model-len 25000 \
---gpu-memory-utilization 0.90 &
+--gpu-memory-utilization 0.80 &
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
-# sleep 40m # Time to download
+sleep 40m # Time to download
 echo I am awake
 
 ruse --stdout --time=150 -s \
