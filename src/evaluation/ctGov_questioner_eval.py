@@ -3,6 +3,7 @@ import pandas as pd
 from rouge import Rouge
 import bert_score.score as bertscore
 import bleurt.score as bleurtscore
+import torch
 
 
 def main(args):
@@ -24,20 +25,21 @@ def main(args):
         df["rougelf_score"] = [score["rouge-l"]["f"] for score in rouge_score]
         
         # Bert score
-        # print("Calculating Bert scores")
-        # bertScore_Precision, bertScore_Recall, bertScore_F1 = bertscore(predictions, references, model_type='microsoft/deberta-xlarge-mnli', lang='en', device ='cpu' , verbose=True, rescale_with_baseline=True) # roberta-large
-        # bertscores = bertScore_F1.numpy()
+        print("Calculating Bert scores")
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        bertScore_Precision, bertScore_Recall, bertScore_F1 = bertscore(predictions, references, model_type='microsoft/deberta-xlarge-mnli', lang='en', device=device , verbose=True, rescale_with_baseline=True) # roberta-large
+        bertscores = bertScore_F1.numpy()
             
-        # ## clip scores to [0,1]
-        # bertscores = np.array([np.clip(num) for num in bertscores])
-        # df["bert_score"] = bertscores
+        ## clip scores to [0,1]
+        bertscores = np.array([np.clip(num) for num in bertscores])
+        df["bert_score"] = bertscores
         
         # Bleurt score
-        # print("Calculating Bleurt scores")
-        # checkpoint_path = ".venv/lib/python3.11/site-packages/bleurt/BLEURT-20"
-        # bleurtscorer = bleurtscore.BleurtScorer(checkpoint=checkpoint_path)
-        # bleurtscores = bleurtscorer.score(references=references, candidates=predictions, batch_size =1)
-        # df["bleurt_score"] = bleurtscores
+        print("Calculating Bleurt scores")
+        checkpoint_path = ".venv/lib/python3.11/site-packages/bleurt/BLEURT-20"
+        bleurtscorer = bleurtscore.BleurtScorer(checkpoint=checkpoint_path)
+        bleurtscores = bleurtscorer.score(references=references, candidates=predictions, batch_size =1)
+        df["bleurt_score"] = bleurtscores
         
         # write the results to a tsv file
         print(f"Writing results to {args.output_tsv}")
