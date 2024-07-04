@@ -21,8 +21,12 @@ def main(args):
     df = pd.read_csv(args.input_tsv, sep="\t")
     
     for i, row in df.iterrows():
-        references = row[args.y].fillna("N/A").astype(str).tolist()
-        predictions = row[args.yhat].fillna("N/A").astype(str).tolist()
+        
+        if (row[args.y] is None) or (row[args.yhat]):
+            continue
+        
+        references = row[args.y].astype(str).tolist()
+        predictions = row[args.yhat].astype(str).tolist()
         df.loc[i, "precision"] = precision(references, predictions)
         df.loc[i, "recall"] = recall(references, predictions)
         df.loc[i, "f1"] = f1(df.loc[i, "precision"], df.loc[i, "recall"])
