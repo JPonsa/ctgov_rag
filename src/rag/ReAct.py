@@ -17,6 +17,11 @@ from sentence_transformers import SentenceTransformer
 import spacy
 
 load_dotenv('./.env')
+# TODO: Review if this is the best way to set the environment variables
+os.environ["NEO4J_URI"] = 'neo4j+s://e5534dd1.databases.neo4j.io'
+os.environ["NEO4J_USERNAME"] = 'neo4j'
+os.environ["NEO4J_PASSWORD"] = 'Jih6YsVFgkmwpbt26r7Lm4dIuFWG8fOnvlXc-2fj9SE'
+os.environ["NEO4J_DATABASE"] = 'neo4j'
 
 ####### Add src folder to the system path so it can call utils
 # Get the directory of the current script
