@@ -17,24 +17,17 @@ module load compilers/gnu/10.2.0
 module load cuda/12.2.2/gnu-10.2.0 
 module load ruse/2.0
 
-set -o allexport
-source .env set
-
-# remove special character (likely added as the file was created on a Windows)
-AACT_USER=${AACT_USER//$'\r'}
-AACT_PWD=${AACT_PWD//$'\r'}
-HF_TOKEN=${HF_TOKEN//$'\r'}
-
 MODEL=meta-llama/Meta-Llama-3-8B-Instruct
 MODEL_NAME=llama3_8b
 PORT=8075
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.80 &
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
+--gpu-memory-utilization 0.80 &
+
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
-
 
 echo $MODEL_NAME-llm_only
 ruse --stdout --time=600 -s \
