@@ -17,58 +17,29 @@ module load compilers/gnu/10.2.0
 module load cuda/12.2.2/gnu-10.2.0 
 module load ruse/2.0
 
-set -o allexport
-source .env set
-
-# remove special character (likely added as the file was created on a Windows)
-AACT_USER=${AACT_USER//$'\r'}
-AACT_PWD=${AACT_PWD//$'\r'}
-HF_TOKEN=${HF_TOKEN//$'\r'}
-
 MODEL=microsoft/Phi-3-mini-128k-instruct
 MODEL_NAME=phi3_m_128k
 PORT=8045
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.80 &
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
+--max-model-len 25000 \
+--gpu-memory-utilization 0.90 &
+
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
+for MODE in all sql_only llm_only cypher_only kg_only analytical_only; do
 
-echo $MODEL_NAME-llm_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.llm_only.tsv \
--m llm_only
+    echo $MODEL_NAME-$MODE
 
-echo $MODEL_NAME-sql_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
--m sql_only
+    ruse --stdout --time=600 -s \
+    poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+    -i ./data/ctGov.questioner.mistral7b.tsv \
+    -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
+    -m $MODE
 
-echo $MODEL_NAME-cypher_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
--m cypher_only
-
-echo $MODEL_NAME-kg_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
--m kg_only
-
-echo $MODEL_NAME-all
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/ctGov.questioner.mistral7b.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
--m all
+done
 
 echo ReAct $MODEL_NAME competed!

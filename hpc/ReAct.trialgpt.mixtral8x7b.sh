@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N ReAct_trialgpt_llama3
+#$ -N ReAct_trialgpt_mixtral
 # Max run time in H:M:S
 #$ -l h_rt=12:00:0
 # Memory
@@ -18,12 +18,17 @@ module load cuda/12.2.2/gnu-10.2.0
 module load ruse/2.0
 
 
-MODEL=meta-llama/Meta-Llama-3-8B-Instruct
-MODEL_NAME=llama3_8b
-PORT=8065
+MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
+MODEL_NAME=mixtral8x7b
+PORT=8063
 
 pip install poetry
+echo #---- Enviromental config
+poetry run python collect_env.py
+echo #------------------------
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
+--quantization gptq \
+--max-model-len 5000 \
 --gpu-memory-utilization 0.80 &
 
 echo I am going to sleep

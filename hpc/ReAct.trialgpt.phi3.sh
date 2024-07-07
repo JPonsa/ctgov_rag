@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N ReAct_trialgpt_llama3
+#$ -N ReAct_trialgpt_phi3
 # Max run time in H:M:S
 #$ -l h_rt=12:00:0
 # Memory
@@ -18,17 +18,22 @@ module load cuda/12.2.2/gnu-10.2.0
 module load ruse/2.0
 
 
-MODEL=meta-llama/Meta-Llama-3-8B-Instruct
-MODEL_NAME=llama3_8b
+MODEL=microsoft/Phi-3-mini-128k-instruct
+MODEL_NAME=phi3_m_128k
 PORT=8065
 
 pip install poetry
+echo #---- Enviromental config
+poetry run python collect_env.py
+echo #------------------------
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
---gpu-memory-utilization 0.80 &
+--max-model-len 15000 \
+--gpu-memory-utilization 0.90 &
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
+
 
 for MODE in llm_only cypher_only kg_only; do
 
