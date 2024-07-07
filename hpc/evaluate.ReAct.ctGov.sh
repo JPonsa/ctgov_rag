@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #$ -N Eval_ReAct_ctGov
 # Max run time in H:M:S
-#$ -l h_rt=0:30:0
+#$ -l h_rt=2:00:0
 # Memory
-#$ -l mem=32G
+#$ -l mem=64G
 #$ -l gpu=2
 #$ -ac allow=EFL
 
@@ -18,19 +18,17 @@ module load cuda/12.2.2/gnu-10.2.0
 module load ruse/2.0
 module load tensorflow/2.0.0/gpu-py37
 
-set -o allexport
-source .env set
-
-MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
-MODEL_NAME=mixtral8x7b
-
 pip install poetry
 
-echo Eval-ctGov.questioner-$MODEL_NAME-all - start
-ruse --stdout --time=600 -s \
-poetry run python ./src/evaluation/ctGov_questioner_eval.py \
--i ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.tsv \
--o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.all.eval.tsv \
--y answer -yhat ReAct_answer
-
-echo Eval-ctGov.questioner-$MODEL_NAME-all - completed
+for MODEL_NAME in mixtral8x7b llama3 phi3_m_128k; do
+    for MODE in all llm_only sql_only cypher_only kg_only analytical_only; do
+        echo $MODEL_NAME-$mode
+        ruse --stdout --time=600 -s \
+        poetry run python ./src/evaluation/ctGov_questioner_eval.py \
+        -i ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
+        -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
+        -y answer -yhat ReAct_answer
+        
+        echo Eval-ctGov.questioner-$MODEL_NAME-$MODE - completed
+    done
+done

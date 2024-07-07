@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N ReAct_RAGAS_phi3
+#$ -N ReAct_RAGAS_mixtral8x7b
 # Max run time in H:M:S
 #$ -l h_rt=12:00:0
 # Memory
@@ -17,23 +17,25 @@ module load compilers/gnu/10.2.0
 module load cuda/12.2.2/gnu-10.2.0 
 module load ruse/2.0
 
-MODEL=microsoft/Phi-3-mini-128k-instruct
-MODEL_NAME=phi3_m_128k
-PORT=8072
+MODEL=TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ
+MODEL_NAME=mixtral8x7b
+PORT=8073
 
 pip install poetry
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
---max-model-len 10000 \
---gpu-memory-utilization 0.90 &
+--quantization gptq \
+--max-model-len 5000 \
+--gpu-memory-utilization 0.80 &
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
-for mode in all llm_only sql_only cypher_only kg_only analytical_only; do
-
+# for mode in all llm_only sql_only cypher_only kg_only analytical_only; do
+for mode in all kg_only analytical_only; do
+    
     echo $MODEL_NAME-$mode
-
+    
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
     -i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \

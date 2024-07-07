@@ -25,11 +25,26 @@ MODEL_NAME=mixtral8x7b
 
 pip install poetry
 
-echo Eval-trialgpt.questioner-$MODEL_NAME-all - start
-ruse --stdout --time=600 -s \
-poetry run python ./src/evaluation/trialgpt_questioner_eval.py \
--i ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.kg_only.tsv \
--o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.kg_only.eval.tsv \
--y 2 -yhat ReAct_answer
+for MODEL_NAME in mixtral8x7b llama3 phi3_m_128k;
+do
+    for MODE in llm_only cypher_only kg_only;
+    do
+        echo Eval-trialgpt.questioner-$MODEL_NAME-all - start
+        ruse --stdout --time=600 -s \
+        poetry run python ./src/evaluation/trialgpt_questioner_eval.py \
+        -i ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.$MODE.tsv \
+        -o ./results/ReAct/trialgpt.questioner.ReAct_v2.$MODEL_NAME.$MODE.tsv \
+        -y 2 -yhat ReAct_answer
 
-echo Eval-trialgpt.questioner-$MODEL_NAME-all - completed
+        echo Eval-trialgpt.questioner-$MODEL_NAME-$MODE - completed
+
+        echo Eval-trialgpt.questioner-$MODEL_NAME-all - start
+        ruse --stdout --time=600 -s \
+        poetry run python ./src/evaluation/trialgpt_questioner_eval.py \
+        -i ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv \
+        -o ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv \
+        -y 2 -yhat ReAct_answer
+
+        echo Eval-trialgpt.questioner-$MODEL_NAME-$MODE - completed
+    done
+done

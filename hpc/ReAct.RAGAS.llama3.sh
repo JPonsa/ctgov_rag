@@ -29,39 +29,17 @@ echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
-echo $MODEL_NAME-llm_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \
--o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.llm_only.tsv \
--m llm_only
-
-echo $MODEL_NAME-sql_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \
--o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.sql_only.tsv \
--m sql_only
-
-echo $MODEL_NAME-cypher_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \
--o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.cypher_only.tsv \
--m cypher_only
-
-echo $MODEL_NAME-kg_only
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \
--o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.kg_only.tsv \
--m kg_only
-
-echo $MODEL_NAME-all
-ruse --stdout --time=600 -s \
-poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
--i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \
--o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.all.tsv \
--m all
+for mode in all llm_only sql_only cypher_only kg_only analytical_only; do
+    
+    echo $MODEL_NAME-$mode
+    
+    ruse --stdout --time=600 -s \
+    poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+    -i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \
+    -o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.$mode.tsv \
+    -m $mode
+    
+done
 
 echo ReAct $MODEL_NAME competed!
+

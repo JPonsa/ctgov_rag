@@ -34,9 +34,11 @@ poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --port $P
 --max-model-len 5000 \
 --gpu-memory-utilization 0.80 &
 # --tensor-parallel-size 2 \
+
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
+
 ruse --stdout --time=600 -s \
 poetry run python ./src/txt2sql/txt2sql_dspy_test.py -user $AACT_USER -pwd $AACT_PWD \
 -sql_query_template ./src/txt2sql/sql_queries_template.yaml \

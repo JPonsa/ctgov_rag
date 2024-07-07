@@ -31,7 +31,8 @@ MODEL=mistralai/Mistral-7B-Instruct-v0.2
 PORT=8031
 
 pip install poetry
-poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager --gpu-memory-utilization 0.80 &
+poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
+--gpu-memory-utilization 0.80 &
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
@@ -48,7 +49,3 @@ poetry run python ./src/evaluation/RAGAS.py ./data/RAGA_testset.mistral7b.csv \
     --critic $MODEL \
     --embeddings all-MiniLM-L6-v2 \
     -test_size 25 -s 0.4 -r 0.4 -mc 0.2
-
-#  --embeddings all-MiniLM-L6-v2 \
-#  --embeddings BAAI/bge-small-en-v1.5 \
-#  --embeddings sentence-transformers/all-mpnet-base-v2 \
