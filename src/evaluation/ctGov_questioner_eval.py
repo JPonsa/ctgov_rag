@@ -1,5 +1,6 @@
 import argparse
 import pandas as pd
+import numpy as np
 from rouge import Rouge
 import bert_score.score as bertscore
 import bleurt.score as bleurtscore
@@ -12,8 +13,8 @@ def main(args):
         
         # read in the data
         df = pd.read_csv(args.input_tsv, sep="\t")
-        references = df[args.y].fillna("N/A").astype(str).tolist()
-        predictions = df[args.yhat].fillna("N/A").astype(str).tolist()
+        references = df[args.y].fillna("N/A").astype(str).str.lower().tolist()
+        predictions = df[args.yhat].fillna("N/A").astype(str).str.lower().tolist()
         
         # Rouge score
         print("Calculating Rouge scores")
@@ -27,19 +28,26 @@ def main(args):
         # Bert score
         print("Calculating Bert scores")
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        bertScore_Precision, bertScore_Recall, bertScore_F1 = bertscore(predictions, references, model_type='microsoft/deberta-xlarge-mnli', lang='en', device=device , verbose=True, rescale_with_baseline=True) # roberta-large
+        # model_type = 'microsoft/deberta-xlarge-mnli' # original model - too large?
+        model_type = 'microsoft/deberta-v3-base'
+        bertScore_Precision, bertScore_Recall, bertScore_F1 = bertscore(predictions, references, model_type=model_type, lang='en', device=device , verbose=True, rescale_with_baseline=True)
         bertscores = bertScore_F1.numpy()
             
         ## clip scores to [0,1]
-        bertscores = np.array([np.clip(num) for num in bertscores])
+        bertscores = np.array([np.clip(num, 0, 1) for num in bertscores])
         df["bert_score"] = bertscores
         
+        # BUG: Bleurt score not working due to the tensorflow version. 
+        # https://github.com/google-research/bleurt/issues/59
+         
         # Bleurt score
-        print("Calculating Bleurt scores")
-        checkpoint_path = ".venv/lib/python3.11/site-packages/bleurt/BLEURT-20"
-        bleurtscorer = bleurtscore.BleurtScorer(checkpoint=checkpoint_path)
-        bleurtscores = bleurtscorer.score(references=references, candidates=predictions, batch_size =1)
-        df["bleurt_score"] = bleurtscores
+        #print("Calculating Bleurt scores")
+        # BUG: having some issues with the bleurt score and the location of the BLEURT-20 checkpoint
+        # checkpoint_path = ".venv/lib/python3.11/site-packages/bleurt/BLEURT-20"
+        # checkpoint_path = "BLEURT-20"
+        # bleurtscorer = bleurtscore.BleurtScorer(checkpoint=checkpoint_path)
+        # bleurtscores = bleurtscorer.score(references=references, candidates=predictions, batch_size =1)
+        # df["bleurt_score"] = bleurtscores
         
         # write the results to a tsv file
         print(f"Writing results to {args.output_tsv}")
