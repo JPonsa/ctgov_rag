@@ -22,7 +22,7 @@ def main(args):
     
     for i, row in df.iterrows():
         
-        if (row[args.y] is None) or (row[args.yhat]):
+        if (row[args.y] is None) or (row[args.yhat] is None):
             continue
         
         references = row[args.y].astype(str).tolist()
