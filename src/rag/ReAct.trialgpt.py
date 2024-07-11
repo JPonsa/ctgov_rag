@@ -178,6 +178,8 @@ def main(args):
                            stop=['\n\n', '<|eot_id|>'], 
                         #    model_type='chat',
                            )
+
+    
     dspy.settings.configure(lm=lm, temperature=0.3)
     
     #---- Get questioner
@@ -236,8 +238,9 @@ def main(args):
             # add eligible clinical trials
             if isinstance(row["2"], str):
                 eligible = row["2"].split(",")
-                np.max(2, len(eligible))
-                hint += list(np.random.choice(eligible, size=np.random.randint(np.max(2, len(eligible)), len(eligible)), replace=False))
+                min = np.min([2, len(eligible)-1])
+                min = 0 if min < 0 else min
+                hint += list(np.random.choice(eligible, size=np.random.randint(min, len(eligible)), replace=False))
             # add excluded clinical trials
             if isinstance(row["1"], str):
                 excluded = row["1"].split(",")
@@ -245,7 +248,9 @@ def main(args):
             # add non-relevant clinical trials
             if isinstance(row["0"], str):
                 unrelated = row["0"].split(",")
-                hint += list(np.random.choice(unrelated, size=np.random.randint(np.max(2, len(unrelated)), len(unrelated)), replace=False))
+                min = np.min([2, len(unrelated)-1])
+                min = 0 if min < 0 else min
+                hint += list(np.random.choice(unrelated, size=np.random.randint(min, len(unrelated)), replace=False))
             
             if len(hint) > 0:
                 hint = ",".join(random.sample(hint, len(hint)))
@@ -253,10 +258,16 @@ def main(args):
                 hint = ""
             
             evaluation.loc[idx, "hint"] = hint
-            result = optimized_program(patient_note=patient_note, hint=hint)
             
+            try:
+                result = optimized_program(patient_note=patient_note, hint=hint)
+            except Exception as e:
+                result = dspy.Prediction(patient_note=patient_note, hint=hint, clinical_trial_ids_list=str(e)).with_inputs("patient_note", "hint")     
         else:
-            result = optimized_program(patient_note=patient_note)
+            try:
+                result = optimized_program(patient_note=patient_note)
+            except Exception as e:
+                result = dspy.Prediction(patient_note=patient_note, clinical_trial_ids_list=str(e)).with_inputs("patient_note")
             
         evaluation.loc[idx, "ReAct_answer"] = output_formatter(str(result.clinical_trial_ids_list))
         print(f'Final Predicted Answer (after ReAct process): {evaluation.loc[idx, "ReAct_answer"]}')
