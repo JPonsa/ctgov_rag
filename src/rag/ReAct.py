@@ -293,9 +293,7 @@ class GetClinicalTrial(dspy.Module):
         
         text = {}
         for r in neo4j_response:
-            text[r[f"ClinicalTrial.id"]] = {
-                f: r[f"ClinicalTrial.{f}"] for f in fields if f != "id"
-            }
+            text[r[f"ct.id"]] = {f: r[f"ct.{f}"] for f in fields if f != "id"}
 
         response = str_formatting(json.dumps(text))
         
@@ -618,7 +616,9 @@ def main(args):
     lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
                            stop=['\n\n', '<|eot_id|>'], 
                         #    model_type='chat',
-                           )
+                        )
+
+    
     dspy.settings.configure(lm=lm, temperature=0.3)
     
     #---- Get questioner
@@ -631,6 +631,12 @@ def main(args):
         print("#####################")
         print(f"Question: {question}")
         result = react_module(question=question)
+        
+        try:
+            result = react_module(question=question)
+        except Exception as e:
+            result = dspy.Prediction(question=question, answer=str(e)).with_inputs("question")
+                
         questioner.loc[idx, "ReAct_answer"] = result.answer
         print(f"Final Predicted Answer (after ReAct process): {result.answer}")
         
