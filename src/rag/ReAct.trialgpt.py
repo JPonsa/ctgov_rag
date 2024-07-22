@@ -26,6 +26,7 @@ import pandas as pd
 import random
 from sentence_transformers import SentenceTransformer
 
+from transformers import AutoTokenizer
 
 from  ReAct import (
     str_formatting,
@@ -110,16 +111,19 @@ class PatientEligibilityWithHint(dspy.Signature):
     clinical_trial_ids_list:str = dspy.OutputField(prefix="Clinical Trials ids:", desc="a comma-separated list of clinical trials e.g. NCT0001,NCT0002,NCT0003")
 
 def main(args):
+    
+    tokenizer = AutoTokenizer.from_pretrained(args.vllm)
+    
     k=5
     KG_tools = [
-    GetClinicalTrial(),
-    ClinicalTrialToEligibility(),
-    InterventionToCt(k=k),
-    InterventionToAdverseEvent(k=k),
-    ConditionToCt(k=k),
-    ConditionToIntervention(k=k),
+    GetClinicalTrial(tokenizer, args.context_max_tokens),
+    ClinicalTrialToEligibility(tokenizer, args.context_max_tokens),
+    InterventionToCt(tokenizer, args.context_max_tokens, k),
+    InterventionToAdverseEvent(tokenizer, args.context_max_tokens, k),
+    ConditionToCt(tokenizer, args.context_max_tokens, k),
+    ConditionToIntervention(tokenizer, args.context_max_tokens, k),
     ]
-
+    
     # tools = [ChitChat()]
     tools= []
     
@@ -129,24 +133,24 @@ def main(args):
         raise NotImplementedError(f"method={args.method} not supported. methods must be one of {valid_methods}")
     
     if args.method == "sql_only":
-        tools += [AnalyticalQuery(args, sql=True, kg=False)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=True, kg=False)]
     
     elif args.method == "kg_only":
-        tools += [AnalyticalQuery(args, sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=False, kg=True)]
         tools += KG_tools
     
     elif args.method == "cypher_only":
-        tools += [AnalyticalQuery(args, sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=False, kg=True)]
     
     elif args.method == "llm_only":
-        tools = [ChitChat()]
+        tools = [ChitChat(tokenizer,args.context_max_tokens)]
         pass
     
     elif args.method == "analytical_only":
-        tools += [AnalyticalQuery(args, sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=True, kg=True)]
         
     else:
-        tools += [AnalyticalQuery(args, sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=True, kg=True)]
         tools += KG_tools
         
     if args.med_sme:
@@ -175,8 +179,7 @@ def main(args):
     
     #---- Load the LLM
     lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
-                           stop=['\n\n', '<|eot_id|>'], 
-                        #    model_type='chat',
+                           stop=['\n\n', '<|eot_id|>', '<|end_header_id|>'], 
                            )
 
     
@@ -287,21 +290,10 @@ if __name__ == "__main__":
         help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
     )
 
-    parser.add_argument(
-        "-host",
-        type=str,
-        default="http://0.0.0.0",
-        help="LLM server host.",
-    )
+    parser.add_argument("-host", type=str, default="http://0.0.0.0", help="LLM server host.")
 
-    parser.add_argument(
-        "-port",
-        type=int,
-        default=8_000,
-        help="LLM server port.",
-    )
+    parser.add_argument("-port", type=int, default=8_000, help="LLM server port.")
     
-        # Add arguments
     parser.add_argument(
         "-i",
         "--input_tsv",
@@ -310,7 +302,6 @@ if __name__ == "__main__":
         help="path to questioner file. It assumes that the file is tab-separated. that the file contains 1st column as index and a `question` column.",
     )
 
-    # Add arguments
     parser.add_argument(
         "-o",
         "--output_tsv",
@@ -318,8 +309,7 @@ if __name__ == "__main__":
         default="./results/ReAct/ctGov.questioner.mistral7b.tsv",
         help="full path to the output tsv file. The file will contain the same information as the input file plus an additional `ReAct_answer` column.",
     )
-    
-        # Add arguments
+
     parser.add_argument(
         "-m",
         "--method",
@@ -332,9 +322,14 @@ if __name__ == "__main__":
         `all` user all tools available.
         Default `all`."""
     )
+    
     parser.add_argument("-s","--med_sme", action='store_true', help="Flag indicating the access to a Med SME LLM like Meditron. Default: False")
+    
     parser.add_argument("-hi","--hint", action='store_true', help="Flag indicating whether a list to possible CTs hint in the ReAct pipeline. Default: False")
+    
     parser.add_argument("-t","--train", action='store_true', help="Flag indicating whether to use DSPy for prompt optimisation. Default: False")
+    
+    parser.add_argument("-c", "--context_max_tokens", type=int, default=2_500, help="Maximum number of tokens to be used in the context. Default: 2_500")
     
     parser.set_defaults(vllm=None, med_sme=False, hint=False, train=False, method="all")
 
