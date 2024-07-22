@@ -36,12 +36,14 @@ for MODE in llm_only cypher_only kg_only; do
 
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+    --context_max_tokens 1000 \
     -i ./data/trialgpt.questioner.tsv \
     -o ./results/ReAct/trialgpt.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
     -m $MODE
 
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+    --context_max_tokens 1000 \
     -i ./data/trialgpt.questioner.tsv \
     -o ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv \
     -m $MODE \

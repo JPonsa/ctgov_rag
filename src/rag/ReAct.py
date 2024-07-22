@@ -1,9 +1,10 @@
 import argparse
 import json
 import os
+import re
 import sys
 
-os.environ ['CUDA_LAUNCH_BLOCKING'] ='1' # For vLLM error reporting
+os.environ['CUDA_LAUNCH_BLOCKING']='1' # For vLLM error reporting
 os.environ["DPS_CACHEBOOL"]='False' # dspy no cache
 
 import dspy
@@ -13,6 +14,8 @@ from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
 import pandas as pd
 from sentence_transformers import SentenceTransformer
+
+from transformers import AutoTokenizer
 
 import spacy
 
@@ -41,41 +44,42 @@ VERBOSE = True
 # Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
-
-# TODO: Review if this is the best way. Could if be an alternative in which
-# chunks are summarised and aggregated into one single contexts? 
-
-def check_context_length(x:str, max_token:int=2_500)->str:
-    CHR_PER_TOKEN = 4
-    max_characters = max_token*CHR_PER_TOKEN
-    if len(x) > max_characters:
-        print(f"Context too large {x[:max_characters]} ...")
-        return x[:max_characters]+" ..."
-    else:
-        return x
-
-def str_formatting(x:str, max_token:int=2_500, rm_stop:bool=False) ->str:
+def str_formatting(x:str, tokenizer:AutoTokenizer, max_token:int=2_500, rm_stop:bool=True) ->str:
     """Remove some special characters that could be confusing the LLM or interfering with the post processing of the text"""
     
     if not isinstance(x, str):
         print("NOT A STRING!!!!!")
         return x
     
-    x = x.replace('"',"")
-    x = x.replace("{","")
-    x = x.replace("}","")
-    x = x.replace("[","")
-    x = x.replace("],",";")
-    x = x.replace("]","")
+    # Remove some special characters that could be interfering with the ReAct parsing.
+    x = x.replace("],",";") # replace '],' > ';'
+    x = re.sub(r'["\'\\{}[\]]', '', x) # replace '["\'\\{}[\]]' > '' 
+    x = re.sub(r'\n+', '\n', x) # replace multiple '\n' > '\n '
+    x = re.sub(r'\s+', ' ', x).strip() # replace multiple white spaces > ' ' and strip
     
     if rm_stop:
-        # trim the text removing stop tokens
+        # Load spaCy model
         nlp = spacy.load("en_core_web_sm")
-        x = nlp(x)
-        x = [token.text for token in x if not token.is_stop]
-        x = " ".join(x)
+        
+        # Process the text
+        doc = nlp(x)
+        
+        # Remove stop words and lemmatize
+        tokens = [token.lemma_ for token in doc if not token.is_stop]        
+        x =  " ".join(tokens)
     
-    # x = check_context_length(x, max_token)
+    # Check the length of the text in tokens
+    tokens = tokenizer.tokenize(x)
+    n = min(len(tokens), max_token)
+    
+    if VERBOSE:
+        print(f"text length: {len(tokens)} tokens")
+    
+    # Limit the number of tokens
+    n = min(len(tokens), max_token)
+    x = tokenizer.convert_tokens_to_string(tokens[:n])
+    if n < len(tokens):
+        x = x + " ..."
     
     if x in ["", " "]:
         x =  "Tool produced no response."
@@ -191,8 +195,8 @@ def get_cypher_engine(model:str, model_host:str, model_port:int):
 class BasicQA(dspy.Signature):
     """Answer questions with short factoid answers."""
 
-    question = dspy.InputField()
-    answer = dspy.OutputField()
+    question: str = dspy.InputField()
+    answer: str = dspy.OutputField()
 
 
 class QAwithContext(dspy.Signature):
@@ -215,9 +219,9 @@ class QAwithContext(dspy.Signature):
 class Txt2Cypher(dspy.Signature):
     """"Takes an input question and a Knowledge Graph db schema to produce a syntactically correct cypher query to run.
     Pay attention to the relationships between nodes and their directionality"""
-    question:str = dspy.InputField(prefix="Question:")
-    graph_schema:str = dspy.InputField(prefix="Knowledge Graph schema:")
-    cypher_query:str = dspy.OutputField(prefix="Cypher query:")
+    question: str = dspy.InputField(prefix="Question:")
+    graph_schema: str = dspy.InputField(prefix="Knowledge Graph schema:")
+    cypher_query: str = dspy.OutputField(prefix="Cypher query:")
     
     
 def cypher_engine(question:str)->str:
@@ -234,15 +238,38 @@ def cypher_engine(question:str)->str:
     
     response = "Sorry. I could not find this information"
     cypher_query_eng = dspy.Predict(Txt2Cypher)
+    # The Neo4jGraph schema has a preferred_id field that is not needed for the Cypher query
+    # prefered_id is a STRING fields with the name of the prefered fields for querying the database
+    # This is confusing the LLM thinking "prefered_id" is a field to be queried when it is not.
+    graph_schema = graph.schema.replace(", preferred_id: STRING", "")
+    
     #BUG:LLM is adding a double-quotation at the end and sometimes at the begging.
-    cypher_query = cypher_query_eng(question=question, graph_schema=graph.schema).cypher_query.strip('"').strip("---")
+    cypher_query = (
+        cypher_query_eng(question=question, graph_schema=graph_schema)
+        .cypher_query.strip('"')
+        .strip("---")
+    )
     
     if cypher_query:
         print(f"Cypher query: {cypher_query}")
         
         response = graph.query(cypher_query)
+        trimmed_fields = ["trial2vec_emb", "biobert_emb", "preferred_id", "emb"]
+        
         if isinstance(response, list):
-            response = "|".join(response)
+            tmp = []
+            for r in response:
+                if isinstance(r, dict):
+                    # Filter out keys in embedding for the top-level dictionary
+                    record = {k: v for k, v in r.items() if k.split(".")[-1] not in trimmed_fields}
+                    # Further filter nested dictionaries
+                    for k, v in record.items():
+                        if isinstance(v, dict):
+                            record[k] = {kk: vv for kk, vv in v.items() if kk not in trimmed_fields}
+                            
+                    r = json.dumps(record)
+                tmp.append(r)
+            response = "|".join(tmp)
     
     return response
     
@@ -254,29 +281,46 @@ class ChitChat(dspy.Module):
     input_variable = "question"
     desc = "Simple question that does not require specialised knowledge and you know the answer."
 
-    def __init__(self):
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int):
         self.chatter = dspy.Predict(BasicQA)
+        self.tokenizer = tokenizer
+        self.max_token = max_token
 
     def __call__(self, question):
+        #BUG sometimes the LLM is given the fill reasoning not just the question.
+        question =  question.split("]")[0]
+        
         if VERBOSE:
             print(f"Action: ChitChat({question})")
         
-        return self.chatter(question=question).answer
+        response = self.chatter(question=question).answer
+        response = str_formatting(response, self.tokenizer, self.max_token)
+        
+        if VERBOSE:
+            print(f"Function Response: {response}")
+        
+        return response
 
 
-class GetClinicalTrial(dspy.Module):
+class CypherCtBaseTool(dspy.Module):
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int):
+        self.uri = os.getenv("NEO4J_URI")
+        self.user = os.getenv("NEO4J_USERNAME")
+        self.pwd = os.getenv("NEO4J_PASSWORD")
+        self.db = os.getenv("NEO4J_DATABASE")
+        self.tokenizer = tokenizer
+        self.max_token = max_token
+
+
+class GetClinicalTrial(CypherCtBaseTool):
     """Retrieve Summary of a Clinical Trial"""
 
     name = "GetClinicalTrial"
     input_variable = "clinical_trial_ids_list"
     desc = "Takes a comma separated list of clinical trials ids and gets Clinical Trials summaries."
-    # desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get Clinical Trials summaries."
 
-    def __init__(self):
-        self.uri = os.getenv("NEO4J_URI")
-        self.user = os.getenv("NEO4J_USERNAME")
-        self.pwd = os.getenv("NEO4J_PASSWORD")
-        self.db = os.getenv("NEO4J_DATABASE")
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int):
+        super().__init__(tokenizer, max_token)
 
     def __call__(self, clinical_trial_ids_list: list) -> str:
         if VERBOSE:
@@ -294,8 +338,9 @@ class GetClinicalTrial(dspy.Module):
         text = {}
         for r in neo4j_response:
             text[r[f"ct.id"]] = {f: r[f"ct.{f}"] for f in fields if f != "id"}
-
-        response = str_formatting(json.dumps(text))
+            
+        response = json.dumps(text)
+        response = str_formatting(response, self.tokenizer, self.max_token)
         
         if VERBOSE:
             print(f"Function Response: {response}")
@@ -303,20 +348,16 @@ class GetClinicalTrial(dspy.Module):
         return response
 
 
-class ClinicalTrialToEligibility(dspy.Module):
+class ClinicalTrialToEligibility(CypherCtBaseTool):
     """Retrieve a Clinical Trial eligibility criteria"""
 
     name = "ClinicalTrialToEligibility"
     input_variable = "clinical_trial_ids_list"
     desc = "Takes a comma separated list of clinical trials ids and gets the trial eligibility criteria."
-    # desc = "Given a comma separated list of clinical trials ids (e.g. NCT00000173,NCT00000292) get the trial eligibility criteria."
 
-    def __init__(self):
-        self.uri = os.getenv("NEO4J_URI")
-        self.user = os.getenv("NEO4J_USERNAME")
-        self.pwd = os.getenv("NEO4J_PASSWORD")
-        self.db = os.getenv("NEO4J_DATABASE")
-
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int):
+        super().__init__(tokenizer, max_token)
+        
     def __call__(self, clinical_trial_ids_list: list) -> str:
         
         if VERBOSE:
@@ -344,7 +385,8 @@ class ClinicalTrialToEligibility(dspy.Module):
         for r in neo4j_response:
             text[r[f"ct.id"]] = {f: r[f"e.{f}"] for f in fields}
 
-        response = str_formatting(json.dumps(text), max_token=1_500)
+        response = json.dumps(text)
+        response = str_formatting(response, self.tokenizer, self.max_token)
         
         if VERBOSE:
             print(f"Function Response: {response}")
@@ -356,7 +398,7 @@ class InterventionToCt(dspy.Module):
     input_variable = "intervention"
     desc = "Retrieve the Clinical Trials associated to a medical Intervention."
 
-    def __init__(self, k:int=5):
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int, k:int=5):
         self.retriever = Neo4jRM(
             index_name="intervention_biobert_emb",
             text_node_property="name",
@@ -369,6 +411,8 @@ class InterventionToCt(dspy.Module):
         )
         self.k = k
         self.retriever.embedder = biobert.encode
+        self.tokenizer = tokenizer
+        self.max_token = max_token
 
     def __call__(self, intervention: str) -> str:
         
@@ -376,7 +420,8 @@ class InterventionToCt(dspy.Module):
             print(f"Action: InterventionToCt({intervention})")
         
         response = self.retriever(intervention, self.k) or "Tool produced no response."
-        response = str_formatting("\n".join([x["long_text"] for x in response]))
+        response = "\n".join([x["long_text"] for x in response])
+        response = str_formatting(response, self.tokenizer, self.max_token)
         
         if VERBOSE:
             print(f"Function Response: {response}")
@@ -389,7 +434,7 @@ class InterventionToAdverseEvent(dspy.Module):
     input_variable = "intervention"
     desc = "Retrieve the Adverse Events associated to a medical Intervention tested in a Clinical Trial."
 
-    def __init__(self, k:int=5):
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int, k:int=5):
         self.retriever = Neo4jRM(
             index_name="intervention_biobert_emb",
             text_node_property="name",
@@ -402,6 +447,8 @@ class InterventionToAdverseEvent(dspy.Module):
         )
         self.k = k
         self.retriever.embedder = biobert.encode
+        self.tokenizer = tokenizer
+        self.max_token = max_token
 
     def __call__(self, intervention: str) -> str:
         
@@ -409,10 +456,11 @@ class InterventionToAdverseEvent(dspy.Module):
             print(f"Action: InterventionToAdverseEvent({intervention})")
     
         response = self.retriever(intervention, self.k) or "Tool produced no response."
-        response = str_formatting("\n".join([x["long_text"] for x in response]))
+        response = "\n".join([x["long_text"] for x in response])
+        response = str_formatting(response, self.tokenizer, self.max_token)
         
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
         
         return response
 
@@ -422,7 +470,7 @@ class ConditionToCt(dspy.Module):
     input_variable = "condition"
     desc = "Retrieve the Clinical Trials associated to a medical Condition."
 
-    def __init__(self, k:int=5):
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int, k:int=5):
         self.retriever = Neo4jRM(
             index_name="condition_biobert_emb",
             text_node_property="name",
@@ -435,6 +483,8 @@ class ConditionToCt(dspy.Module):
         )
         self.k = k
         self.retriever.embedder = biobert.encode
+        self.tokenizer = tokenizer
+        self.max_token = max_token
 
     def __call__(self, condition: str) -> str:
         
@@ -442,10 +492,11 @@ class ConditionToCt(dspy.Module):
             print(f"Action: ConditionToCt({condition})")
 
         response = self.retriever(condition, self.k) or "Tool produced no response."
-        response = str_formatting("\n".join([x["long_text"] for x in response]))
+        response = "\n".join([x["long_text"] for x in response])
+        response = str_formatting(response, self.tokenizer, self.max_token)
         
         if VERBOSE:
-            print(response)
+            print(f"Function Response: {response}")
         
         return response
 
@@ -455,7 +506,7 @@ class ConditionToIntervention(dspy.Module):
     input_variable = "condition"
     desc = "Retrieve the medical Interventions associated to a medical Condition tested in a Clinical Trial."
 
-    def __init__(self, k:int=5):
+    def __init__(self, tokenizer:AutoTokenizer, max_token:int, k:int=5):
         self.retriever = Neo4jRM(
             index_name="condition_biobert_emb",
             text_node_property="name",
@@ -468,6 +519,8 @@ class ConditionToIntervention(dspy.Module):
         )
         self.k = k
         self.retriever.embedder = biobert.encode
+        self.tokenizer = tokenizer
+        self.max_token = max_token
 
     def __call__(self, condition: str) -> str:
         
@@ -475,7 +528,8 @@ class ConditionToIntervention(dspy.Module):
             print(f"Action: ConditionToIntervention({condition})")
 
         response = self.retriever(condition, self.k) or "Tool produced no response."
-        response = str_formatting("\n".join([x["long_text"] for x in response]))
+        response = "\n".join([x["long_text"] for x in response])
+        response = str_formatting(response, self.tokenizer, self.max_token)
         
         if VERBOSE:
             print(f"Function Response: {response}")
@@ -490,12 +544,11 @@ class MedicalSME(dspy.Module):
     def __init__(self, model:str, host:str, port:int):
         self.SME = dspy.ChainOfThought(BasicQA)    
         self.lm = dspy.HFClientVLLM(model=model, port=port, url=host, max_tokens=1_000, timeout_s=2_000, 
-                                    stop=['\n\n', '<|eot_id|>'],
-                                    # model_type='chat',
+                                    stop=['\n\n', '<|eot_id|>', '<|end_header_id|>'],
                                     )
         
-
     def __call__(self, question) -> str:
+        
         with dspy.context(lm=self.lm, temperature=0.7):
             response = self.lm(question).answer
             
@@ -510,16 +563,25 @@ class AnalyticalQuery(dspy.Module):
     input_variable = "question"
     desc = "Access to a db of Clinical Trials. Reply question that could be answered with a SQL query. Use when other tools are not suitable."
 
-    def __init__(self, args, sql:bool=True, kg:bool=True):
+    def __init__(self, args, tokenizer:AutoTokenizer, max_token:int, sql:bool=True, kg:bool=True):
         self.sql_engine = get_sql_engine(model=args.vllm, model_host=args.host, model_port=args.port)
         self.cypher_engine = get_cypher_engine(model=args.vllm, model_host=args.host, model_port=args.port)
         self.response_generator = dspy.Predict(QAwithContext)
         self.sql = sql
         self.kg = kg
+        self.tokenizer = tokenizer
+        self.max_token = max_token
         if not (self.sql or self.kg):
             raise ValueError("Either SQL query or KG query must be enabled by setting it to True.")
 
-    def __call__(self, question):
+    def __call__(self, question:str)->str:
+        
+        #BUG sometimes the LLM is given the fill reasoning not just the question.
+        question =  question.split("]")[0]
+        
+        max_token = self.max_token
+        if self.sql and self.kg:
+            max_token = int(max_token * 0.5)
         
         if VERBOSE:
             print(f"Action: AnalyticalQuery({question})")
@@ -530,6 +592,7 @@ class AnalyticalQuery(dspy.Module):
         if self.sql:
             try:
                 sql_response = self.sql_engine.query(question).response
+                sql_response = str_formatting(sql_response, self.tokenizer, max_token)
             except Exception as e:
                 sql_response = "Sorry, I could not provide an answer."
                 
@@ -537,13 +600,12 @@ class AnalyticalQuery(dspy.Module):
             try:
                 # BUG: Cypher query making the entire processes to fail. Unknown cause. Taking too long or failing to produce an answer and proceed.
                 # raise NotImplementedError("Cypher query making the entire processes to fail. Unknown cause. Taking too long or failing to produce an answer and proceed.")
-                cypher_response = cypher_engine(question)
-                # cypher_response = self.cypher_engine.invoke(question)["result"]
+                cypher_response = cypher_engine(question) # Custom f(x) with DSPy
+                cypher_response = str_formatting(cypher_response, self.tokenizer, max_token)
+                # cypher_response = self.cypher_engine.invoke(question)["result"] # From LangChain
             except Exception as e:     
                 print(f"Cypher query error: {e}")
                 cypher_response = "Sorry, I could not provide an answer."
-                # cypher_response = "Not implemented."
-                
                 
         if VERBOSE:
             if self.sql:
@@ -551,12 +613,10 @@ class AnalyticalQuery(dspy.Module):
 
             if self.kg:
                 print(f"Cypher Response: {cypher_response}")
+    
                 
-        response = self.response_generator(
-            question=question,
-            sql_response=str_formatting(sql_response, max_token=1_000),
-            cypher_response=str_formatting(cypher_response, max_token=1_000),
-        ).answer
+        response = self.response_generator(question=question, sql_response=sql_response, cypher_response=cypher_response).answer
+        response = str_formatting(response, self.tokenizer, self.max_token)
 
         if VERBOSE:
             print(f"Function Response: {response}")
@@ -564,18 +624,20 @@ class AnalyticalQuery(dspy.Module):
         return response
 
 def main(args):
+    
+    tokenizer = AutoTokenizer.from_pretrained(args.vllm)
+    
     k=5
     KG_tools = [
-    GetClinicalTrial(),
-    ClinicalTrialToEligibility(),
-    InterventionToCt(k=k),
-    InterventionToAdverseEvent(k=k),
-    ConditionToCt(k=k),
-    ConditionToIntervention(k=k),
+    GetClinicalTrial(tokenizer, args.context_max_tokens),
+    ClinicalTrialToEligibility(tokenizer, args.context_max_tokens),
+    InterventionToCt(tokenizer, args.context_max_tokens, k),
+    InterventionToAdverseEvent(tokenizer, args.context_max_tokens, k),
+    ConditionToCt(tokenizer, args.context_max_tokens, k),
+    ConditionToIntervention(tokenizer, args.context_max_tokens, k),
     ]
 
-    tools = [ChitChat()]
-    
+    tools = [ChitChat(tokenizer, args.context_max_tokens)]
     
     #---- Define the tools to be used
     valid_methods = ["sql_only", "kg_only","cypher_only", "llm_only", "analytical_only", "all"]
@@ -583,23 +645,23 @@ def main(args):
         raise NotImplementedError(f"method={args.method} not supported. methods must be one of {valid_methods}")
     
     if args.method == "sql_only":
-        tools += [AnalyticalQuery(args, sql=True, kg=False)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=True, kg=False)]
     
     elif args.method == "kg_only":
-        tools += [AnalyticalQuery(args, sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=False, kg=True)]
         tools += KG_tools
     
     elif args.method == "cypher_only":
-        tools += [AnalyticalQuery(args, sql=False, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=False, kg=True)]
     
     elif args.method == "llm_only":
         pass
     
     elif args.method == "analytical_only":
-        tools += [AnalyticalQuery(args, sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=True, kg=True)]
         
     else:
-        tools += [AnalyticalQuery(args, sql=True, kg=True)]
+        tools += [AnalyticalQuery(args, tokenizer, args.context_max_tokens, sql=True, kg=True)]
         tools += KG_tools
         
     if args.med_sme:
@@ -609,15 +671,14 @@ def main(args):
         sme_port = 8051
         tools += [MedicalSME(sme_model, sme_host, sme_port)]
     
-    react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=10)
+    react_module = dspy.ReAct(BasicQA, tools=tools, max_iters=5)
     
     
     #---- Load the LLM
-    lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
-                           stop=['\n\n', '<|eot_id|>'], 
-                        #    model_type='chat',
-                        )
 
+    lm = dspy.HFClientVLLM(model=args.vllm, port=args.port, url=args.host, max_tokens=1_000, timeout_s=2_000, 
+                           stop=['\n\n', '<|eot_id|>', '<|end_header_id|>'],
+                        )
     
     dspy.settings.configure(lm=lm, temperature=0.3)
     
@@ -654,52 +715,30 @@ if __name__ == "__main__":
         help="Large Language Model name using HF nomenclature. E.g. 'mistralai/Mistral-7B-Instruct-v0.2'.",
     )
 
-    parser.add_argument(
-        "-host",
-        type=str,
-        default="http://0.0.0.0",
-        help="LLM server host.",
-    )
+    parser.add_argument("-host", type=str, default="http://0.0.0.0", help="LLM server host.")
 
-    parser.add_argument(
-        "-port",
-        type=int,
-        default=8_000,
-        help="LLM server port.",
-    )
+    parser.add_argument("-port", type=int, default=8_000, help="LLM server port.")
     
-        # Add arguments
-    parser.add_argument(
-        "-i",
-        "--input_tsv",
-        type=str,
-        default="./data/ctGov.questioner.mistral7b.tsv",
-        help="path to questioner file. It assumes that the file is tab-separated. that the file contains 1st column as index and a `question` column.",
-    )
+    parser.add_argument("-i", "--input_tsv", type=str, default="./data/ctGov.questioner.mistral7b.tsv",
+                        help="path to questioner file. It assumes that the file is tab-separated. that the file contains 1st column as index and a `question` column.",
+                        )
 
-    # Add arguments
-    parser.add_argument(
-        "-o",
-        "--output_tsv",
-        type=str,
-        default="./results/ReAct/ctGov.questioner.mistral7b.tsv",
-        help="full path to the output tsv file. The file will contain the same information as the input file plus an additional `ReAct_answer` column.",
-    )
+    parser.add_argument("-o", "--output_tsv", type=str, default="./results/ReAct/ctGov.questioner.mistral7b.tsv",
+                        help="full path to the output tsv file. The file will contain the same information as the input file plus an additional `ReAct_answer` column.",
+                        )
     
-        # Add arguments
-    parser.add_argument(
-        "-m",
-        "--method",
-        type=str,
-        default="all",
-        help="""inference methods`sql_only`, `kg_only`, `cypher_oly`, `all`.
-        `sql_only` user txt-2-SQL llamaindex tool directly to AACT. 
-        `kg_only` uses a set of pre-defined tools for Vector Search and txt-2-Cypher on a Neo4j KG.
-        `cypher_only` uses txt-2-Cypher LnagChian tool on a Neo4j KG.
-        `all` user all tools available.
-        Default `all`."""
-    )
+    parser.add_argument( "-m", "--method", type=str, default="all", 
+                        help="""inference methods`sql_only`, `kg_only`, `cypher_oly`, `all`.
+                        `sql_only` user txt-2-SQL llamaindex tool directly to AACT. 
+                        `kg_only` uses a set of pre-defined tools for Vector Search and txt-2-Cypher on a Neo4j KG.
+                        `cypher_only` uses txt-2-Cypher LangChain tool on a Neo4j KG.
+                        `all` user all tools available. 
+                        Default `all`."""
+                        )
+    
     parser.add_argument("-s","--med_sme", action='store_true', help="Flag indicating the access to a Med SME LLM like Meditron. Default: False")
+    
+    parser.add_argument("-c", "--context_max_tokens", type=int, default=2_500, help="Maximum number of tokens to be used in the context. Default: 2_500")
     
     
     parser.set_defaults(vllm=None, med_sme=False)

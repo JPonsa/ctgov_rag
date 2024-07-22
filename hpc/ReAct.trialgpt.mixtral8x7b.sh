@@ -28,25 +28,28 @@ poetry run python collect_env.py
 echo #------------------------
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
 --quantization gptq \
---max-model-len 5000 \
---gpu-memory-utilization 0.80 &
+--max-model-len 15000 \
+--gpu-memory-utilization 0.90 &
 
 echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
-for MODE in llm_only cypher_only kg_only; do
+#for MODE in llm_only cypher_only kg_only; do
+for MODE in kg_only cypher_only llm_only; do
 
     echo $MODEL_NAME-$MODE
 
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+    --context_max_tokens 2000 \
     -i ./data/trialgpt.questioner.tsv \
     -o ./results/ReAct/trialgpt.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
     -m $MODE
 
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+    --context_max_tokens 2000 \
     -i ./data/trialgpt.questioner.tsv \
     -o ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv \
     -m $MODE \

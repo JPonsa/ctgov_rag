@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ReAct_ctGov_llama3
 # Max run time in H:M:S
-#$ -l h_rt=12:00:0
+#$ -l h_rt=6:00:0
 # Memory
 #$ -l mem=48G
 #$ -l gpu=1
@@ -16,7 +16,6 @@ module load gcc-libs/10.2.0
 module load compilers/gnu/10.2.0
 module load cuda/12.2.2/gnu-10.2.0 
 module load ruse/2.0
-
 
 MODEL=meta-llama/Meta-Llama-3-8B-Instruct
 MODEL_NAME=llama3_8b
@@ -36,7 +35,8 @@ for MODE in all sql_only llm_only cypher_only kg_only analytical_only; do
 
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
-    -i ./data/ctGov.questioner.mistral7b.tsv \
+    --context_max_tokens 3000 \
+    -i ./data/ctGov.questioner.tsv \
     -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
     -m $MODE
 

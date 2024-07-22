@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #$ -N ReAct_ctGov_phi3
 # Max run time in H:M:S
-#$ -l h_rt=12:00:0
+#$ -l h_rt=6:00:0
 # Memory
 #$ -l mem=48G
 #$ -l gpu=1
@@ -21,13 +21,11 @@ module load ruse/2.0
 # MODEL_NAME=phi3_m_128k
 PORT=8045
 
-pip install poetry
-# poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
-# --max-model-len 25000 \
-# --gpu-memory-utilization 0.90 &
-
+PORT=8065
 MODEL=microsoft/Phi-3-mini-4k-instruct
 MODEL_NAME=phi3_m_4k
+
+pip install poetry
 
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
 --gpu-memory-utilization 0.90 &
@@ -36,16 +34,30 @@ echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
-for MODE in all sql_only llm_only cypher_only kg_only analytical_only; do
+# for MODE in all sql_only llm_only cypher_only kg_only analytical_only; do
 
-    echo $MODEL_NAME-$MODE
+#     echo $MODEL_NAME-$MODE
 
-    ruse --stdout --time=600 -s \
-    poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
-    -i ./data/ctGov.questioner.mistral7b.tsv \
-    -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
-    -m $MODE
+#     ruse --stdout --time=600 -s \
+#     poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+#     --context_max_tokens 3000 \
+#     -i ./data/ctGov.questioner.tsv \
+#     -o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
+#     -m $MODE
 
-done
+# done
+
+MODE=all
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+--context_max_tokens 2000 \
+-i ./data/ctGov.questioner.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
+-m $MODE
+
+poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
+--context_max_tokens 3000 \
+-i ./data/ctGov.questioner.tsv \
+-o ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
+-m $MODE
 
 echo ReAct $MODEL_NAME competed!

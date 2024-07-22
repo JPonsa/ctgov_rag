@@ -29,15 +29,17 @@ echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
-for mode in all llm_only sql_only cypher_only kg_only analytical_only; do
+# for MODE in all sql_only llm_only cypher_only kg_only analytical_only; do
+for MODE in analytical_only kg_only cypher_only llm_only sql_only all; do
     
-    echo $MODEL_NAME-$mode
+    echo $MODEL_NAME-$MODE
     
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.py -vllm $MODEL -port $PORT \
-    -i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.tsv \
-    -o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.$mode.tsv \
-    -m $mode
+    --context_max_tokens 3000 \
+    -i ./data/preprocessed/RAGA_testset.llama3_8.manually_reviewed.sample100.tsv \
+    -o ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
+    -m $MODE
     
 done
 

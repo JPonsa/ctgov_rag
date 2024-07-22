@@ -18,16 +18,15 @@ module load cuda/12.2.2/gnu-10.2.0
 module load ruse/2.0
 
 
-MODEL=microsoft/Phi-3-mini-128k-instruct
-MODEL_NAME=phi3_m_128k
+# MODEL=microsoft/Phi-3-mini-128k-instruct
+# MODEL_NAME=phi3_m_128k
 PORT=8065
+MODEL=microsoft/Phi-3-mini-4k-instruct
+MODEL_NAME=phi3_m_4k
 
 pip install poetry
-echo #---- Enviromental config
-poetry run python collect_env.py
-echo #------------------------
+
 poetry run python -m vllm.entrypoints.openai.api_server --model $MODEL --trust-remote-code --port $PORT --dtype half --enforce-eager \
---max-model-len 15000 \
 --gpu-memory-utilization 0.90 &
 
 echo I am going to sleep
@@ -41,12 +40,14 @@ for MODE in llm_only cypher_only kg_only; do
 
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+    --context_max_tokens 1000 \
     -i ./data/trialgpt.questioner.tsv \
     -o ./results/ReAct/trialgpt.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
     -m $MODE
 
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
+    --context_max_tokens 1000 \
     -i ./data/trialgpt.questioner.tsv \
     -o ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv \
     -m $MODE \
