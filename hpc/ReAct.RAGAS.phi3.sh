@@ -36,8 +36,7 @@ echo I am going to sleep
 sleep 5m # Go to sleep so I vLLM server has time to start.
 echo I am awake
 
-# for MODE in all sql_only llm_only cypher_only kg_only analytical_only; do
-for MODE in analytical_only kg_only cypher_only llm_only sql_only all; do
+for MODE in llm_only kg_only cypher_only sql_only analytical_only all; do
 
     echo $MODEL_NAME-$MODE
 
