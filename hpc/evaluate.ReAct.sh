@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#$ -N Eval_ReAct_mixtral8x7b
+#$ -N Eval_ReAct
 # Max run time in H:M:S
 #$ -l h_rt=2:00:0
 # Memory
@@ -24,8 +24,10 @@ for MODEL_NAME in llama3_8b mixtral8x7b phi3; do
 
     for MODE in all llm_only sql_only cypher_only kg_only analytical_only; do
 
+        # if file exists > run evaluation.
+
         # ctGov
-        if [! -f ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv]; then
+        if [ -f ./results/ReAct/ctGov.questioner.ReAct.$MODEL_NAME.$MODE.tsv ]; then
             
             echo ctGov-$MODEL_NAME-$MODE - start
 
@@ -39,7 +41,7 @@ for MODEL_NAME in llama3_8b mixtral8x7b phi3; do
         fi
 
         # RAGAS
-        if [! -f ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.$MODE.tsv]; then
+        if [ -f ./results/ReAct/RAGAS.questioner.ReAct.$MODEL_NAME.$MODE.tsv ]; then
             
             echo RAGAS-$MODEL_NAME-$MODE - start
             
@@ -53,7 +55,7 @@ for MODEL_NAME in llama3_8b mixtral8x7b phi3; do
         fi
 
         # trialgpt
-        if [! -f ./results/ReAct/trialgpt.questioner.ReAct.$MODEL_NAME.$MODE.tsv]; then
+        if [ -f ./results/ReAct/trialgpt.questioner.ReAct.$MODEL_NAME.$MODE.tsv ]; then
 
             echo trialgpt-$MODEL_NAME-$MODE - start
             
@@ -67,7 +69,7 @@ for MODEL_NAME in llama3_8b mixtral8x7b phi3; do
         fi
 
         # trialgpt.hint
-        if [! -f ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv]; then
+        if [ ! -f ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv]; then
 
             echo trialgpt.hint-$MODEL_NAME-$MODE - start
            
