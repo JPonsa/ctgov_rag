@@ -3,8 +3,8 @@
 # Max run time in H:M:S
 #$ -l h_rt=2:00:0
 # Memory
-#$ -l mem=64G
-#$ -l gpu=2
+#$ -l mem=32G
+#$ -l gpu=1
 #$ -ac allow=EFL
 
 # workig directory. Use #S -cwd to use current working dir
@@ -20,7 +20,7 @@ module load tensorflow/2.0.0/gpu-py37
 
 pip install poetry
 
-for MODEL_NAME in llama3_8b mixtral8x7b phi3; do
+for MODEL_NAME in llama3_8b mixtral8x7b phi3_m_4k; do
 
     for MODE in all llm_only sql_only cypher_only kg_only analytical_only; do
 
@@ -69,10 +69,10 @@ for MODEL_NAME in llama3_8b mixtral8x7b phi3; do
         fi
 
         # trialgpt.hint
-        if [ ! -f ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv]; then
+        if [ -f ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv ]; then
 
             echo trialgpt.hint-$MODEL_NAME-$MODE - start
-           
+
             ruse --stdout --time=600 -s \
             poetry run python ./src/evaluation/trialgpt_questioner_eval.py \
             -i ./results/ReAct/trialgpt.questioner.ReAct_hint.$MODEL_NAME.$MODE.tsv \

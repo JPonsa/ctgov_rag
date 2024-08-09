@@ -45,6 +45,8 @@ for MODE in llm_only cypher_only kg_only; do
     -o ./results/ReAct/trialgpt.questioner.ReAct.$MODEL_NAME.$MODE.tsv \
     -m $MODE
 
+    echo $MODEL_NAME-$MODE-hint
+
     ruse --stdout --time=600 -s \
     poetry run python ./src/rag/ReAct.trialgpt.py -vllm $MODEL -port $PORT \
     --context_max_tokens 1000 \
