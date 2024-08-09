@@ -59,6 +59,9 @@ from utils.utils import dspy_tracing, print_red
 
 VERBOSE = True
 
+# Set seed
+np.random.seed(123)
+
 # Embedding model
 biobert = SentenceTransformer("dmis-lab/biobert-base-cased-v1.1")
 
@@ -240,23 +243,28 @@ def main(args):
             hint = []
             # add eligible clinical trials
             if isinstance(row["2"], str):
-                eligible = row["2"].split(",")
-                min = np.min([2, len(eligible)-1])
-                min = 0 if min < 0 else min
-                hint += list(np.random.choice(eligible, size=np.random.randint(min, len(eligible)), replace=False))
+                eligible = row["2"].split(",") or []
+                size = min(5, len(eligible))
+                if size > 0:
+                    hint += list(eligible[:size])
+                    
             # add excluded clinical trials
             if isinstance(row["1"], str):
-                excluded = row["1"].split(",")
-                hint += list(np.random.choice(excluded, size=np.random.randint(0, len(excluded)), replace=False))
+                excluded = row["1"].split(",") or []
+                size = min(5, len(excluded))
+                if size > 0:
+                    hint += list(excluded[:size])
+                    
             # add non-relevant clinical trials
             if isinstance(row["0"], str):
-                unrelated = row["0"].split(",")
-                min = np.min([2, len(unrelated)-1])
-                min = 0 if min < 0 else min
-                hint += list(np.random.choice(unrelated, size=np.random.randint(min, len(unrelated)), replace=False))
-            
-            if len(hint) > 0:
-                hint = ",".join(random.sample(hint, len(hint)))
+                unrelated = row["0"].split(",") or []
+                size = min(5, len(unrelated))
+                if size > 0:
+                    hint += list(unrelated[:size])
+                    
+            if isinstance(hint, list) and len(hint) > 0:
+                random.shuffle(hint)
+                hint = ",".join(hint)
             else:
                 hint = ""
             
